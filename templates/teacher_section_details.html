@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ section.name }} - Teacher View{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>{{ section.name }} ({{ section.strand.name }} Strand)</h2>
+    <p class="dashboard-welcome">Manage students and subjects in this section.</p>
+
+    <div class="dashboard-grid">
+        <div class="card dashboard-option-card">
+            <h3>Students in This Section</h3>
+            <p>View and manage individual student profiles.</p>
+        </div>
+        <div class="card dashboard-option-card">
+            <h3>Subjects for This Section</h3>
+            <p>Add new subjects that apply to all students in this section.</p>
+            <a href="{{ url_for('add_subject_to_section', section_id=section.id) }}" class="btn btn-primary btn-icon"><i class="fas fa-book-medical"></i> Add New Subject</a>
+        </div>
+    </div>
+
+    {% if students %}
+    <div class="card mt-40">
+        <h3>Student List</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Student ID</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                        <tr>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.student_id_number }}</td>
+                            <td>
+                                <a href="{{ url_for('add_grades_for_student', section_id=section.id, student_id=student.id) }}" class="btn btn-primary btn-icon-small" title="Add/View Grades">
+                                    <i class="fas fa-graduation-cap"></i> Grades
+                                </a>
+                                <form method="POST" action="{{ url_for('delete_student_from_section', student_id=student.id) }}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete student {{ student.name }}? This will also delete their attendance and grades.');">
+                                    <button type="submit" class="btn btn-danger btn-icon-small" title="Delete Student">
+                                        <i class="fas fa-user-slash"></i> Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <p class="no-data-message">No students enrolled in this section yet.</p>
+    {% endif %}
+
+    {% if section_subjects %}
+    <div class="card mt-40">
+        <h3>Subjects in This Section</h3>
+        <div class="list-container">
+            {% for subject in section_subjects %}
+            <div class="list-item">
+                <span>{{ subject.subject_name }}</span>
+                {# Optional: Add delete subject from section functionality here #}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <p class="no-data-message">No subjects added to this section yet.</p>
+    {% endif %}
+
+    <div class="button-group-right mt-40">
+        <a href="{{ url_for('teacher_section_attendance_dates', section_id=section.id) }}" class="btn btn-primary btn-icon"><i class="fas fa-clipboard-check"></i> Attendance</a>
+        <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Sections</a>
+    </div>
+</div>
+{% endblock %}

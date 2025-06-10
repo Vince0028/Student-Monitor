@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Attendance - {{ section.name }}{% endblock %}
+
+{% block content %}
+<div class="form-page-container">
+    <h2>Attendance for {{ section.name }} ({{ section.strand.name }} Strand)</h2>
+    <p class="form-subheading">Manage daily attendance for students in this section.</p>
+
+    <form method="GET" class="app-form inline-form" id="date-select-form">
+        <div class="form-group">
+            <label for="date">Select Date:</label>
+            <input type="date" id="date" name="date" value="{{ selected_date.isoformat() }}" required onchange="this.form.submit()">
+        </div>
+    </form>
+
+    <form method="POST" class="app-form mt-40">
+        <input type="hidden" name="attendance_date" value="{{ selected_date.isoformat() }}">
+        
+        <h3>Mark Attendance for {{ selected_date.strftime('%A, %B %d, %Y') }}</h3>
+        {% if students %}
+            <div class="attendance-list">
+                {% for student in students %}
+                <div class="attendance-item">
+                    <span class="student-name">{{ student.name }}</span>
+                    <div class="attendance-options">
+                        {% for status in attendance_statuses %}
+                        <label>
+                            <input type="radio" name="status_{{ student.id }}" value="{{ status }}"
+                                {% if attendance_status_map[student.id | string] == status %}checked{% endif %}
+                                {% if loop.first and student.id | string not in attendance_status_map %}checked{% endif %} {# Default to 'present' if no existing record #}
+                            > {{ status | capitalize }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="button-group-right mt-40">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Attendance</button>
+                <a href="{{ url_for('teacher_section_details', section_id=section.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Section</a>
+            </div>
+        {% else %}
+            <p class="no-data-message">No students in this section to mark attendance for.</p>
+            <div class="button-group-right mt-40">
+                <a href="{{ url_for('teacher_section_details', section_id=section.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Section</a>
+            </div>
+        {% endif %}
+    </form>
+
+    {% if all_attendance_for_date %}
+    <div class="card mt-40">
+        <h3>Attendance Records for {{ selected_date.strftime('%A, %B %d, %Y') }}</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attendance_record, student_info in all_attendance_for_date %}
+                    <tr>
+                        <td>{{ student_info.name }}</td>
+                        <td>
+                            <span class="attendance-status-{{ attendance_record.status | lower }}">{{ attendance_record.status | capitalize }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+        <p class="no-data-message mt-40">No attendance records found for {{ selected_date.strftime('%A, %B %d, %Y') }}.</p>
+    {% endif %}
+
+</div>
+{% endblock %}

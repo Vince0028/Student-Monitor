@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Add/Edit Grades - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="form-page-container">
+    <h2>Add/Edit Grades for {{ student.name }}</h2>
+    <p class="form-subheading">Section: {{ student.section.name }} ({{ student.section.strand.name }})</p>
+
+    <form method="POST" class="app-form">
+        <div class="form-group">
+            <label for="semester">Semester:</label>
+            <select id="semester" name="semester" required>
+                <option value="">-- Select Semester --</option>
+                {% for sem in semesters %}
+                    <option value="{{ sem }}" {% if loop.first %}selected{% endif %}>{{ sem }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="school_year">School Year:</label>
+            <select id="school_year" name="school_year" required>
+                <option value="">-- Select School Year --</option>
+                {% for sy in school_years %}
+                    <option value="{{ sy }}" {% if loop.first %}selected{% endif %}>{{ sy }}</option>
+                {% endfor %}
+            </select>
+            <small class="form-hint">Format:YYYY-YYYY (e.g., 2025-2026)</small>
+        </div>
+
+        <div class="grades-input-section">
+            <h3>Subject Grades (0-100)</h3>
+            {% if section_subjects %}
+                {% for subject in section_subjects %}
+                    <div class="form-group">
+                        <label for="grade_{{ subject.id }}">{{ subject.subject_name }}:</label>
+                        <input type="number" id="grade_{{ subject.id }}" name="grade__{{ subject.id }}" min="0" max="100" step="0.01"
+                               value="{{ grades_dict[subject.subject_name + '|' + (semesters[0] if semesters else '') + '|' + (school_years[0] if school_years else '')].grade_value if subject.subject_name + '|' + (semesters[0] if semesters else '') + '|' + (school_years[0] if school_years else '') in grades_dict else '' }}"
+                               placeholder="Enter grade">
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="no-data-message">No subjects added to this section yet. Please add subjects via the section details page.</p>
+            {% endif %}
+        </div>
+        
+        <div class="button-group-right">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Grades</button>
+            <a href="{{ url_for('teacher_section_details', section_id=student.section.id) }}" class="btn btn-secondary"><i class="fas fa-times-circle"></i> Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const semesterSelect = document.getElementById('semester');
+        const schoolYearSelect = document.getElementById('school_year');
+        const gradesDict = {{ grades_dict | tojson }}; // Pass Python dict to JS
+
+        function updateGradesBasedOnSemYear() {
+            const currentSemester = semesterSelect.value;
+            const currentSchoolYear = schoolYearSelect.value;
+
+            document.querySelectorAll('[name^="grade__"]').forEach(input => {
+                const sectionSubjectId = input.name.split('__')[1];
+                // Find the subject name for this sectionSubjectId from section_subjects (passed from Flask)
+                const subject = {{ section_subjects | tojson }}.find(s => s.id === sectionSubjectId);
+                const subjectName = subject ? subject.subject_name : null;
+
+                if (subjectName) {
+                    const key = `${subjectName}|${currentSemester}|${currentSchoolYear}`;
+                    if (gradesDict[key]) {
+                        input.value = gradesDict[key].grade_value;
+                    } else {
+                        input.value = '';
+                    }
+                }
+            });
+        }
+
+        // Add event listeners
+        semesterSelect.addEventListener('change', updateGradesBasedOnSemYear);
+        schoolYearSelect.addEventListener('change', updateGradesBasedOnSemYear);
+
+        // Initial call to set grades for the default selected semester/year
+        updateGradesBasedOnSemYear();
+    });
+</script>
+{% endblock %}

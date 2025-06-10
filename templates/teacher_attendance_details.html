@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Attendance - {{ section.name }}{% endblock %}
+
+{% block content %}
+<div class="form-page-container">
+    <h2>Attendance for {{ section.name }} ({{ section.strand.name }} Strand)</h2>
+    <p class="form-subheading">Manage daily attendance for students in this section.</p>
+
+    {# Conditionally display the date selection form #}
+    {% if not show_summary %}
+    <form method="GET" class="app-form inline-form" id="date-select-form">
+        <div class="form-group">
+            <label for="date">Select Date:</label>
+            <input type="date" id="date" name="date" value="{{ selected_date.isoformat() }}" required>
+            <button type="submit" class="btn btn-primary btn-icon-small"><i class="fas fa-search"></i> View/Mark</button>
+        </div>
+    </form>
+    {% else %}
+    {# Display the selected date without the form when in "View/Edit" mode #}
+    <div class="card mt-40">
+        <h3 class="text-lg font-semibold">Currently Viewing: {{ selected_date.strftime('%A, %B %d, %Y') }}</h3>
+    </div>
+    {% endif %}
+
+    <form method="POST" class="app-form mt-40">
+        <input type="hidden" name="attendance_date" value="{{ selected_date.isoformat() }}">
+        
+        <h3>Mark Attendance</h3>
+        {% if students %}
+            <div class="attendance-list">
+                {% for student in students %}
+                <div class="attendance-item">
+                    <span class="student-name">{{ student.name }}</span>
+                    <div class="attendance-options">
+                        {% for status in attendance_statuses %}
+                        <label>
+                            <input type="radio" name="status_{{ student.id }}" value="{{ status }}"
+                                {% if attendance_status_map[student.id | string] == status %}checked{% endif %}
+                                {% if loop.first and (student.id | string not in attendance_status_map or attendance_status_map[student.id | string] == '') %}checked{% endif %} {# Default to 'present' if no existing record or empty #}
+                            > {{ status | capitalize }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="button-group-right mt-40">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Attendance</button>
+                <a href="{{ url_for('teacher_section_attendance_dates', section_id=section.id) }}" class="btn btn-secondary"><i class="fas fa-history"></i> View Attendance History</a>
+            </div>
+        {% else %}
+            <p class="no-data-message">No students in this section to mark attendance for.</p>
+            <div class="button-group-right mt-40">
+                <a href="{{ url_for('teacher_section_attendance_dates', section_id=section.id) }}" class="btn btn-secondary"><i class="fas fa-history"></i> View Attendance History</a>
+            </div>
+        {% endif %}
+    </form>
+
+    {# Conditional display of the Attendance Summary card #}
+    {% if show_summary %}
+    <div class="card mt-40">
+        <h3>Attendance Summary</h3>
+        {% if students %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>{{ student.name }}</td>
+                            <td>
+                                {% if attendance_status_map[student.id | string] %}
+                                    <span class="attendance-status-{{ attendance_status_map[student.id | string] | lower }}">{{ attendance_status_map[student.id | string] | capitalize }}</span>
+                                {% else %}
+                                    N/A (Not marked)
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="no-data-message">No students in this section.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

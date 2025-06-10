@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Student - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="form-page-container">
+    <h2>Edit Student: {{ student.name }}</h2>
+    <form method="POST" class="app-form">
+        <div class="form-group">
+            <label for="name">Student Full Name:</label>
+            <input type="text" id="name" name="name" value="{{ student.name }}" required>
+        </div>
+        <div class="form-group">
+            <label for="student_id_number">Student ID Number:</label>
+            <input type="text" id="student_id_number" name="student_id_number" value="{{ student.student_id_number }}" required>
+            <small class="form-hint">This is the unique school-assigned ID.</small>
+        </div>
+        <div class="form-group">
+            <label for="section_id">Assign to Section:</label>
+            <select id="section_id" name="section_id" required>
+                <option value="">-- Select Section --</option>
+                {% for sec in sections %}
+                    <option value="{{ sec.id }}" {% if student.section_id == sec.id %}selected{% endif %}>
+                        {{ sec.name }} ({{ sec.strand.name }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="button-group-right">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+            <a href="{{ url_for('section_details', section_id=student.section_id) }}" class="btn btn-secondary"><i class="fas fa-times-circle"></i> Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

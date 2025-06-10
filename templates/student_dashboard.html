@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Admin Dashboard - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>Student Admin Dashboard</h2>
+    <p class="dashboard-welcome">Welcome, {{ session['username'] }}!</p>
+
+    <div class="dashboard-grid">
+        <div class="card dashboard-option-card full-width">
+            <h3>Manage Strands & Students</h3>
+            <p>Add new academic strands, organize sections within them, and add student profiles.</p>
+            <a href="{{ url_for('add_strand') }}" class="btn btn-primary btn-icon"><i class="fas fa-plus-circle"></i> Add New Strand</a>
+        </div>
+    </div>
+
+    {% if strands %}
+    <div class="card mt-40">
+        <h3>Existing Strands</h3>
+        <div class="list-container">
+            {% for strand in strands %}
+            <div class="list-item">
+                <span>{{ strand.name }}</span>
+                <a href="{{ url_for('strand_details', strand_id=strand.id) }}" class="btn btn-view btn-icon-small">
+                    <i class="fas fa-folder-open"></i> View Details
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <p class="no-data-message">No strands added yet. Start by adding a new one!</p>
+    {% endif %}
+
+</div>
+{% endblock %}

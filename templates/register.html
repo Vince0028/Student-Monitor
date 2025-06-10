@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Register - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h2>Register</h2>
+    <form method="POST" class="auth-form">
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <div class="form-group">
+            <label for="user_type">Register As:</label>
+            <select id="user_type" name="user_type" required onchange="toggleSpecialization()">
+                <option value="">-- Select Type --</option>
+                <option value="student">Student (Admin)</option>
+                <option value="teacher">Teacher</option>
+            </select>
+        </div>
+        <div class="form-group" id="specialization-group" style="display:none;">
+            <label for="specialization">Teacher Specialization:</label>
+            <select id="specialization" name="specialization">
+                <option value="">-- Select Specialization --</option>
+                {% for specialization in teacher_specializations %}
+                <option value="{{ specialization }}">{{ specialization }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Register</button>
+    </form>
+    <div class="auth-link">
+        Already have an account? <a href="{{ url_for('login') }}">Login here</a>
+    </div>
+</div>
+
+<script>
+    function toggleSpecialization() {
+        var userType = document.getElementById('user_type').value;
+        var specializationGroup = document.getElementById('specialization-group');
+        var specializationSelect = document.getElementById('specialization');
+
+        if (userType === 'teacher') {
+            specializationGroup.style.display = 'block';
+            specializationSelect.setAttribute('required', 'required'); // Make required for teachers
+        } else {
+            specializationGroup.style.display = 'none';
+            specializationSelect.removeAttribute('required');
+            specializationSelect.value = ''; // Clear selection when not a teacher
+        }
+    }
+    // Call on page load to set initial state
+    document.addEventListener('DOMContentLoaded', toggleSpecialization);
+</script>
+{% endblock %}

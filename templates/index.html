@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome - Student Monitor{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+    <div class="hero-content">
+        <h2>Welcome to Student Monitor</h2>
+        <p>Your comprehensive academic management system for Senior High School.</p>
+        <div class="hero-buttons">
+            {% if 'user_id' in session %}
+                {% if session['user_type'] == 'student' %}
+                    <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary btn-large">Go to Student Dashboard</a>
+                {% elif session['user_type'] == 'teacher' %}
+                    <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-primary btn-large">Go to Teacher Dashboard</a>
+                {% endif %}
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-large">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-large">Login</a>
+                <a href="{{ url_for('register') }}" class="btn btn-secondary btn-large">Register</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<section class="info-section">
+    <div class="info-card">
+        <h3>For Students</h3>
+        <p>Manage your academic profile, view your grades, and keep track of your information with ease.</p>
+        <i class="fas fa-user-graduate icon-large"></i>
+    </div>
+    <div class="info-card">
+        <h3>For Teachers</h3>
+        <p>Effortlessly record student attendance and manage grades for all your subjects.</p>
+        <i class="fas fa-chalkboard-teacher icon-large"></i>
+    </div>
+</section>
+{% endblock %}
