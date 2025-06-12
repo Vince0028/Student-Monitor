@@ -492,7 +492,9 @@ body {
 .app-form input[type="text"],
 .app-form input[type="number"],
 .app-form input[type="date"],
-.app-form select {
+.app-form select,
+/* Added for profile.html inputs */
+.form-input { 
     width: 100%;
     padding: 12px;
     border: 1px solid #cbd5e0;
@@ -505,11 +507,20 @@ body {
 .app-form input[type="text"]:focus,
 .app-form input[type="number"]:focus,
 .app-form input[type="date"]:focus,
-.app-form select:focus {
+.app-form select:focus,
+/* Added for profile.html inputs */
+.form-input:focus {
     border-color: #2b6cb0;
     box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.2);
     outline: none;
 }
+/* Specific style for disabled input in profile.html */
+.form-input.disabled-input {
+    background-color: #e9ecef; /* Lighter background for disabled */
+    cursor: not-allowed;
+    color: #6c757d;
+}
+
 
 .form-hint {
     font-size: 0.85em;
@@ -697,7 +708,7 @@ body {
     font-weight: 600;
     color: #2d3748;
 }
-.list-item .button-group {
+.list-item .button-group { 
     display: flex;
     gap: 8px;
     align-items: center;
@@ -775,7 +786,7 @@ body {
     white-space: nowrap; /* Prevent label from wrapping */
 }
 .inline-form .form-group input[type="date"] {
-    width: auto; /* Allow date input to shrink */
+    width: auto;
     max-width: 180px; /* Limit date input width */
 }
 
