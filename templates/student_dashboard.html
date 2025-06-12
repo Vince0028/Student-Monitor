@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Admin Dashboard - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>Student Admin Dashboard</h2>
+    <p class="dashboard-welcome">Welcome, {{ session['username'] }}! Manage the school's academic structure here.</p>
+
+    <div class="dashboard-grid">
+        <div class="card dashboard-option-card full-width">
+            <h3>Manage Grade Levels</h3>
+            <p>Define and organize the academic grade levels within the school (e.g., Grade 7, Grade 11).</p>
+            <a href="{{ url_for('add_grade_level') }}" class="btn btn-primary btn-icon"><i class="fas fa-plus-circle"></i> Add New Grade Level</a>
+        </div>
+    </div>
+
+    {% if grade_levels %}
+    <div class="card mt-40">
+        <h3>Existing Grade Levels</h3>
+        <div class="list-container">
+            {% for grade_level in grade_levels %}
+            <div class="list-item">
+                <span>{{ grade_level.name }} ({{ grade_level.level_type }})</span>
+                <div class="button-group">
+                    <a href="{{ url_for('grade_level_details', grade_level_id=grade_level.id) }}" class="btn btn-view btn-icon-small">
+                        <i class="fas fa-folder-open"></i> View Details
+                    </a>
+                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
+                            data-delete-url="{{ url_for('delete_grade_level', grade_level_id=grade_level.id) }}"
+                            data-redirect-url="{{ url_for('student_dashboard') }}"
+                            data-confirmation-message="Are you sure you want to delete Grade Level {{ grade_level.name }}? This will also delete ALL its associated strands, sections, periods, students, subjects, attendance, and grades!"
+                            data-item-name="Grade Level {{ grade_level.name }}"
+                            title="Delete Grade Level">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <p class="no-data-message">No grade levels added yet. Start by adding a new one!</p>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ grade_level.name }} Details - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>{{ grade_level.name }} ({{ grade_level.level_type }}) Details</h2>
+    <p class="dashboard-welcome">Manage academic structure for {{ grade_level.name }}.</p>
+
+    <div class="dashboard-grid">
+        {% if grade_level.level_type == 'SHS' %}
+        <div class="card dashboard-option-card full-width"> {# Made full-width as it's the only option #}
+            <h3>Strands for {{ grade_level.name }}</h3>
+            <p>Add new academic strands (e.g., STEM, ICT) specific to this grade level.</p>
+            <a href="{{ url_for('add_strand', grade_level_id=grade_level.id) }}" class="btn btn-primary btn-icon"><i class="fas fa-plus-circle"></i> Add New Strand</a>
+        </div>
+        {% else %} {# JHS #}
+        <div class="card dashboard-option-card full-width"> {# Made full-width as it's the only option #}
+            <h3>Sections for {{ grade_level.name }}</h3>
+            <p>Add new sections (e.g., A, B, Purity) for this grade level.</p>
+            {# JHS sections are added directly under grade level #}
+            <a href="{{ url_for('add_section', parent_id=grade_level.id, parent_type='grade_level') }}" class="btn btn-primary btn-icon"><i class="fas fa-plus-circle"></i> Add New Section</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if grade_level.level_type == 'SHS' %}
+    {% if strands %}
+    <div class="card mt-40">
+        <h3>Existing Strands in {{ grade_level.name }}</h3>
+        <div class="list-container">
+            {% for strand in strands %}
+            <div class="list-item">
+                <span>{{ strand.name }}</span>
+                <div class="button-group">
+                    {# Updated link to new strand_details page #}
+                    <a href="{{ url_for('strand_details', strand_id=strand.id) }}" class="btn btn-view btn-icon-small">
+                        <i class="fas fa-folder-open"></i> View Sections
+                    </a>
+                    <a href="{{ url_for('edit_strand', strand_id=strand.id) }}" class="btn btn-edit btn-icon-small" title="Edit Strand">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
+                            data-delete-url="{{ url_for('delete_strand', strand_id=strand.id) }}"
+                            data-redirect-url="{{ url_for('grade_level_details', grade_level_id=grade_level.id) }}"
+                            data-confirmation-message="Are you sure you want to delete strand {{ strand.name }}? This will also delete ALL its associated sections, periods, students, subjects, attendance, and grades!"
+                            data-item-name="Strand {{ strand.name }}"
+                            title="Delete Strand">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+        <p class="no-data-message mt-40">No strands added to {{ grade_level.name }} yet. Add one above!</p>
+    {% endif %}
+    {% else %} {# JHS: Display sections directly on grade_level_details #}
+    {% if sections %}
+    <div class="card mt-40">
+        <h3>Existing Sections in {{ grade_level.name }}</h3>
+        <div class="list-container">
+            {% for section in sections %}
+            <div class="list-item">
+                <span>{{ section.name }}</span> {# No strand for JHS sections #}
+                <div class="button-group">
+                    <a href="{{ url_for('section_details', section_id=section.id) }}" class="btn btn-view btn-icon-small">
+                        <i class="fas fa-folder-open"></i> View Periods
+                    </a>
+                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
+                            data-delete-url="{{ url_for('delete_section_admin', section_id=section.id) }}"
+                            data-redirect-url="{{ url_for('grade_level_details', grade_level_id=grade_level.id) }}"
+                            data-confirmation-message="Are you sure you want to delete section {{ section.name }}? This will also delete ALL its periods, students, subjects, attendance, and grades within it!"
+                            data-item-name="Section {{ section.name }}"
+                            title="Delete Section">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <p class="no-data-message mt-40">No sections added to {{ grade_level.name }} yet. Add one above!</p>
+    {% endif %}
+    {% endif %}
+
+    <div class="button-group-right mt-40">
+        <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Grade Levels</a>
+    </div>
+</div>
+{% endblock %}

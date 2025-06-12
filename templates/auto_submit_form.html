@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+</head>
+<body>
+    <p>Please wait while we process your request...</p>
+    <form id="autoSubmitForm" action="{{ action_url }}" method="{{ method }}">
+        {% for key, value in form_data.items() %}
+            <input type="hidden" name="{{ key }}" value="{{ value }}">
+        {% endfor %}
+    </form>
+    <script>
+        document.getElementById('autoSubmitForm').submit();
+    </script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Add/Edit Grades - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="form-page-container">
+    <h2>Add/Edit Grades for {{ student.name }}</h2>
+    <p class="form-subheading">Section: {{ student.section_period.section.name }} ({{ student.section_period.period_name }} {{ student.section_period.school_year }} {% if student.section_period.section.strand %}{{ student.section_period.section.strand.name }}{% endif %})</p>
+
+    <form method="POST" class="app-form">
+        <div class="form-group">
+            <label for="period_name">Period:</label>
+            <select id="period_name" name="period_name" required>
+                {% for p_name in period_names %}
+                    <option value="{{ p_name }}" {% if student.section_period.period_name == p_name %}selected{% endif %}>{{ p_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="school_year">School Year:</label>
+            <select id="school_year" name="school_year" required>
+                {% for sy in school_years %}
+                    <option value="{{ sy }}" {% if student.section_period.school_year == sy %}selected{% endif %}>{{ sy }}</option>
+                {% endfor %}
+            </select>
+            <small class="form-hint">Format:YYYY-YYYY (e.g., 2025-2026)</small>
+        </div>
+
+        <div class="grades-input-section mt-40">
+            <h3>Enter Grades for {{ student.section_period.period_type | capitalize }}:</h3>
+            {% for subject in section_subjects %}
+            <div class="form-group">
+                <label for="grade__{{ subject.id }}">{{ subject.subject_name }} (Teacher: {{ subject.assigned_teacher_name }}):</label>
+                <input type="number" step="0.01" id="grade__{{ subject.id }}" name="grade__{{ subject.id }}"
+                       min="0" max="100" placeholder="0-100"
+                       value="{{ grades_dict.get(subject.subject_name ~ '|' ~ student.section_period.period_name ~ '|' ~ student.section_period.school_year, {}).get('grade_value', '') }}">
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="average-grade-display card mt-20" style="{% if initial_average_grade == 'N/A' %}display:none;{% endif %}">
+            <p><strong>Calculated Average Grade:</strong> <span id="average_grade_value">{{ initial_average_grade | default('N/A') }}</span></p>
+            <small class="form-hint">This average reflects only the grades currently visible and entered on this form.</small>
+        </div>
+
+        <div class="button-group-right mt-40">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Grades</button>
+            <a href="{{ url_for('teacher_section_period_view', section_period_id=student.section_period.id) }}" class="btn btn-secondary"><i class="fas fa-times-circle"></i> Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const periodNameSelect = document.getElementById('period_name');
+        const schoolYearSelect = document.getElementById('school_year');
+        // This 'gradesDict' passed from Flask is a dictionary with keys like 'SubjectName|SemesterName|SchoolYear'
+        const gradesDict = {{ grades_dict | tojson }}; 
+        const gradeInputs = document.querySelectorAll('.grades-input-section input[type="number"]');
+        const averageGradeSpan = document.getElementById('average_grade_value');
+
+        function updateGradesBasedOnSemYear() {
+            const currentPeriod = periodNameSelect.value;
+            const currentSchoolYear = schoolYearSelect.value;
+
+            gradeInputs.forEach(input => {
+                // Extract subject_id from input name (e.g., 'grade__<subject_id>')
+                const sectionSubjectId = input.name.split('__')[1];
+                
+                // Get the subject name for this sectionSubjectId from the 'section_subjects' data
+                // This 'section_subjects' is available in the Jinja2 context but needs to be accessible in JS
+                // Let's pass the section_subjects into JS as well
+                const allSectionSubjects = {{ section_subjects | tojson }};
+                const subject = allSectionSubjects.find(s => s.id === sectionSubjectId);
+                const subjectName = subject ? subject.subject_name : null;
+
+                if (subjectName) {
+                    const key = `${subjectName}|${currentPeriod}|${currentSchoolYear}`;
+                    if (gradesDict[key]) {
+                        input.value = gradesDict[key].grade_value;
+                    } else {
+                        input.value = ''; // Clear input if no grade found for this subject/semester/year
+                    }
+                }
+            });
+            calculateAndDisplayAverage(); // Recalculate average after updating grades
+        }
+
+        function calculateAndDisplayAverage() {
+            let total = 0;
+            let count = 0;
+            gradeInputs.forEach(input => {
+                const value = parseFloat(input.value);
+                if (!isNaN(value) && value >= 0 && value <= 100) {
+                    total += value;
+                    count++;
+                }
+            });
+
+            if (count > 0) {
+                const average = (total / count).toFixed(2);
+                if (averageGradeSpan) {
+                    averageGradeSpan.textContent = average;
+                    averageGradeSpan.closest('.average-grade-display').style.display = 'block'; // Show if hidden
+                }
+            } else {
+                if (averageGradeSpan) {
+                    averageGradeSpan.textContent = 'N/A';
+                    averageGradeSpan.closest('.average-grade-display').style.display = 'none'; // Hide if no valid grades
+                }
+            }
+        }
+
+        // Add event listeners
+        periodNameSelect.addEventListener('change', updateGradesBasedOnSemYear);
+        schoolYearSelect.addEventListener('change', updateGradesBasedOnSemYear);
+        gradeInputs.forEach(input => {
+            input.addEventListener('input', calculateAndDisplayAverage);
+        });
+
+        // Initial call to set grades for the default selected semester/year and calculate average
+        updateGradesBasedOnSemYear();
+    });
+</script>
+{% endblock %}
