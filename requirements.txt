@@ -3,4 +3,5 @@ SQLAlchemy
 Werkzeug
 python-dotenv
 gunicorn
+bcrypt
 psycopg2-binary
