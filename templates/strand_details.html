@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}Strand Details: {{ strand.name }} - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>{{ strand.name }} Strand ({{ strand.grade_level.name }})</h2>
+    <p class="form-subheading">Manage sections within this strand.</p>
+
+    <div class="dashboard-grid">
+        <div class="card dashboard-option-card">
+            <h3>Sections in {{ strand.name }}</h3>
+            <p>View and manage all sections belonging to this strand.</p>
+        </div>
+        <div class="card dashboard-option-card">
+            <h3>Add New Section</h3>
+            <p>Create a new section under this strand for {{ strand.grade_level.name }}.</p>
+            <a href="{{ url_for('add_section', parent_id=strand.id, parent_type='strand') }}" class="btn btn-primary btn-icon">
+                <i class="fas fa-plus-circle"></i> Add Section
+            </a>
+        </div>
+        {# New card for Teacher Assignment Management #}
+        <div class="card dashboard-option-card">
+            <h3>Teacher Assignment Management</h3>
+            <p>Attempt to automatically assign registered teacher accounts to unassigned periods within sections managed by this admin in this strand.</p>
+            <button type="button" class="btn btn-primary btn-icon" id="reassignTeachersBtn">
+                <i class="fas fa-link"></i> Assign Teachers to Unassigned Periods
+            </button>
+        </div>
+    </div>
+
+    {% if sections %}
+    <div class="card mt-40">
+        <h3>Section List</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Section Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for section in sections %}
+                        <tr>
+                            <td>{{ section.name }}</td>
+                            <td>
+                                <div class="button-group">
+                                    <a href="{{ url_for('section_details', section_id=section.id) }}" class="btn btn-view btn-icon-small" title="View Section Details">
+                                        <i class="fas fa-folder-open"></i> View Details
+                                    </a>
+                                    <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editSectionModal-{{ section.id }}" title="Edit Section">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
+                                            data-delete-url="{{ url_for('delete_section_admin', section_id=section.id) }}"
+                                            data-redirect-url="{{ url_for('strand_details', strand_id=strand.id) }}"
+                                            data-confirmation-message="Are you sure you want to delete section {{ section.name }} and all its periods, students, subjects, attendance, and grades?"
+                                            data-item-name="Section {{ section.name }}"
+                                            title="Delete Section">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <p class="no-data-message">No sections found for this strand yet. Click "Add Section" above!</p>
+    {% endif %}
+
+    <div class="button-group-right mt-40">
+        <a href="{{ url_for('grade_level_details', grade_level_id=strand.grade_level.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Grade Level</a>
+    </div>
+</div>
+
+<!-- Modals for Editing Sections -->
+{% for section in sections %}
+<div class="modal fade" id="editSectionModal-{{ section.id }}" tabindex="-1" aria-labelledby="editSectionModalLabel-{{ section.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editSectionModalLabel-{{ section.id }}">Edit Section: {{ section.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('edit_section_admin', section_id=section.id) }}" method="POST">
+                    <div class="mb-3">
+                        <label for="section_name-{{ section.id }}" class="form-label">Section Name</label>
+                        <input type="text" class="form-control" id="section_name-{{ section.id }}" name="section_name" value="{{ section.name }}" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{# Add this script section at the very end of your HTML file, before {% endblock %} #}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const reassignBtn = document.getElementById('reassignTeachersBtn');
+        if (reassignBtn) {
+            reassignBtn.addEventListener('click', function() {
+                // Show a modal for password confirmation
+                showConfirmationModal(
+                    'Confirm Teacher Reassignment',
+                    'This action will attempt to assign registered teacher accounts to periods that are currently unassigned based on their grade level and specialization. Please enter your password to confirm.',
+                    'Confirm Reassignment',
+                    (password) => {
+                        fetch('{{ url_for("reassign_period_teachers") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `password=${encodeURIComponent(password)}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Reload page to reflect changes and show flash message
+                                window.location.href = data.redirect_url || '{{ url_for("student_dashboard") }}';
+                            } else {
+                                // Stay on page and show error message
+                                console.error('Reassignment failed:', data.message);
+                                alert(data.message); // Using alert temporarily for quick feedback
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An unexpected error occurred during reassignment.');
+                        });
+                    }
+                );
+            });
+        }
+
+        // --- Generic Confirmation Modal (reuse for other deletions/sensitive ops) ---
+        // This relies on a modal HTML structure being present in base.html or elsewhere.
+        // Assuming you have a basic modal structure with #confirmationModal, #confirmModalText, #confirmModalInput, #confirmModalBtn, #cancelModalBtn
+        // If not, you'll need to create one, or use a simpler prompt/confirm.
+        function showConfirmationModal(title, message, confirmButtonText, callback) {
+            // Placeholder for a proper modal. For now, use prompt for password.
+            // In a real app, you'd use a dedicated modal HTML/JS.
+            const password = prompt(message + '\n\nPlease enter your password:');
+            if (password !== null) { // User clicked OK
+                callback(password);
+            } else { // User clicked Cancel
+                // Do nothing
+            }
+        }
+        // END of Generic Confirmation Modal
+    });
+</script>
+{% endblock %}

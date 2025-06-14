@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}Setup Grading System for {{ subject.subject_name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>Setup Grading System</h2>
+    <p class="dashboard-welcome">
+        Define the weighted components for <strong>{{ subject.subject_name }}</strong>. 
+        The total weight must equal 100%.
+    </p>
+
+    <form method="POST" action="{{ url_for('setup_grading_system', subject_id=subject.id) }}" class="app-form" id="grading-system-form">
+        <div id="components-container">
+            {% if grading_system and grading_system.components %}
+                {% for component in grading_system.components %}
+                <div class="form-row component-row">
+                    <div class="form-group">
+                        <label>Component Name</label>
+                        <input type="text" name="component_name" class="form-control" placeholder="e.g., Quizzes, Attendance" value="{{ component.name }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Weight (%)</label>
+                        <input type="number" name="component_weight" class="form-control weight-input" placeholder="e.g., 20" value="{{ component.weight }}" min="1" max="100" required>
+                    </div>
+                    <div class="form-group-action">
+                        <button type="button" class="btn btn-danger btn-icon-small remove-component-btn" title="Remove Component"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <!-- Default first row -->
+                <div class="form-row component-row">
+                    <div class="form-group">
+                        <label>Component Name</label>
+                        <input type="text" name="component_name" class="form-control" placeholder="e.g., Quizzes, Attendance" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Weight (%)</label>
+                        <input type="number" name="component_weight" class="form-control weight-input" placeholder="e.g., 20" min="1" max="100" required>
+                    </div>
+                    <div class="form-group-action">
+                        <button type="button" class="btn btn-danger btn-icon-small remove-component-btn" title="Remove Component"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="button-group-left mt-20">
+            <button type="button" id="add-component-btn" class="btn btn-secondary"><i class="fas fa-plus"></i> Add Another Component</button>
+        </div>
+
+        <div class="total-weight-display-container">
+            <h4 class="total-weight-display">Total Weight: <span id="total-weight">0</span>%</h4>
+        </div>
+
+        <div class="button-group-right mt-40">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Grading System</button>
+            <a href="{{ url_for('manage_subject_grades', section_period_id=subject.section_period_id, subject_id=subject.id) }}" class="btn btn-secondary"><i class="fas fa-times-circle"></i> Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('components-container');
+    const addBtn = document.getElementById('add-component-btn');
+    const totalWeightEl = document.getElementById('total-weight');
+    const form = document.getElementById('grading-system-form');
+
+    function createComponentRow() {
+        const row = document.createElement('div');
+        row.className = 'form-row component-row';
+        row.innerHTML = `
+            <div class="form-group">
+                <label>Component Name</label>
+                <input type="text" name="component_name" class="form-control" placeholder="e.g., Quizzes, Attendance" required>
+            </div>
+            <div class="form-group">
+                <label>Weight (%)</label>
+                <input type="number" name="component_weight" class="form-control weight-input" placeholder="e.g., 20" min="1" max="100" required>
+            </div>
+            <div class="form-group-action">
+                <button type="button" class="btn btn-danger btn-icon-small remove-component-btn" title="Remove Component"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        return row;
+    }
+
+    function updateTotalWeight() {
+        let total = 0;
+        document.querySelectorAll('.weight-input').forEach(input => {
+            total += parseInt(input.value) || 0;
+        });
+        totalWeightEl.textContent = total;
+        if (total === 100) {
+            totalWeightEl.style.color = 'var(--success-color)';
+        } else {
+            totalWeightEl.style.color = 'var(--danger-color)';
+        }
+    }
+
+    addBtn.addEventListener('click', () => {
+        container.appendChild(createComponentRow());
+    });
+
+    container.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-component-btn')) {
+            // Prevent removing the last row
+            if (container.querySelectorAll('.component-row').length > 1) {
+                e.target.closest('.component-row').remove();
+                updateTotalWeight();
+            } else {
+                alert('You must have at least one component.');
+            }
+        }
+    });
+
+    container.addEventListener('input', function(e) {
+        if (e.target.classList.contains('weight-input')) {
+            updateTotalWeight();
+        }
+    });
+    
+    // Initial calculation on page load
+    updateTotalWeight();
+
+    form.addEventListener('submit', function(e) {
+        let total = 0;
+        document.querySelectorAll('.weight-input').forEach(input => {
+            total += parseInt(input.value) || 0;
+        });
+
+        if (total !== 100) {
+            e.preventDefault(); // Stop form submission
+            alert('The total weight of all components must be exactly 100%.');
+        }
+    });
+});
+</script>
+{% endblock %} 

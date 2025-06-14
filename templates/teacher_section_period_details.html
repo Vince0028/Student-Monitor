@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}Teacher - {{ section_period.section.name }} {{ section_period.period_name }} {{ section_period.school_year }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>{{ section_period.section.name }} ({{ section_period.period_name }} {{ section_period.school_year }} {% if section_period.section.strand %}{{ section_period.section.strand.name }}{% endif %})</h2>
+    <p class="dashboard-welcome">Manage students, subjects, and attendance for this {{ section_period.period_type | lower }}.</p>
+    {% if section_period.assigned_teacher %}
+        <p class="dashboard-welcome">You are assigned as the primary teacher for this {{ section_period.period_type | lower }}.</p>
+    {% else %}
+        <p class="dashboard-welcome text-red-600 font-semibold">Note: This {{ section_period.period_type | lower }} does not have a primary assigned teacher. Manage with caution.</p>
+    {% endif %}
+
+    <div class="dashboard-grid">
+        <div class="card dashboard-option-card">
+            <h3>Students in This {{ section_period.period_type | capitalize }}</h3>
+            <p>View and manage individual student profiles for this specific {{ section_period.period_type | lower }}.</p>
+        </div>
+        <div class="card dashboard-option-card">
+            <h3>Subjects in This {{ section_period.period_type | capitalize }}</h3>
+            <p>Add new subjects and assign actual teacher names for this {{ section_period.period_type | lower }}.</p>
+            <a href="{{ url_for('add_subject_to_section_period', section_period_id=section_period.id) }}" class="btn btn-primary btn-icon"><i class="fas fa-book-medical"></i> Add New Subject</a>
+        </div>
+    </div>
+
+    {% if students %}
+    <div class="card mt-40">
+        <h3>Student List</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Student ID</th>
+                        <th>Average Grade (Your Input)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                        <tr>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.student_id_number }}</td>
+                            <td>
+                                <span class="average-grade-value">{{ student.average_grade }}</span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <p class="no-data-message">No students enrolled in this {{ section_period.period_type | lower }} yet.</p>
+    {% endif %}
+
+    {% if section_subjects %}
+    <div class="card mt-40">
+        <h3>Subjects in This {{ section_period.period_type | capitalize }}</h3>
+        <div class="list-container">
+            {% for subject in section_subjects %}
+            <div class="list-item">
+                <span>{{ subject.subject_name }} (Assigned to: {{ subject.assigned_teacher_name }})</span>
+                <div class="button-group">
+                    <a href="{{ url_for('manage_subject_grades', section_period_id=subject.section_period_id, subject_id=subject.id) }}" class="btn btn-view btn-icon-small" title="Manage Gradebook">
+                        <i class="fas fa-book-open"></i> Gradebook
+                    </a>
+                    <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editSubjectModal-{{ subject.id }}" title="Edit Subject">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
+                            data-delete-url="{{ url_for('delete_section_subject', section_period_id=section_period.id, subject_id=subject.id) }}"
+                            data-redirect-url="{{ url_for('teacher_section_period_view', section_period_id=section_period.id) }}"
+                            data-confirmation-message="Are you sure you want to delete subject {{ subject.subject_name }}? This will also delete all grades associated with it that you entered for this {{ section_period.period_type | lower }}."
+                            data-item-name="Subject {{ subject.subject_name }}"
+                            title="Delete Subject">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <p class="no-data-message">No subjects added to this {{ section_period.period_type | lower }} yet. Click "Add New Subject" above!</p>
+    {% endif %}
+
+    <div class="button-group-right mt-40">
+        <a href="{{ url_for('teacher_section_attendance_dates', section_period_id=section_period.id) }}" class="btn btn-primary btn-icon"><i class="fas fa-clipboard-check"></i> Attendance</a>
+        <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Sections</a>
+    </div>
+</div>
+
+<!-- Modals for Editing Subjects -->
+{% if section_subjects %}
+{% for subject in section_subjects %}
+<div class="modal fade" id="editSubjectModal-{{ subject.id }}" tabindex="-1" aria-labelledby="editSubjectModalLabel-{{ subject.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editSubjectModalLabel-{{ subject.id }}">Edit Subject: {{ subject.subject_name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('edit_section_subject', section_period_id=section_period.id, subject_id=subject.id) }}" method="POST">
+                    <div class="mb-3">
+                        <label for="subject_name-{{ subject.id }}" class="form-label">Subject Name</label>
+                        <input type="text" class="form-control" id="subject_name-{{ subject.id }}" name="subject_name" value="{{ subject.subject_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="assigned_teacher_name-{{ subject.id }}" class="form-label">Assigned Teacher Name</label>
+                        <input type="text" class="form-control" id="assigned_teacher_name-{{ subject.id }}" name="assigned_teacher_name" value="{{ subject.assigned_teacher_name }}" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% endblock %}

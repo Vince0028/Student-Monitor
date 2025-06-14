@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Register - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h2>Register</h2>
+    <form method="POST" class="auth-form">
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <div class="form-group">
+            <label for="user_type">Register As:</label>
+            <select id="user_type" name="user_type" required onchange="toggleTeacherFields()">
+                <option value="">-- Select Type --</option>
+                <option value="student">Student (Admin)</option>
+                <option value="teacher">Teacher</option>
+            </select>
+        </div>
+        
+        {# Fields for teachers, initially hidden #}
+        <div class="form-group" id="teacher-fields" style="display:none;">
+            <label for="grade_level_assigned">Assigned Grade Level:</label>
+            <select id="grade_level_assigned" name="grade_level_assigned">
+                <option value="">-- Select Grade Level --</option>
+                {% for grade_level in all_grade_levels %}
+                <option value="{{ grade_level }}">{{ grade_level }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {# Specialization group, will be conditionally shown/hidden based on JHS/SHS #}
+        <div class="form-group" id="specialization-group" style="display:none;">
+            <label for="specialization">Teacher Specialization (for SHS):</label>
+            <select id="specialization" name="specialization">
+                <option value="">-- Select Specialization --</option>
+                {% for spec in teacher_specializations_shs %} {# Only SHS specializations are listed here #}
+                <option value="{{ spec }}">{{ spec }}</option>
+                {% endfor %}
+            </select>
+            <small class="form-hint" id="specialization-hint"></small>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Register</button>
+    </form>
+    <div class="auth-link">
+        Already have an account? <a href="{{ url_for('login') }}">Login here</a>
+    </div>
+</div>
+
+<script>
+    const GRADE_LEVELS_JHS = ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
+    const GRADE_LEVELS_SHS = ['Grade 11', 'Grade 12'];
+
+    // These specializations will be passed from Flask context to JavaScript
+    const TEACHER_SPECIALIZATIONS_SHS_JS = {{ teacher_specializations_shs | tojson }};
+
+    function toggleTeacherFields() {
+        const userType = document.getElementById('user_type').value;
+        const teacherFieldsDiv = document.getElementById('teacher-fields');
+        const gradeLevelSelect = document.getElementById('grade_level_assigned');
+        const specializationGroup = document.getElementById('specialization-group');
+        const specializationSelect = document.getElementById('specialization');
+        const specializationHint = document.getElementById('specialization-hint');
+
+        if (userType === 'teacher') {
+            teacherFieldsDiv.style.display = 'block';
+            gradeLevelSelect.setAttribute('required', 'required');
+            updateSpecializationOptions(); // This will control specialization visibility/required
+        } else {
+            // Reset and hide all teacher-specific fields if not a teacher
+            teacherFieldsDiv.style.display = 'none';
+            gradeLevelSelect.removeAttribute('required');
+            gradeLevelSelect.value = ''; 
+            specializationGroup.style.display = 'none';
+            specializationSelect.removeAttribute('required');
+            specializationSelect.innerHTML = '<option value="">-- Select Specialization --</option>'; 
+            specializationSelect.value = ''; 
+            specializationHint.textContent = '';
+        }
+    }
+
+    function updateSpecializationOptions() {
+        const gradeLevelSelect = document.getElementById('grade_level_assigned');
+        const specializationSelect = document.getElementById('specialization');
+        const specializationGroup = document.getElementById('specialization-group');
+        const specializationHint = document.getElementById('specialization-hint');
+        const selectedGradeLevel = gradeLevelSelect.value;
+
+        // Clear existing options and reset required status by default for specialization
+        specializationSelect.innerHTML = '<option value="">-- Select Specialization --</option>';
+        specializationSelect.value = '';
+        specializationSelect.removeAttribute('required');
+        specializationHint.textContent = '';
+
+        if (GRADE_LEVELS_SHS.includes(selectedGradeLevel)) {
+            // Show and make required for SHS, populate with SHS strands
+            specializationGroup.style.display = 'block';
+            specializationSelect.setAttribute('required', 'required');
+            specializationHint.textContent = 'For Grades 11-12, this matches the academic strand you will teach.';
+            
+            TEACHER_SPECIALIZATIONS_SHS_JS.forEach(spec => {
+                const option = document.createElement('option');
+                option.value = spec;
+                option.textContent = spec;
+                specializationSelect.appendChild(option);
+            });
+        } else if (GRADE_LEVELS_JHS.includes(selectedGradeLevel)) {
+            // Hide for JHS
+            specializationGroup.style.display = 'none';
+            specializationSelect.removeAttribute('required'); 
+            specializationSelect.value = ''; // Ensure value is cleared for JHS
+        } else {
+            // If no grade level selected or invalid, hide specialization group
+            specializationGroup.style.display = 'none';
+        }
+    }
+
+    // Add event listener to grade_level_assigned to update specialization options
+    document.getElementById('grade_level_assigned').addEventListener('change', updateSpecializationOptions);
+
+    // Call on page load to set initial state
+    document.addEventListener('DOMContentLoaded', () => {
+        toggleTeacherFields(); // Set initial visibility based on default user_type and grade level
+    });
+</script>
+{% endblock %}
