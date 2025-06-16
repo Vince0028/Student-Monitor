@@ -23,6 +23,7 @@ load_dotenv()
 
 # --- Flask App Configuration ---
 app = Flask(__name__)
+
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'supersecretkey_for_development_only')
 
 # Database connection details
