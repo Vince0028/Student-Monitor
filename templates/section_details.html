@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ section.name }} Periods - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>{{ section.name }} {% if section.strand %}({{ section.strand.name }} Strand){% endif %} ({{ section.grade_level.name }})</h2>
+    <p class="dashboard-welcome">Manage academic {{ period_type | lower }}s and student enrollments within this section.</p>
+
+    {% set period_limit = 4 if section.grade_level.level_type == 'JHS' else 2 %}
+    {% if section.section_periods|length < period_limit %}
+    <div class="dashboard-grid">
+        <div class="card dashboard-option-card full-width">
+            <h3>Section {{ period_type }}s</h3>
+            <p>Add a new academic {{ period_type | lower }} (e.g., {% if period_options %}{{ period_options[0] }}{% endif %}) for this section.</p>
+            <a href="{{ url_for('add_section_period', section_id=section.id) }}" class="btn btn-primary btn-icon"><i class="fas fa-calendar-plus"></i> Add New {{ period_type }}</a>
+        </div>
+    </div>
+    {% else %}
+    <div class="card mt-20 info-card">
+        <p><i class="fas fa-info-circle"></i> The maximum number of {{ period_type | lower }}s ({{ period_limit }}) has been added for this section.</p>
+    </div>
+    {% endif %}
+
+    {% if section_periods %}
+    <div class="card mt-40">
+        <h3>Existing {{ period_type }}s</h3>
+        <div class="list-container">
+            {% for per in section_periods %}
+            <div class="list-item">
+                <span>{{ per.period_name }} ({{ per.school_year }}) - Assigned Acc: {% if per.assigned_teacher %}{{ per.assigned_teacher.username }}{% else %}Not Assigned{% endif %}</span>
+                <div class="button-group">
+                    <a href="{{ url_for('section_period_details', section_period_id=per.id) }}" class="btn btn-view btn-icon-small">
+                        <i class="fas fa-folder-open"></i> View Details
+                    </a>
+                    <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editPeriodModal-{{ per.id }}">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
+                            data-delete-url="{{ url_for('delete_section_period', section_period_id=per.id) }}"
+                            data-redirect-url="{{ url_for('section_details', section_id=section.id) }}"
+                            data-confirmation-message="Are you sure you want to delete {{ per.period_name }} for {{ per.school_year }}? This will also delete ALL associated students, subjects, attendance, and grades!"
+                            data-item-name="{{ per.period_name }} ({{ per.school_year }})"
+                            title="Delete {{ period_type }}">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <p class="no-data-message">No {{ period_type | lower }}s added to {{ section.name }} yet. Start by adding a new one!</p>
+    {% endif %}
+
+    <div class="button-group-right mt-40">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Grade Level</a>
+    </div>
+</div>
+
+<!-- Modals for Editing Section Periods -->
+{% if section_periods %}
+{% for per in section_periods %}
+<div class="modal fade" id="editPeriodModal-{{ per.id }}" tabindex="-1" aria-labelledby="editPeriodModalLabel-{{ per.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editPeriodModalLabel-{{ per.id }}">Edit {{ period_type }}: {{ per.period_name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('edit_section_period', section_period_id=per.id) }}" method="POST">
+                    <div class="mb-3">
+                        <label for="period_name-{{ per.id }}" class="form-label">{{ period_type }} Name</label>
+                        <select class="form-select" id="period_name-{{ per.id }}" name="period_name" required>
+                            {% for option in period_options %}
+                            <option value="{{ option }}" {% if option == per.period_name %}selected{% endif %}>{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="school_year-{{ per.id }}" class="form-label">School Year</label>
+                        <select class="form-select" id="school_year-{{ per.id }}" name="school_year" required>
+                            {% for year in school_year_options %}
+                            <option value="{{ year }}" {% if year == per.school_year %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="assigned_teacher_id-{{ per.id }}" class="form-label">Assigned Acc</label>
+                        <select class="form-select" id="assigned_teacher_id-{{ per.id }}" name="assigned_teacher_id">
+                            <option value="">-- Not Assigned --</option>
+                            {% for teacher in available_teachers %}
+                            <option value="{{ teacher.id }}" {% if per.assigned_teacher_id == teacher.id %}selected{% endif %}>
+                                {{ teacher.username }} ({{ teacher.specialization or 'JHS' }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% endblock %}

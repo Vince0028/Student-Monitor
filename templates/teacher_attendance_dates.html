@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}Attendance Dates - {{ section_period.section.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2>Attendance History for {{ section_period.section.name }} ({{ section_period.period_name }} {{ section_period.school_year }})</h2>
+            <p class="text-muted">Select a date to view or mark attendance, or add new attendance.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('teacher_section_period_view', section_period_id=section_period.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Period Details</a>
+        </div>
+    </div>
+    
+    <!-- Attendance Summary Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Attendance Summary</h5>
+        </div>
+        <div class="card-body">
+            {% if attendance_summary %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Student Name</th>
+                            <th class="text-center">Present</th>
+                            <th class="text-center">Absent</th>
+                            <th class="text-center">Late</th>
+                            <th class="text-center">Excused</th>
+                            <th class="text-center">Total Days Recorded</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for summary in attendance_summary %}
+                        <tr>
+                            <td>{{ summary.student_name }}</td>
+                            <td class="text-center">{{ summary.present }}</td>
+                            <td class="text-center">{{ summary.absent }}</td>
+                            <td class="text-center">{{ summary.late }}</td>
+                            <td class="text-center">{{ summary.excused }}</td>
+                            <td class="text-center">{{ summary.total_recorded }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center text-muted">No students in this section to summarize.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Attendance Dates Card -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Recorded Attendance Dates</h5>
+            <a href="{{ url_for('teacher_section_attendance_details', section_period_id=section_period.id) }}" class="btn btn-primary"><i class="fas fa-plus"></i> Add New Attendance</a>
+        </div>
+        <div class="card-body">
+            {% if attendance_dates %}
+                <div class="list-group">
+                    {% for date in attendance_dates %}
+                        <a href="{{ url_for('teacher_section_attendance_details', section_period_id=section_period.id, date=date.strftime('%Y-%m-%d')) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            {{ date.strftime('%A, %B %d, %Y') }}
+                            <div>
+                                <button class="btn btn-sm btn-danger delete-attendance-date-btn" 
+                                        data-date="{{ date.strftime('%Y-%m-%d') }}"
+                                        data-url="{{ url_for('delete_section_attendance_date', section_period_id=section_period.id, attendance_date_str=date.strftime('%Y-%m-%d')) }}">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-center text-muted">No attendance records found for this {{ section_period.period_type | lower }} yet. Click "Add New Attendance" to start!</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-attendance-date-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const date = this.dataset.date;
+            const url = this.dataset.url;
+
+            Swal.fire({
+                title: `Delete attendance for ${date}?`,
+                text: "This will delete all attendance records for this date. This action cannot be undone.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // This requires a form submission via POST
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = url;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

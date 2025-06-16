@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block title %}Your Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h2 class="text-center mb-4"><i class="fas fa-user-edit"></i> Edit Your Profile</h2>
+            <p class="text-center text-muted mb-4">Update your personal information and security settings.</p>
+
+            <form action="{{ url_for('profile') }}" method="POST">
+                <!-- Account Information Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-user-circle"></i> Account Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Current Username -->
+                        <div class="mb-3">
+                            <label for="current_username" class="form-label">Current Username</label>
+                            <input type="text" id="current_username" class="form-control" value="{{ user.username }}" disabled>
+                            <div class="form-text">Your current username. This field cannot be changed directly.</div>
+                        </div>
+                        
+                        <!-- New Username -->
+                        <div class="mb-3">
+                            <label for="new_username" class="form-label">New Username (optional)</label>
+                            <input type="text" id="new_username" name="new_username" class="form-control" placeholder="Leave blank to keep current username">
+                            <div class="form-text">Enter a new username if you wish to change it.</div>
+                        </div>
+
+                        <!-- User Type Selection -->
+                        <hr>
+                        <div class="mb-3">
+                            <label for="user_type" class="form-label">Account Type</label>
+                            <select id="user_type" name="user_type" class="form-select" required onchange="toggleTeacherFields()">
+                                <option value="admin" {% if user.user_type == 'admin' %}selected{% endif %}>Admin</option>
+                                <option value="teacher" {% if user.user_type == 'teacher' %}selected{% endif %}>Teacher</option>
+                            </select>
+                            <div class="form-text">Select your account type. Changing to Teacher will require additional fields.</div>
+            </div>
+
+                        <!-- Teacher Specific Info (dynamically shown/hidden) -->
+                        <div class="form-group" id="teacher-fields">
+                            <div class="mb-3">
+                                <label for="grade_level_assigned" class="form-label">Assigned Grade Level:</label>
+                                <select id="grade_level_assigned" name="grade_level_assigned" class="form-select">
+                                    <option value="">-- Select Grade Level --</option>
+                                    {% for grade_level in all_grade_levels %}
+                                    <option value="{{ grade_level }}" {% if user.grade_level_assigned == grade_level %}selected{% endif %}>{{ grade_level }}</option>
+                                    {% endfor %}
+                                </select>
+            </div>
+            
+                            <div class="mb-3" id="specialization-group">
+                                <label for="specialization" class="form-label">Teacher Specialization (for SHS):</label>
+                                <select id="specialization" name="specialization" class="form-select">
+                                    <option value="">-- Select Specialization --</option>
+                                    {% for spec in teacher_specializations_shs %}
+                                    <option value="{{ spec }}" {% if user.specialization == spec %}selected{% endif %}>{{ spec }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text" id="specialization-hint"></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Change Password Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-key"></i> Change Password</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- New Password -->
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">New Password (optional)</label>
+                            <input type="password" id="new_password" name="new_password" class="form-control" placeholder="Leave blank to keep current password">
+                            <div class="form-text">Enter a new password if you wish to change it (minimum 6 characters).</div>
+                        </div>
+
+                        <!-- Confirm New Password -->
+                        <div class="mb-3">
+                            <label for="confirm_new_password" class="form-label">Confirm New Password</label>
+                            <input type="password" id="confirm_new_password" name="confirm_new_password" class="form-control" placeholder="Re-enter new password">
+                            <div class="form-text">Re-enter your new password for confirmation.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Confirmation Card -->
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0 text-danger"><i class="fas fa-shield-alt"></i> Confirm Changes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="current_password" class="form-label">Current Password (REQUIRED to save changes)</label>
+                            <input type="password" id="current_password" name="current_password" class="form-control" placeholder="Enter your current password to confirm changes" required>
+                            <div class="form-text">You must enter your current password to save any changes.</div>
+                </div>
+            </div>
+            </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary me-2"><i class="fas fa-times"></i> Cancel</a>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Profile</button>
+            </div>
+        </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const GRADE_LEVELS_JHS = ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
+    const GRADE_LEVELS_SHS = ['Grade 11', 'Grade 12'];
+
+    const TEACHER_SPECIALIZATIONS_SHS_JS = {{ teacher_specializations_shs | tojson }};
+
+    function toggleTeacherFields() {
+        const userType = document.getElementById('user_type').value;
+        const teacherFieldsDiv = document.getElementById('teacher-fields');
+        const gradeLevelSelect = document.getElementById('grade_level_assigned');
+        const specializationGroup = document.getElementById('specialization-group');
+        const specializationSelect = document.getElementById('specialization');
+        const specializationHint = document.getElementById('specialization-hint');
+
+        if (userType === 'teacher') {
+            teacherFieldsDiv.style.display = 'block';
+            gradeLevelSelect.setAttribute('required', 'required');
+            updateSpecializationOptions(); 
+        } else {
+            teacherFieldsDiv.style.display = 'none';
+            gradeLevelSelect.removeAttribute('required');
+            gradeLevelSelect.value = ''; 
+            specializationGroup.style.display = 'none';
+            specializationSelect.removeAttribute('required');
+            specializationSelect.innerHTML = '<option value="">-- Select Specialization --</option>'; 
+            specializationSelect.value = ''; 
+            specializationHint.textContent = '';
+        }
+    }
+
+    function updateSpecializationOptions() {
+        const gradeLevelSelect = document.getElementById('grade_level_assigned');
+        const specializationSelect = document.getElementById('specialization');
+        const specializationGroup = document.getElementById('specialization-group');
+        const specializationHint = document.getElementById('specialization-hint');
+        const selectedGradeLevel = gradeLevelSelect.value;
+
+        specializationSelect.innerHTML = '<option value="">-- Select Specialization --</option>';
+        specializationSelect.value = '';
+        specializationSelect.removeAttribute('required');
+        specializationHint.textContent = '';
+
+        if (GRADE_LEVELS_SHS.includes(selectedGradeLevel)) {
+            specializationGroup.style.display = 'block';
+            specializationSelect.setAttribute('required', 'required');
+            specializationHint.textContent = 'For Grades 11-12, this matches the academic strand you will teach.';
+            
+            TEACHER_SPECIALIZATIONS_SHS_JS.forEach(spec => {
+                const option = document.createElement('option');
+                option.value = spec;
+                option.textContent = spec;
+                specializationSelect.appendChild(option);
+            });
+        } else if (GRADE_LEVELS_JHS.includes(selectedGradeLevel)) {
+            specializationGroup.style.display = 'none';
+            specializationSelect.removeAttribute('required'); 
+            specializationSelect.value = ''; 
+        } else {
+            specializationGroup.style.display = 'none';
+        }
+    }
+
+    document.getElementById('grade_level_assigned').addEventListener('change', updateSpecializationOptions);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        toggleTeacherFields(); 
+    });
+</script>
+{% endblock %}

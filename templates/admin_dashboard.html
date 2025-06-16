@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>Admin Dashboard</h2>
+    <p class="dashboard-welcome">Welcome, {{ session['username'] }}! Manage the school's academic structure here.</p>
+
+    <div class="dashboard-grid">
+        <div class="card dashboard-option-card full-width">
+            <h3>Manage Grade Levels</h3>
+            <p>Define and organize the academic grade levels within the school (e.g., Grade 7, Grade 11).</p>
+            <a href="{{ url_for('add_grade_level') }}" class="btn btn-primary btn-icon"><i class="fas fa-plus-circle"></i> Add New Grade Level</a>
+        </div>
+    </div>
+
+    {% if grade_levels %}
+    <div class="card mt-40">
+        <h3>Existing Grade Levels</h3>
+        <div class="list-container">
+            {% for grade_level in grade_levels %}
+            <div class="list-item">
+                <span>{{ grade_level.name }} ({{ grade_level.level_type }})</span>
+                <div class="button-group">
+                    <a href="{{ url_for('grade_level_details', grade_level_id=grade_level.id) }}" class="btn btn-view btn-icon-small">
+                        <i class="fas fa-folder-open"></i> View Details
+                    </a>
+                    <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editGradeLevelModal-{{ grade_level.id }}">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
+                            data-delete-url="{{ url_for('delete_grade_level', grade_level_id=grade_level.id) }}"
+                            data-redirect-url="{{ url_for('admin_dashboard') }}"
+                            data-confirmation-message="Are you sure you want to delete Grade Level {{ grade_level.name }}? This will also delete ALL its associated strands, sections, periods, students, subjects, attendance, and grades!"
+                            data-item-name="Grade Level {{ grade_level.name }}"
+                            title="Delete Grade Level">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <p class="no-data-message">No grade levels added yet. Start by adding a new one!</p>
+    {% endif %}
+
+</div>
+
+<!-- Modals for Editing Grade Levels -->
+{% if grade_levels %}
+{% for grade_level in grade_levels %}
+<div class="modal fade" id="editGradeLevelModal-{{ grade_level.id }}" tabindex="-1" aria-labelledby="editGradeLevelModalLabel-{{ grade_level.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editGradeLevelModalLabel-{{ grade_level.id }}">Edit Grade Level: {{ grade_level.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('edit_grade_level', grade_level_id=grade_level.id) }}" method="POST">
+                    <div class="mb-3">
+                        <label for="grade_level_name-{{ grade_level.id }}" class="form-label">Grade Level Name</label>
+                        <input type="text" class="form-control" id="grade_level_name-{{ grade_level.id }}" name="grade_level_name" value="{{ grade_level.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="level_type-{{ grade_level.id }}" class="form-label">Level Type</label>
+                        <select class="form-select" id="level_type-{{ grade_level.id }}" name="level_type" required>
+                            <option value="JHS" {% if grade_level.level_type == 'JHS' %}selected{% endif %}>JHS</option>
+                            <option value="SHS" {% if grade_level.level_type == 'SHS' %}selected{% endif %}>SHS</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

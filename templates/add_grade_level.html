@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Grade Level - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>Add New Grade Level</h2>
+    <p class="form-subheading">Create a new grade level in the school's academic structure.</p>
+
+    <div class="card mt-40">
+        <form action="{{ url_for('add_grade_level') }}" method="POST">
+            <div class="mb-3">
+                <label for="grade_level_name" class="form-label">Grade Level Name</label>
+                <input type="text" class="form-control" id="grade_level_name" name="grade_level_name" required placeholder="e.g., Grade 7, Grade 11">
+            </div>
+            <div class="mb-3">
+                <label for="level_type" class="form-label">Level Type</label>
+                <select class="form-select" id="level_type" name="level_type" required>
+                    <option value="">Select Level Type</option>
+                    <option value="JHS">JHS</option>
+                    <option value="SHS">SHS</option>
+                </select>
+            </div>
+            <div class="button-group">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-plus-circle"></i> Add Grade Level</button>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary"><i class="fas fa-times-circle"></i> Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

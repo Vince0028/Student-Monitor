@@ -1,0 +1,37 @@
+// Placeholder for student_info_form.html{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}Edit Profile{% else %}Add Profile{% endif %} - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="form-page-container">
+    <h2>{% if is_edit %}Edit Your Academic Profile{% else %}Add Your Academic Profile{% endif %}</h2>
+    <form method="POST" class="app-form">
+        <div class="form-group">
+            <label for="name">Full Name:</label>
+            <input type="text" id="name" name="name" value="{{ student_info.name if student_info else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label for="section">Section:</label>
+            <input type="text" id="section" name="section" value="{{ student_info.section if student_info else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label for="strand">Strand:</label>
+            <select id="strand" name="strand" required>
+                <option value="">Select Strand</option>
+                {% for s in strands %}
+                    <option value="{{ s }}" {% if student_info and student_info.strand == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="student_id_number">Student ID Number:</label>
+            <input type="text" id="student_id_number" name="student_id_number" value="{{ student_info.student_id_number if student_info else '' }}" required>
+            <small class="form-hint">This is your unique school-assigned ID (e.g., 2024-00123).</small>
+        </div>
+        <div class="button-group-right">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Profile</button>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary"><i class="fas fa-times-circle"></i> Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
