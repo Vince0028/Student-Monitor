@@ -1,5 +1,5 @@
 Flask
-SQLAlchemy
+SQLAlchemy==2.0.23
 Werkzeug
 python-dotenv
 psycopg2-binary

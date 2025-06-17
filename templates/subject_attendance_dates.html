@@ -1,96 +1,23 @@
 {% extends 'base.html' %}
 
-{% block title %}Attendance Dates - {{ section_period.section.name }}{% endblock %}
+{% block title %}Attendance Dates - {{ subject.subject_name }}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h2>Attendance History for {{ section_period.section.name }} ({{ section_period.period_name }} {{ section_period.school_year }})</h2>
-            {% if selected_subject %}
-                <p class="text-muted">Viewing attendance for {{ selected_subject.subject_name }}</p>
-            {% else %}
-                <p class="text-muted">Select a subject to view or mark attendance.</p>
-            {% endif %}
+            <h2>Attendance History for {{ subject.subject_name }}</h2>
+            <p class="text-muted">Select a date to view or mark attendance, or add new attendance.</p>
         </div>
         <div>
-            <a href="{{ url_for('teacher_section_period_view', section_period_id=section_period.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Period Details</a>
+            <a href="{{ url_for('manage_subject_grades', section_period_id=subject.section_period_id, subject_id=subject.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Subject</a>
         </div>
     </div>
     
-    <!-- Subjects Card -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Your Subjects</h5>
-        </div>
-        <div class="card-body">
-            {% if subjects %}
-            <div class="list-group">
-                {% for subject in subjects %}
-                <div class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1">{{ subject.subject_name }}</h6>
-                            <small class="text-muted">Assigned to: {{ subject.assigned_teacher_name }}</small>
-                        </div>
-                        <div>
-                            {% if selected_subject and selected_subject.id == subject.id %}
-                                <a href="{{ url_for('teacher_section_attendance_details', section_period_id=section_period.id, subject_id=subject.id) }}" 
-                                   class="btn btn-primary btn-sm">
-                                    <i class="fas fa-clipboard-check"></i> Mark Attendance
-                                </a>
-                            {% else %}
-                                <a href="{{ url_for('teacher_section_attendance_dates', section_period_id=section_period.id, subject_id=subject.id) }}" 
-                                   class="btn btn-primary btn-sm">
-                                    <i class="fas fa-calendar-alt"></i> View Attendance
-                                </a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="text-center text-muted">You have no subjects assigned in this section period.</p>
-            {% endif %}
-        </div>
-    </div>
-
-    {% if selected_subject %}
-    <!-- Attendance Dates Card -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Attendance Dates for {{ selected_subject.subject_name }}</h5>
-        </div>
-        <div class="card-body">
-            {% if attendance_dates %}
-            <div class="list-group">
-                {% for date in attendance_dates %}
-                <div class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1">{{ date.strftime('%A, %B %d, %Y') }}</h6>
-                        </div>
-                        <div>
-                            <a href="{{ url_for('teacher_section_attendance_dates', section_period_id=section_period.id, subject_id=selected_subject.id, date=date.isoformat()) }}" 
-                               class="btn btn-primary btn-sm">
-                                <i class="fas fa-eye"></i> View/Edit
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="text-center text-muted">No attendance records found for this subject.</p>
-            {% endif %}
-        </div>
-    </div>
-
     <!-- Attendance Summary Card -->
     <div class="card mb-4">
         <div class="card-header">
-            <h5 class="mb-0">Attendance Summary for {{ selected_subject.subject_name }}</h5>
+            <h5 class="mb-0">Attendance Summary</h5>
         </div>
         <div class="card-body">
             {% if attendance_summary %}
@@ -121,11 +48,38 @@
                 </table>
             </div>
             {% else %}
-            <p class="text-center text-muted">No students in this section to summarize.</p>
+            <p class="text-center text-muted">No students in this subject to summarize.</p>
             {% endif %}
         </div>
     </div>
-    {% endif %}
+
+    <!-- Attendance Dates Card -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Recorded Attendance Dates</h5>
+            <a href="{{ url_for('subject_attendance_details', subject_id=subject.id) }}" class="btn btn-primary"><i class="fas fa-plus"></i> Add New Attendance</a>
+        </div>
+        <div class="card-body">
+            {% if attendance_dates %}
+                <div class="list-group">
+                    {% for date in attendance_dates %}
+                        <a href="{{ url_for('subject_attendance_details', subject_id=subject.id, date=date.strftime('%Y-%m-%d')) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            {{ date.strftime('%A, %B %d, %Y') }}
+                            <div>
+                                <button class="btn btn-sm btn-danger delete-attendance-date-btn" 
+                                        data-date="{{ date.strftime('%Y-%m-%d') }}"
+                                        data-url="{{ url_for('delete_subject_attendance_date', subject_id=subject.id, attendance_date_str=date.strftime('%Y-%m-%d')) }}">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-center text-muted">No attendance records found for this subject yet. Click "Add New Attendance" to start!</p>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -191,4 +145,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-{% endblock %}
+{% endblock %} 

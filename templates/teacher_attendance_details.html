@@ -4,8 +4,8 @@
 
 {% block content %}
 <div class="form-page-container">
-    <h2>Attendance for {{ section_period.section.name }} ({{ section_period.section.grade_level.name }}) - {{ section_period.period_name }} {{ section_period.school_year }}{% if section_period.strand %} ({{ section_period.strand.name }} Strand){% endif %}</h2>
-    <p class="form-subheading">Manage daily attendance for students in this {{ section_period.period_type | lower }}.</p>
+    <h2>Attendance for {{ selected_subject.subject_name }}</h2>
+    <p class="form-subheading">Manage daily attendance for {{ section_period.section.name }} ({{ section_period.period_name }} {{ section_period.school_year }})</p>
 
     {# Conditionally display the date selection form #}
     {% if not show_summary %}
@@ -26,7 +26,7 @@
     <form method="POST" class="app-form mt-40">
         <input type="hidden" name="attendance_date" value="{{ selected_date.isoformat() }}">
         
-        <h3>Mark Attendance for {{ selected_date.strftime('%A, %B %d, %Y') }}</h3>
+        <h3>Mark Attendance for {{ selected_subject.subject_name }} - {{ selected_date.strftime('%A, %B %d, %Y') }}</h3>
         {% if students %}
             <div class="attendance-list">
                 {% for student in students %}
@@ -47,7 +47,7 @@
             </div>
             <div class="button-group-right mt-40">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Attendance</button>
-                <a href="{{ url_for('teacher_section_attendance_dates', section_period_id=section_period.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Dates</a>
+                <a href="{{ url_for('teacher_section_attendance_dates', section_period_id=section_period.id, subject_id=selected_subject.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Dates</a>
             </div>
         {% else %}
             <p class="no-data-message">No students in this {{ section_period.period_type | lower }} to mark attendance for.</p>
@@ -60,7 +60,7 @@
     {# Conditional display of the Attendance Summary card #}
     {% if show_summary %}
     <div class="card mt-40">
-        <h3>Attendance Summary for {{ selected_date.strftime('%A, %B %d, %Y') }}</h3>
+        <h3>Attendance Summary for {{ selected_subject.subject_name }} - {{ selected_date.strftime('%A, %B %d, %Y') }}</h3>
         {% if students %}
             <div class="table-responsive">
                 <table class="data-table">

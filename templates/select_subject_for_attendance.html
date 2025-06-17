@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}Select Subject for Attendance - {{ section_period.section.name }}{% endblock %}
+
+{% block content %}
+<div class="form-page-container">
+    <h2>Select Subject for Attendance</h2>
+    <p class="form-subheading">Choose a subject to mark attendance for {{ section_period.section.name }} ({{ section_period.period_name }} {{ section_period.school_year }})</p>
+
+    <div class="card mt-40">
+        <div class="list-container">
+            {% for subject in subjects %}
+            <div class="list-item">
+                <div class="subject-info">
+                    <span>{{ subject.subject_name }} (Assigned to: {{ subject.assigned_teacher_name }})</span>
+                </div>
+                <div class="button-group">
+                    <a href="{{ url_for('teacher_section_attendance_details', section_period_id=section_period.id, date=selected_date.isoformat(), subject_id=subject.id) }}" 
+                       class="btn btn-primary btn-icon-small" title="Mark Attendance">
+                        <i class="fas fa-clipboard-check"></i> Mark Attendance
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="button-group-right mt-40">
+        <a href="{{ url_for('teacher_section_period_view', section_period_id=section_period.id) }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Period Details
+        </a>
+    </div>
+</div>
+{% endblock %} 

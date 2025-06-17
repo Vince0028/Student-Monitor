@@ -3,6 +3,41 @@
 {% block title %}Teacher - {{ section_period.section.name }} {{ section_period.period_name }} {{ section_period.school_year }}{% endblock %}
 
 {% block content %}
+<style>
+    .list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .list-item:last-child {
+        border-bottom: none;
+    }
+    .subject-info {
+        flex: 1;
+        min-width: 0;
+        padding-right: 1rem;
+    }
+    .button-group {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: nowrap;
+    }
+    .button-group .btn {
+        width: 120px;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+    .button-group .btn i {
+        margin-right: 0.25rem;
+    }
+</style>
+
 <div class="dashboard-container">
     <h2>{{ section_period.section.name }} ({{ section_period.period_name }} {{ section_period.school_year }} {% if section_period.section.strand %}{{ section_period.section.strand.name }}{% endif %})</h2>
     <p class="dashboard-welcome">Manage students, subjects, and attendance for this {{ section_period.period_type | lower }}.</p>
@@ -28,47 +63,74 @@
     </div>
 
     {% if students %}
-    <div class="card mt-40">
-        <h3>Student List</h3>
-        <div class="table-responsive">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Student ID</th>
-                        <th>Average Grade</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for student in students %}
+    <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#studentListCollapse" aria-expanded="false" aria-controls="studentListCollapse">
+        Show/Hide Student List
+    </button>
+    <div class="collapse" id="studentListCollapse">
+        <div class="card mt-40">
+            <h3>Student List</h3>
+            <div class="mb-3">
+                <input type="text" id="studentSearchInput" class="form-control" placeholder="Search students by name or ID...">
+            </div>
+            <div class="table-responsive">
+                <table class="data-table" id="studentTable">
+                    <thead>
                         <tr>
-                            <td>{{ student.name }}</td>
-                            <td>{{ student.student_id_number }}</td>
-                            <td>
-                                <span class="average-grade-value">{{ student.average_grade }}</span>
-                            </td>
-                            <td>
-                                <div class="button-group-inline">
-                                    <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editStudentModal-{{ student.id }}" title="Edit Student">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </button>
-                                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
-                                            data-delete-url="{{ url_for('delete_student_admin', student_id=student.id) }}"
-                                            data-redirect-url="{{ url_for('teacher_section_period_view', section_period_id=section_period.id) }}"
-                                            data-confirmation-message="Are you sure you want to delete student {{ student.name }}? This will also delete all associated attendance and grade records."
-                                            data-item-name="Student {{ student.name }}"
-                                            title="Delete Student">
-                                        <i class="fas fa-trash-alt"></i> Delete
-                                    </button>
-                                </div>
-                            </td>
+                            <th>Name</th>
+                            <th>Student ID</th>
+                            <th>Average Grade</th>
+                            <th>Action</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                            <tr>
+                                <td>{{ student.name }}</td>
+                                <td>{{ student.student_id_number }}</td>
+                                <td>
+                                    <span class="average-grade-value">{{ student.average_grade }}</span>
+                                </td>
+                                <td>
+                                    <div class="button-group-inline">
+                                        <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editStudentModal-{{ student.id }}" title="Edit Student">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-icon-small delete-btn"
+                                                data-delete-url="{{ url_for('delete_student_admin', student_id=student.id) }}"
+                                                data-redirect-url="{{ url_for('teacher_section_period_view', section_period_id=section_period.id) }}"
+                                                data-confirmation-message="Are you sure you want to delete student {{ student.name }}? This will also delete all associated attendance and grade records."
+                                                data-item-name="Student {{ student.name }}"
+                                                title="Delete Student">
+                                            <i class="fas fa-trash-alt"></i> Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('studentSearchInput');
+        const table = document.getElementById('studentTable');
+        searchInput.addEventListener('keyup', function() {
+            const filter = searchInput.value.toLowerCase();
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const name = row.children[0].textContent.toLowerCase();
+                const id = row.children[1].textContent.toLowerCase();
+                if (name.includes(filter) || id.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    });
+    </script>
     {% else %}
     <p class="no-data-message">No students enrolled in this {{ section_period.period_type | lower }} yet.</p>
     {% endif %}
@@ -79,10 +141,15 @@
         <div class="list-container">
             {% for subject in section_subjects %}
             <div class="list-item">
-                <span>{{ subject.subject_name }} (Assigned to: {{ subject.assigned_teacher_name }})</span>
+                <div class="subject-info">
+                    <span>{{ subject.subject_name }} (Assigned to: {{ subject.assigned_teacher_name }})</span>
+                </div>
                 <div class="button-group">
                     <a href="{{ url_for('manage_subject_grades', section_period_id=subject.section_period_id, subject_id=subject.id) }}" class="btn btn-view btn-icon-small" title="Manage Gradebook">
                         <i class="fas fa-book-open"></i> Gradebook
+                    </a>
+                    <a href="{{ url_for('teacher_section_attendance_details', section_period_id=subject.section_period_id, subject_id=subject.id) }}" class="btn btn-primary btn-icon-small" title="Manage Attendance">
+                        <i class="fas fa-clipboard-check"></i> Attendance
                     </a>
                     <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editSubjectModal-{{ subject.id }}" title="Edit Subject">
                         <i class="fas fa-edit"></i> Edit
@@ -105,7 +172,6 @@
     {% endif %}
 
     <div class="button-group-right mt-40">
-        <a href="{{ url_for('teacher_section_attendance_dates', section_period_id=section_period.id) }}" class="btn btn-primary btn-icon"><i class="fas fa-clipboard-check"></i> Attendance</a>
         <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Sections</a>
     </div>
 </div>
@@ -162,6 +228,7 @@
                         <label for="student_id_number-{{ student.id }}" class="form-label">Student ID Number</label>
                         <input type="text" class="form-control" id="student_id_number-{{ student.id }}" name="student_id_number" value="{{ student.student_id_number }}" required>
                     </div>
+                    <input type="hidden" name="section_period_id" value="{{ student.section_period_id }}">
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <button type="submit" class="btn btn-primary">Save Changes</button>
