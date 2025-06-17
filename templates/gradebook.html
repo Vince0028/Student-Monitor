@@ -63,9 +63,11 @@
         </div>
         <div class="card-body">
             <p><strong>Total Weight: {{ total_weight }}%</strong></p>
-            <ul>
+            <ul class="list-unstyled">
                 {% for component in components %}
-                <li>{{ component.name }} ({{ component.weight }}%)</li>
+                <li class="mb-2">
+                    {{ component.name }} ({{ component.weight }}%)
+                </li>
                 {% endfor %}
             </ul>
         </div>
@@ -82,7 +84,12 @@
                         <tr>
                             <th rowspan="2" class="align-middle">Student Name</th>
                             {% for component in components %}
-                                <th colspan="{{ component.items|length + 1 }}" class="text-center">{{ component.name }} ({{ component.weight }}%)</th>
+                                <th colspan="{{ component.items|length + 1 }}" class="text-center">
+                                    {{ component.name }} ({{ component.weight }}%)<br>
+                                    <button type="button" class="btn btn-success btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#addItemModal-{{ component.id }}">
+                                        <i class="fas fa-plus"></i> Add Item
+                                    </button>
+                                </th>
                             {% endfor %}
                             <th rowspan="2" class="align-middle">Total Grade</th>
                             <th rowspan="2" class="align-middle">Actions</th>
@@ -95,9 +102,8 @@
                                     <button class="btn btn-danger btn-xs delete-item-btn" data-item-id="{{ item.id }}" title="Delete {{ item.title }}"><i class="fas fa-times"></i></button>
                                 </th>
                                 {% endfor %}
-                                <th class="text-center">
-                                    <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addItemModal-{{ component.id }}"><i class="fas fa-plus"></i> Add</button>
-                                </th>
+                                <!-- Empty th for component average column in the second header row -->
+                                <th class="text-center">%</th>
                             {% endfor %}
                         </tr>
                     </thead>

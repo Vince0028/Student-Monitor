@@ -36,7 +36,8 @@
                     <tr>
                         <th>Name</th>
                         <th>Student ID</th>
-                        <th>Average Grade (Your Input)</th>
+                        <th>Average Grade</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -46,6 +47,21 @@
                             <td>{{ student.student_id_number }}</td>
                             <td>
                                 <span class="average-grade-value">{{ student.average_grade }}</span>
+                            </td>
+                            <td>
+                                <div class="button-group-inline">
+                                    <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editStudentModal-{{ student.id }}" title="Edit Student">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
+                                            data-delete-url="{{ url_for('delete_student_admin', student_id=student.id) }}"
+                                            data-redirect-url="{{ url_for('teacher_section_period_view', section_period_id=section_period.id) }}"
+                                            data-confirmation-message="Are you sure you want to delete student {{ student.name }}? This will also delete all associated attendance and grade records."
+                                            data-item-name="Student {{ student.name }}"
+                                            title="Delete Student">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
@@ -113,6 +129,38 @@
                     <div class="mb-3">
                         <label for="assigned_teacher_name-{{ subject.id }}" class="form-label">Assigned Teacher Name</label>
                         <input type="text" class="form-control" id="assigned_teacher_name-{{ subject.id }}" name="assigned_teacher_name" value="{{ subject.assigned_teacher_name }}" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Modals for Editing Students -->
+{% if students %}
+{% for student in students %}
+<div class="modal fade" id="editStudentModal-{{ student.id }}" tabindex="-1" aria-labelledby="editStudentModalLabel-{{ student.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editStudentModalLabel-{{ student.id }}">Edit Student: {{ student.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('edit_student', student_id=student.id) }}" method="POST">
+                    <div class="mb-3">
+                        <label for="student_name-{{ student.id }}" class="form-label">Student Name</label>
+                        <input type="text" class="form-control" id="student_name-{{ student.id }}" name="name" value="{{ student.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="student_id_number-{{ student.id }}" class="form-label">Student ID Number</label>
+                        <input type="text" class="form-control" id="student_id_number-{{ student.id }}" name="student_id_number" value="{{ student.student_id_number }}" required>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

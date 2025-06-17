@@ -1365,7 +1365,7 @@ def reassign_period_teachers():
 
 @app.route('/student/<uuid:student_id>/delete_admin', methods=['POST'])
 @login_required
-@user_type_required('admin')
+@user_type_required('admin', 'teacher') # Allow teachers to delete students
 def delete_student_admin(student_id):
     db_session = g.session
     user_id = uuid.UUID(session['user_id'])
@@ -1402,7 +1402,7 @@ def delete_student_admin(student_id):
 
 @app.route('/edit_student/<uuid:student_id>', methods=['GET', 'POST'])
 @login_required
-@user_type_required('admin')
+@user_type_required('admin', 'teacher') # Allow teachers to edit students
 def edit_student(student_id):
     db_session = g.session
     admin_id = uuid.UUID(session['user_id'])
