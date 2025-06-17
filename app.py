@@ -369,6 +369,20 @@ def verify_current_user_password(user_id, password):
 def index():
     return render_template('index.html')
 
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    """Redirect users to their appropriate dashboard based on account type"""
+    user_type = session.get('user_type')
+    if user_type == 'admin':
+        return redirect(url_for('admin_dashboard'))
+    elif user_type == 'teacher':
+        return redirect(url_for('teacher_dashboard'))
+    else:
+        # Fallback for unknown user types
+        flash('Unknown user type. Please contact an administrator.', 'error')
+        return redirect(url_for('login'))
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':

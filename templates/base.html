@@ -12,12 +12,12 @@
 <body>
     <header class="app-header">
         <div class="container">
-            <h1 class="app-title"><a href="{{ url_for('index') }}">Student Monitor</a></h1>
+            <h1 class="app-title"><a href="{{ url_for('dashboard') if session.user_id else url_for('index') }}">Student Monitor</a></h1>
             <nav class="main-nav">
                 <ul class="nav-links">
                     {% if session.user_id %} {# Check if user is logged in #}
                         <li><a href="{{ url_for('profile') }}"><i class="fas fa-user-circle"></i> Profile</a></li>
-                        {% if session.user_type == 'student' %}
+                        {% if session.user_type == 'admin' %}
                             <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                         {% elif session.user_type == 'teacher' %}
                             <li><a href="{{ url_for('teacher_dashboard') }}"><i class="fas fa-chalkboard-teacher"></i> Dashboard</a></li>
