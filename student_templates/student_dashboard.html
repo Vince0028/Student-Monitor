@@ -1,0 +1,15 @@
+{% extends 'student_base.html' %}
+
+{% block title %}Student Dashboard - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h2>Welcome, {{ session.student_name }}!</h2>
+    <p>This is your student dashboard. Use the options below to navigate.</p>
+</div>
+<div class="dashboard-options">
+    <a href="{{ url_for('student_assignments') }}" class="btn btn-primary btn-lg">Assignments</a>
+    <a href="{{ url_for('student_grades') }}" class="btn btn-secondary btn-lg">Check Summary of Grades</a>
+    <a href="{{ url_for('student_attendance') }}" class="btn btn-info btn-lg">Check Attendance</a>
+</div>
+{% endblock %} 

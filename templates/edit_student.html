@@ -13,7 +13,12 @@
         <div class="form-group">
             <label for="student_id_number">Student ID Number:</label>
             <input type="text" id="student_id_number" name="student_id_number" value="{{ student.student_id_number }}" required>
-            <small class="form-hint">This is the unique school-assigned ID.</small>
+        </div>
+        <div class="form-group">
+            <label for="password">Student Password:</label>
+            <input type="password" id="password" name="password" value="{{ request.form.get('password', student.password_hash or '') }}">
+            <button type="button" class="password-toggle" onclick="togglePassword('password')" style="display: none;">Show</button>
+            <input type="hidden" id="password_stored" value="{{ request.form.get('password', student.password_hash or '') }}">
         </div>
         {# Updated dropdown to select SectionPeriod #}
         <div class="form-group">
@@ -35,3 +40,56 @@
     </form>
 </div>
 {% endblock %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordField = document.getElementById('password');
+    const toggleButton = document.querySelector('.password-toggle');
+    const storedPassword = document.getElementById('password_stored');
+    
+    // Restore password from localStorage if available
+    const savedPassword = localStorage.getItem('editStudentPassword');
+    if (savedPassword && !passwordField.value) {
+        passwordField.value = savedPassword;
+        storedPassword.value = savedPassword;
+    }
+    
+    // Show toggle button when password field has content
+    function updateToggleVisibility() {
+        if (passwordField.value.length > 0) {
+            toggleButton.style.display = 'inline-block';
+            // Save to localStorage
+            localStorage.setItem('editStudentPassword', passwordField.value);
+        } else {
+            toggleButton.style.display = 'none';
+            // Clear from localStorage
+            localStorage.removeItem('editStudentPassword');
+        }
+    }
+    
+    // Initial check - show toggle if there's a password hash
+    updateToggleVisibility();
+    
+    // Check on input
+    passwordField.addEventListener('input', updateToggleVisibility);
+    
+    // Save password when form is submitted
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function() {
+        localStorage.setItem('editStudentPassword', passwordField.value);
+    });
+});
+
+function togglePassword(fieldId) {
+    const field = document.getElementById(fieldId);
+    const toggleButton = event.target;
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        toggleButton.textContent = 'Hide';
+    } else {
+        field.type = 'password';
+        toggleButton.textContent = 'Show';
+    }
+}
+</script>

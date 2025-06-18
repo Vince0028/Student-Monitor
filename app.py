@@ -9,7 +9,7 @@ import decimal
 import bcrypt
 
 # Import SQLAlchemy components
-from sqlalchemy import create_engine, Column, Integer, String, Date, Numeric, ForeignKey, DateTime, UniqueConstraint, and_, or_, case, func
+from sqlalchemy import create_engine, Column, Integer, String, Date, Numeric, ForeignKey, DateTime, UniqueConstraint, and_, or_, case, func, text
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base, aliased, joinedload
 from sqlalchemy.sql import func
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
@@ -149,12 +149,12 @@ class SectionPeriod(Base): # Renamed from SectionSemester
 class StudentInfo(Base):
     __tablename__ = 'students_info'
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    section_period_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_periods.id'), nullable=False) # Links to SectionPeriod
+    section_period_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_periods.id'), nullable=False)
     name = Column(String(255), nullable=False)
     student_id_number = Column(String(255), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
     section_period = relationship('SectionPeriod', back_populates='students_in_period')
     attendance_records = relationship('Attendance', back_populates='student_info', cascade='all, delete-orphan')
     grades = relationship('Grade', back_populates='student_info', cascade='all, delete-orphan')
@@ -1569,17 +1569,15 @@ def edit_student(student_id):
         return redirect(url_for('admin_dashboard')) 
 
     # Fetch all section periods manageable by this admin for the dropdown
-    # Corrected ORDER BY clause to avoid DatatypeMismatch error
     section_periods_for_dropdown = db_session.query(SectionPeriod).options(
         joinedload(SectionPeriod.section).joinedload(Section.grade_level),
-        joinedload(SectionPeriod.section).joinedload(Section.strand) # Load strand via section
+        joinedload(SectionPeriod.section).joinedload(Section.strand)
     ).filter_by(created_by_admin=admin_id).order_by(
         SectionPeriod.school_year.desc(), 
         SectionPeriod.period_name, 
-        # Corrected ordering: Directly use columns from joined tables
-        Section.name.asc(),  # Order by section name
-        Strand.name.asc().nulls_first() # Order by strand name, putting None (JHS) first
-    ).join(Section).outerjoin(Strand).all() # Ensure joins are explicit for ordering
+        Section.name.asc(),
+        Strand.name.asc().nulls_first()
+    ).join(Section).outerjoin(Strand).all()
 
     current_period_manageable = any(str(s.id) == str(student_to_edit.section_period_id) for s in section_periods_for_dropdown)
     if not current_period_manageable:
@@ -1588,11 +1586,11 @@ def edit_student(student_id):
              return redirect(url_for('section_period_details', section_period_id=student_to_edit.section_period_id))
          return redirect(url_for('admin_dashboard'))
 
-
     if request.method == 'POST':
         student_name = request.form['name'].strip()
         student_id_number = request.form['student_id_number'].strip()
         new_section_period_id_str = request.form.get('section_period_id')
+        password = request.form.get('password', '').strip()
 
         if not student_name or not student_id_number or not new_section_period_id_str:
             flash('All student fields are required.', 'error')
@@ -1618,9 +1616,15 @@ def edit_student(student_id):
             student_to_edit.name = student_name
             student_to_edit.student_id_number = student_id_number
             student_to_edit.section_period_id = new_section_period_id
+            
+            # Update password if provided (store raw password for admin visibility)
+            if password and password.strip():
+                student_to_edit.password_hash = password  # Store raw password for admin
+                flash(f'Student "{student_name}" updated successfully with new password!', 'success')
+            else:
+                flash(f'Student "{student_name}" updated successfully! (Password unchanged)', 'success')
 
             db_session.commit()
-            flash(f'Student "{student_name}" updated successfully!', 'success')
             return redirect(url_for('section_period_details', section_period_id=student_to_edit.section_period.id))
         except Exception as e:
             db_session.rollback()
@@ -2942,6 +2946,19 @@ def view_attendance_history(section_period_id, subject_id):
                          subject=subject,
                          summary=summary,
                          dates=dates_query)
+
+def ensure_password_column_exists():
+    """Ensure the password_hash column exists in the students_info table"""
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE students_info ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255)"))
+            conn.commit()
+            print("Password column check completed")
+    except Exception as e:
+        print(f"Password column check error: {e}")
+
+# Ensure password column exists on startup
+ensure_password_column_exists()
 
 if __name__ == '__main__':
     app.run(debug=True)

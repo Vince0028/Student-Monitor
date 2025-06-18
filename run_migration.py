@@ -1,5 +1,7 @@
 import os
+import sys
 from sqlalchemy import create_engine, text
+from sqlalchemy.exc import ProgrammingError
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,68 +13,46 @@ if not DATABASE_URL:
     print("DATABASE_URL environment variable is not set")
     exit(1)
 
-# Create engine
-engine = create_engine(DATABASE_URL)
+# Add the current directory to the Python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# Migration SQL
-migration_sql = """
--- Add subject_password column to section_subjects table
-ALTER TABLE section_subjects 
-ADD COLUMN subject_password VARCHAR(255);
+from app import DATABASE_URL
 
--- Add comment to explain the column
-COMMENT ON COLUMN section_subjects.subject_password IS 'Password for accessing gradebook for this subject';
-"""
-
-# Migration for attendance table
-attendance_migration_sql = """
--- Add section_subject_id column to attendance table
-ALTER TABLE attendance 
-ADD COLUMN section_subject_id UUID REFERENCES section_subjects(id) ON DELETE CASCADE;
-
--- Add unique constraint for the new column combination
-ALTER TABLE attendance 
-DROP CONSTRAINT IF EXISTS attendance_student_info_id_section_subject_id_attendance_date_key;
-
-ALTER TABLE attendance 
-ADD CONSTRAINT attendance_student_info_id_section_subject_id_attendance_date_key 
-UNIQUE (student_info_id, section_subject_id, attendance_date);
-"""
-
-try:
+def run_migrations():
+    engine = create_engine(DATABASE_URL)
+    
     with engine.connect() as conn:
-        # Check if subject_password column already exists
-        result = conn.execute(text("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'section_subjects' 
-            AND column_name = 'subject_password'
-        """))
+        # Add subject_password column to section_subjects if it doesn't exist
+        try:
+            conn.execute(text("ALTER TABLE section_subjects ADD COLUMN subject_password VARCHAR(255)"))
+            print("Added subject_password column to section_subjects table")
+        except ProgrammingError as e:
+            if "already exists" in str(e):
+                print("Column 'subject_password' already exists in section_subjects table")
+            else:
+                raise e
         
-        if result.fetchone():
-            print("Column 'subject_password' already exists in section_subjects table")
-        else:
-            # Execute migration
-            conn.execute(text(migration_sql))
-            conn.commit()
-            print("Successfully added 'subject_password' column to section_subjects table")
+        # Add section_subject_id column to attendance if it doesn't exist
+        try:
+            conn.execute(text("ALTER TABLE attendance ADD COLUMN section_subject_id UUID REFERENCES section_subjects(id)"))
+            print("Added section_subject_id column to attendance table")
+        except ProgrammingError as e:
+            if "already exists" in str(e):
+                print("Column 'section_subject_id' already exists in attendance table")
+            else:
+                raise e
         
-        # Check if section_subject_id column already exists in attendance table
-        result = conn.execute(text("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'attendance' 
-            AND column_name = 'section_subject_id'
-        """))
+        # Add password_hash column to students_info if it doesn't exist
+        try:
+            conn.execute(text("ALTER TABLE students_info ADD COLUMN password_hash VARCHAR(255)"))
+            print("Added password_hash column to students_info table")
+        except ProgrammingError as e:
+            if "already exists" in str(e):
+                print("Column 'password_hash' already exists in students_info table")
+            else:
+                raise e
         
-        if result.fetchone():
-            print("Column 'section_subject_id' already exists in attendance table")
-        else:
-            # Execute attendance migration
-            conn.execute(text(attendance_migration_sql))
-            conn.commit()
-            print("Successfully added 'section_subject_id' column to attendance table")
-            
-except Exception as e:
-    print(f"Error running migration: {e}")
-    exit(1) 
+        conn.commit()
+
+if __name__ == "__main__":
+    run_migrations() 
