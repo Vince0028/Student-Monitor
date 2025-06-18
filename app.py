@@ -171,7 +171,7 @@ class SectionSubject(Base):
     # The teacher account who created this subject record (e.g., the g12ict account)
     created_by_teacher_id = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=False) 
     # NEW: The name of the human teacher assigned to this subject (free text)
-    assigned_teacher_name = Column(String(255), nullable=False)
+    assigned_teacher_name = Column(String(255), nullable=False) 
     # NEW: Password for accessing gradebook
     subject_password = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -1358,9 +1358,9 @@ def section_period_details(section_period_id):
         template = 'section_period_details.html' if user_type == 'admin' else 'teacher_section_period_details.html'
         
         return render_template(template,
-                           section_period=section_period,
-                           students=students,
-                           section_subjects=section_subjects)
+                               section_period=section_period,
+                               students=students,
+                               section_subjects=section_subjects)
 
     except NoResultFound:
         flash('Section period not found.', 'error')
@@ -1828,7 +1828,7 @@ def add_subject_to_section_period(section_period_id):
         if session.get('user_type') == 'admin':
             return redirect(url_for('admin_dashboard'))
         else:
-            return redirect(url_for('teacher_dashboard'))
+             return redirect(url_for('teacher_dashboard'))
 
     if request.method == 'POST':
         subject_name = request.form.get('subject_name')
@@ -1861,8 +1861,8 @@ def add_subject_to_section_period(section_period_id):
                 except Exception as e:
                     g.session.rollback()
                     flash('An error occurred while adding the subject.', 'error')
-                redirect_url = url_for('section_period_details', section_period_id=section_period_id) if session['user_type'] == 'admin' else url_for('teacher_section_period_view', section_period_id=section_period_id)
-                return redirect(redirect_url)
+        redirect_url = url_for('section_period_details', section_period_id=section_period_id) if session['user_type'] == 'admin' else url_for('teacher_section_period_view', section_period_id=section_period_id)
+        return redirect(redirect_url)
     # For GET or after error, render the form
     return render_template('add_subject_to_section_period.html', section_period=section_period)
 
@@ -2962,6 +2962,5 @@ ensure_password_column_exists()
 
 if __name__ == '__main__':
     app.run(debug=True)
-    
-    
-    
+
+

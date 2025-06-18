@@ -1,5 +1,6 @@
 {% extends 'student_base.html' %}
 
+<<<<<<< HEAD
 {% block title %}Attendance - Student Monitor{% endblock %}
 
 {% block content %}
@@ -7,4 +8,35 @@
     <h2>Attendance Records</h2>
     <!-- Attendance records table would go here -->
 </div>
+=======
+{% block title %}Attendance - Student Portal{% endblock %}
+
+{% block content %}
+<h2><i class="fas fa-calendar-check"></i> Attendance Records</h2>
+{% if attendance %}
+    <div class="data-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in attendance %}
+                <tr>
+                    <td>{{ record.date.strftime('%b %d, %Y') }}</td>
+                    <td class="attendance-{{ record.status }}">{{ record.status|capitalize }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="empty-state">
+        <i class="fas fa-calendar-check"></i>
+        <p>No attendance records available yet.</p>
+    </div>
+{% endif %}
+>>>>>>> e3c8666a7cdacd4ae5ed11fc7b5b6628c7d6deef
 {% endblock %} 

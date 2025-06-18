@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<<<<<< HEAD
     <title>{% block title %}Student Monitor{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -15,6 +16,27 @@
             <nav class="main-nav">
                 <ul class="nav-links">
                     {% if session.get('student_id') %}
+=======
+    <title>{% block title %}Student Portal - Student Monitor{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+    <header class="student-header">
+        <div class="container">
+            <h1 class="student-title">
+                <a href="{{ url_for('student_dashboard') if session.student_id else url_for('student_login') }}">
+                    <i class="fas fa-user-graduate"></i> Student Portal
+                </a>
+            </h1>
+            <nav class="student-nav">
+                <ul class="nav-links">
+                    {% if session.student_id %}
+                        <li><a href="{{ url_for('student_dashboard') }}"><i class="fas fa-home"></i> Dashboard</a></li>
+                        <li><a href="{{ url_for('student_assignments') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                        <li><a href="{{ url_for('student_grades') }}"><i class="fas fa-chart-line"></i> Grades</a></li>
+                        <li><a href="{{ url_for('student_attendance') }}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+>>>>>>> e3c8666a7cdacd4ae5ed11fc7b5b6628c7d6deef
                         <li><a href="{{ url_for('student_logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                     {% else %}
                         <li><a href="{{ url_for('student_login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
@@ -23,6 +45,7 @@
             </nav>
         </div>
     </header>
+<<<<<<< HEAD
     <main class="app-main container">
         <div class="flash-messages">
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -103,3 +126,32 @@
     </script>
 </body>
 </html>
+=======
+    <main class="student-main">
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                <i class="fas fa-info-circle"></i>
+                                {{ message }}
+                                <button type="button" class="close-btn" onclick="this.parentElement.remove()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    <footer class="student-footer">
+        <div class="container">
+            <p>&copy; 2024 Student Monitor - Student Portal. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html> 
+>>>>>>> e3c8666a7cdacd4ae5ed11fc7b5b6628c7d6deef

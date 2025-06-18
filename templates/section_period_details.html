@@ -26,48 +26,48 @@
         Show/Hide Student List
     </button>
     <div class="collapse" id="studentListCollapse">
-        <div class="card mt-40">
-            <h3>Student List</h3>
+    <div class="card mt-40">
+        <h3>Student List</h3>
             <div class="mb-3">
                 <input type="text" id="studentSearchInput" class="form-control" placeholder="Search students by name or ID...">
             </div>
-            <div class="table-responsive">
+        <div class="table-responsive">
                 <table class="data-table" id="studentTable">
-                    <thead>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Student ID</th>
+                        <th>Average Grade</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
                         <tr>
-                            <th>Name</th>
-                            <th>Student ID</th>
-                            <th>Average Grade</th>
-                            <th>Actions</th>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.student_id_number }}</td>
+                            <td><span class="average-grade-value">{{ student.average_grade }}</span></td>
+                            <td>
+                                <div class="button-group">
+                                    <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-edit btn-icon-small" title="Edit Student Details">
+                                        <i class="fas fa-user-edit"></i> Edit
+                                    </a>
+                                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
+                                            data-delete-url="{{ url_for('delete_student_admin', student_id=student.id) }}"
+                                            data-redirect-url="{{ url_for('section_period_details', section_period_id=section_period.id) }}"
+                                            data-confirmation-message="Are you sure you want to delete student {{ student.name }}? This will also delete ALL their attendance and grades."
+                                            data-item-name="Student {{ student.name }}"
+                                            title="Delete Student">
+                                        <i class="fas fa-user-slash"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {% for student in students %}
-                            <tr>
-                                <td>{{ student.name }}</td>
-                                <td>{{ student.student_id_number }}</td>
-                                <td><span class="average-grade-value">{{ student.average_grade }}</span></td>
-                                <td>
-                                    <div class="button-group">
-                                        <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-edit btn-icon-small" title="Edit Student Details">
-                                            <i class="fas fa-user-edit"></i> Edit
-                                        </a>
-                                        <button type="button" class="btn btn-danger btn-icon-small delete-btn"
-                                                data-delete-url="{{ url_for('delete_student_admin', student_id=student.id) }}"
-                                                data-redirect-url="{{ url_for('section_period_details', section_period_id=section_period.id) }}"
-                                                data-confirmation-message="Are you sure you want to delete student {{ student.name }}? This will also delete ALL their attendance and grades."
-                                                data-item-name="Student {{ student.name }}"
-                                                title="Delete Student">
-                                            <i class="fas fa-user-slash"></i> Delete
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+    </div>
     </div>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
