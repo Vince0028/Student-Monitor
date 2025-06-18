@@ -84,6 +84,7 @@ CREATE TABLE section_subjects (
     subject_name VARCHAR(255) NOT NULL,
     assigned_teacher_name VARCHAR(255) NOT NULL, -- The name of the human teacher
     created_by_teacher_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- The account that created the subject
+    subject_password VARCHAR(255), -- Password for accessing gradebook for this subject
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (section_period_id, subject_name)
 );

@@ -171,7 +171,9 @@ class SectionSubject(Base):
     # The teacher account who created this subject record (e.g., the g12ict account)
     created_by_teacher_id = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=False) 
     # NEW: The name of the human teacher assigned to this subject (free text)
-    assigned_teacher_name = Column(String(255), nullable=False) 
+    assigned_teacher_name = Column(String(255), nullable=False)
+    # NEW: Password for accessing gradebook
+    subject_password = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
@@ -1335,12 +1337,13 @@ def section_period_details(section_period_id):
 
         # Fetch subjects - show all subjects if teacher is assigned to this section period
         user_id = uuid.UUID(session['user_id'])
+        user_type = session['user_type']
         
         # Check if teacher is assigned to this section period
         is_assigned_teacher = str(section_period.assigned_teacher_id) == str(user_id)
         
-        if is_assigned_teacher:
-            # If teacher is assigned to this period, show all subjects
+        if is_assigned_teacher or user_type == 'admin':
+            # If teacher is assigned to this period or user is admin, show all subjects
             section_subjects = g.session.query(SectionSubject).filter(
                 SectionSubject.section_period_id == section_period_id
             ).order_by(SectionSubject.subject_name).all()
@@ -1351,15 +1354,17 @@ def section_period_details(section_period_id):
                 SectionSubject.created_by_teacher_id == user_id
             ).order_by(SectionSubject.subject_name).all()
     
-        return render_template('teacher_section_period_details.html',
-                               section_period=section_period,
-                               students=students,
-                               section_subjects=section_subjects)
+        # Use different templates based on user type
+        template = 'section_period_details.html' if user_type == 'admin' else 'teacher_section_period_details.html'
+        
+        return render_template(template,
+                           section_period=section_period,
+                           students=students,
+                           section_subjects=section_subjects)
 
     except NoResultFound:
         flash('Section period not found.', 'error')
-        return redirect(url_for('teacher_dashboard'))
-
+        return redirect(url_for('teacher_dashboard') if session['user_type'] == 'teacher' else url_for('admin_dashboard'))
 
 
 @app.route('/section_period/<uuid:section_period_id>/add_student', methods=['GET', 'POST'])
@@ -1855,9 +1860,6 @@ def add_subject_to_section_period(section_period_id):
         redirect_url = url_for('section_period_details', section_period_id=section_period_id) if session['user_type'] == 'admin' else url_for('teacher_section_period_view', section_period_id=section_period_id)
         return redirect(redirect_url)
 
-    # For GET request
-    return render_template('add_section_subject.html', section_period=section_period)
-
 @app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/edit', methods=['POST'])
 @login_required
 @user_type_required('teacher', 'admin')
@@ -1867,12 +1869,22 @@ def edit_section_subject(section_period_id, subject_id):
         
         new_subject_name = request.form.get('subject_name')
         new_teacher_name = request.form.get('assigned_teacher_name')
+        password = request.form.get('password')
+        subject_password = request.form.get('subject_password')
+        subject_password = request.form.get('subject_password')
 
-        if not new_subject_name or not new_teacher_name:
+        # Verify password first
+        user_id = uuid.UUID(session['user_id'])
+        if not password or not verify_current_user_password(user_id, password):
+            flash('Incorrect password. Subject was not updated.', 'error')
+        elif not new_subject_name or not new_teacher_name:
             flash('Subject Name and Assigned Teacher Name cannot be empty.', 'error')
         else:
             subject.subject_name = new_subject_name
             subject.assigned_teacher_name = new_teacher_name
+            # Only admin can update subject password
+            if session['user_type'] == 'admin' and subject_password:
+                subject.subject_password = subject_password
             g.session.commit()
             flash('Subject updated successfully!', 'success')
             
@@ -2289,7 +2301,7 @@ def edit_section_period(section_period_id):
     return redirect(request.referrer or url_for('admin_dashboard'))
 
 
-@app.route('/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/gradebook')
+@app.route('/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/gradebook', methods=['GET', 'POST'])
 @login_required
 @user_type_required('teacher')
 def manage_subject_grades(section_period_id, subject_id):
@@ -2308,6 +2320,36 @@ def manage_subject_grades(section_period_id, subject_id):
     if str(section_period.assigned_teacher_id) != str(teacher_id):
         flash('You do not have permission to view this subject.', 'error')
         return redirect(request.referrer or url_for('teacher_dashboard'))
+
+    # Check if the subject password has been verified
+    if request.method == 'POST':
+        password = request.form.get('subject_password')
+        if not password or password != subject.subject_password:
+            flash('Incorrect subject password.', 'error')
+            return redirect(url_for('teacher_section_period_view', section_period_id=section_period_id))
+        else:
+            session['subject_password_verified'] = str(subject_id)
+    elif 'subject_password_verified' not in session or session['subject_password_verified'] != str(subject_id):
+        flash('Please enter the subject password to access the gradebook.', 'info')
+        return redirect(url_for('teacher_section_period_view', section_period_id=section_period_id))
+
+    # Check if the subject password has been verified
+    if request.method == 'POST':
+        password = request.form.get('subject_password')
+    if 'subject_password_verified' not in session or session['subject_password_verified'] != str(subject_id):
+        if request.method == 'POST':
+            password = request.form.get('subject_password')
+            if not password or password != subject.subject_password:
+                flash('Incorrect subject password.', 'error')
+                return render_template('confirm_password.html', 
+                                    subject=subject,
+                                    form_action=url_for('manage_subject_grades', section_period_id=section_period_id, subject_id=subject_id))
+            else:
+                session['subject_password_verified'] = str(subject_id)
+        else:
+            return render_template('confirm_password.html', 
+                                subject=subject,
+                                form_action=url_for('manage_subject_grades', section_period_id=section_period_id, subject_id=subject_id))
 
     students = g.session.query(StudentInfo).filter(
         StudentInfo.section_period_id == section_period_id
@@ -2431,7 +2473,31 @@ def setup_grading_system(subject_id):
 
     return render_template('grading_system_setup.html', subject=subject, grading_system=grading_system)
 
+@app.route('/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/verify-gradebook-password', methods=['POST'])
+@login_required
+@user_type_required('teacher')
+def verify_gradebook_password(section_period_id, subject_id):
+    subject = g.session.query(SectionSubject).options(
+        joinedload(SectionSubject.section_period)
+    ).get(subject_id)
+    
+    if not subject:
+        flash('Subject not found.', 'error')
+        return redirect(request.referrer or url_for('teacher_dashboard'))
 
+    section_period = subject.section_period
+    teacher_id = uuid.UUID(session['user_id'])
+    if str(section_period.assigned_teacher_id) != str(teacher_id):
+        flash('You do not have permission to view this subject.', 'error')
+        return redirect(request.referrer or url_for('teacher_dashboard'))
+
+    password = request.form.get('subject_password')
+    if not password or password != subject.subject_password:
+        flash('Incorrect subject password.', 'error')
+        return redirect(url_for('teacher_section_period_view', section_period_id=section_period_id))
+    else:
+        session['subject_password_verified'] = str(subject_id)
+        return redirect(url_for('manage_subject_grades', section_period_id=section_period_id, subject_id=subject_id))
 
 @app.route('/subject/<uuid:subject_id>/student/<uuid:student_id>/grade', methods=['GET', 'POST'])
 @login_required
@@ -2654,7 +2720,6 @@ def teacher_section_attendance_details(section_period_id, subject_id):
     db_session = g.session
     teacher_id = uuid.UUID(session['user_id'])
     mode = request.args.get('mode')
-    mode = request.args.get('mode')
     
     # Get the section period
     section_period = db_session.query(SectionPeriod).options(
@@ -2681,6 +2746,11 @@ def teacher_section_attendance_details(section_period_id, subject_id):
     
     if not subject:
         flash('Subject not found.', 'error')
+        return redirect(url_for('teacher_section_period_view', section_period_id=section_period_id))
+
+    # Check if the subject password has been verified
+    if 'subject_password_verified' not in session or session['subject_password_verified'] != str(subject_id):
+        flash('Please enter the subject password to access attendance.', 'info')
         return redirect(url_for('teacher_section_period_view', section_period_id=section_period_id))
 
     # If mode is history, show attendance history
@@ -2846,7 +2916,8 @@ def view_attendance_history(section_period_id, subject_id):
                          summary=summary,
                          dates=dates_query)
 
-
-
 if __name__ == '__main__':
     app.run(debug=True)
+    
+    
+    

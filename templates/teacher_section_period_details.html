@@ -18,13 +18,18 @@
         flex: 1;
         min-width: 0;
         padding-right: 1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .button-group {
         display: flex;
         gap: 0.5rem;
         flex-wrap: nowrap;
+        flex-shrink: 0;
     }
     .button-group .btn {
+        min-width: 120px;
         width: 120px;
         white-space: nowrap;
         display: inline-flex;
@@ -32,9 +37,15 @@
         justify-content: center;
         padding: 0.5rem;
         font-size: 0.875rem;
+        flex-shrink: 0;
     }
     .button-group .btn i {
         margin-right: 0.25rem;
+        flex-shrink: 0;
+    }
+    .list-container {
+        width: 100%;
+        overflow-x: auto;
     }
 </style>
 
@@ -145,12 +156,9 @@
                     <span>{{ subject.subject_name }} (Assigned to: {{ subject.assigned_teacher_name }})</span>
                 </div>
                 <div class="button-group">
-                    <a href="{{ url_for('manage_subject_grades', section_period_id=subject.section_period_id, subject_id=subject.id) }}" class="btn btn-view btn-icon-small" title="Manage Gradebook">
+                    <button type="button" class="btn btn-view btn-icon-small" data-bs-toggle="modal" data-bs-target="#gradebookPasswordModal-{{ subject.id }}" title="Manage Gradebook">
                         <i class="fas fa-book-open"></i> Gradebook
-                    </a>
-                    <a href="{{ url_for('teacher_section_attendance_details', section_period_id=subject.section_period_id, subject_id=subject.id) }}" class="btn btn-primary btn-icon-small" title="Manage Attendance">
-                        <i class="fas fa-clipboard-check"></i> Attendance
-                    </a>
+                    </button>
                     <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editSubjectModal-{{ subject.id }}" title="Edit Subject">
                         <i class="fas fa-edit"></i> Edit
                     </button>
@@ -187,7 +195,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form action="{{ url_for('edit_section_subject', section_period_id=section_period.id, subject_id=subject.id) }}" method="POST">
+                <form id="editSubjectForm-{{ subject.id }}" action="{{ url_for('edit_section_subject', section_period_id=section_period.id, subject_id=subject.id) }}" method="POST">
                     <div class="mb-3">
                         <label for="subject_name-{{ subject.id }}" class="form-label">Subject Name</label>
                         <input type="text" class="form-control" id="subject_name-{{ subject.id }}" name="subject_name" value="{{ subject.subject_name }}" required>
@@ -195,6 +203,11 @@
                     <div class="mb-3">
                         <label for="assigned_teacher_name-{{ subject.id }}" class="form-label">Assigned Teacher Name</label>
                         <input type="text" class="form-control" id="assigned_teacher_name-{{ subject.id }}" name="assigned_teacher_name" value="{{ subject.assigned_teacher_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password-{{ subject.id }}" class="form-label">Enter your password to confirm changes</label>
+                        <input type="password" class="form-control" id="password-{{ subject.id }}" name="password" required>
+                        <div class="form-text">Password is required to save changes to this subject.</div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -205,8 +218,83 @@
         </div>
     </div>
 </div>
+
+<!-- Gradebook Password Modal -->
+<div class="modal fade" id="gradebookPasswordModal-{{ subject.id }}" tabindex="-1" aria-labelledby="gradebookPasswordModalLabel-{{ subject.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="gradebookPasswordModalLabel-{{ subject.id }}">Enter Subject Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="gradebookPasswordForm-{{ subject.id }}" action="{{ url_for('verify_gradebook_password', section_period_id=section_period.id, subject_id=subject.id) }}" method="POST">
+                    <div class="mb-3">
+                        <label for="subject_password-{{ subject.id }}" class="form-label">Subject Password</label>
+                        <input type="password" class="form-control" id="subject_password-{{ subject.id }}" name="subject_password" required>
+                        <div class="form-text">Please enter the subject password to access the gradebook.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Access Gradebook</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endfor %}
 {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add form validation for edit subject forms
+    {% if section_subjects %}
+    {% for subject in section_subjects %}
+    const form{{ subject.id }} = document.getElementById('editSubjectForm-{{ subject.id }}');
+    if (form{{ subject.id }}) {
+        form{{ subject.id }}.addEventListener('submit', function(e) {
+            const password = document.getElementById('password-{{ subject.id }}').value;
+            const subjectName = document.getElementById('subject_name-{{ subject.id }}').value;
+            const teacherName = document.getElementById('assigned_teacher_name-{{ subject.id }}').value;
+            
+            if (!password.trim()) {
+                e.preventDefault();
+                alert('Password is required to save changes.');
+                document.getElementById('password-{{ subject.id }}').focus();
+                return false;
+            }
+            
+            if (!subjectName.trim() || !teacherName.trim()) {
+                e.preventDefault();
+                alert('Subject name and assigned teacher name are required.');
+                return false;
+            }
+        });
+    }
+    {% endfor %}
+    {% endif %}
+
+    // Add form validation for gradebook password forms
+    {% if section_subjects %}
+    {% for subject in section_subjects %}
+    const gradebookForm{{ subject.id }} = document.getElementById('gradebookPasswordForm-{{ subject.id }}');
+    if (gradebookForm{{ subject.id }}) {
+        gradebookForm{{ subject.id }}.addEventListener('submit', function(e) {
+            const password = document.getElementById('subject_password-{{ subject.id }}').value;
+            
+            if (!password.trim()) {
+                e.preventDefault();
+                alert('Subject password is required to access the gradebook.');
+                document.getElementById('subject_password-{{ subject.id }}').focus();
+                return false;
+            }
+        });
+    }
+    {% endfor %}
+    {% endif %}
+});
+</script>
 
 <!-- Modals for Editing Students -->
 {% if students %}

@@ -903,3 +903,107 @@ body {
         align-items: flex-start;
     }
 }
+
+/* Button Styles */
+.button-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+}
+
+.button-group .btn {
+    min-width: 120px;
+    width: 120px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+
+.button-group .btn i {
+    margin-right: 0.25rem;
+    flex-shrink: 0;
+}
+
+.list-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.list-item:last-child {
+    border-bottom: none;
+}
+
+.list-item > span {
+    flex: 1;
+    min-width: 0;
+    padding-right: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Additional button styles */
+.btn-view {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.btn-view:hover {
+    background-color: #2563eb;
+    color: white;
+}
+
+.btn-edit {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.btn-edit:hover {
+    background-color: #d97706;
+    color: white;
+}
+
+.btn-delete {
+    background-color: #ef4444;
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #dc2626;
+    color: white;
+}
+
+/* Icon styles */
+.btn i {
+    margin-right: 0.5rem;
+}
+
+/* Make sure buttons don't wrap text */
+.btn {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Ensure consistent button sizes */
+.btn-icon-small {
+    min-width: 120px !important;
+    width: 120px !important;
+    padding: 0.5rem !important;
+    justify-content: center !important;
+    align-items: center !important;
+    display: inline-flex !important;
+}

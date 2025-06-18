@@ -45,7 +45,12 @@
             </p>
         </div>
         <div>
-            <a href="{{ url_for('teacher_section_period_view', section_period_id=subject.section_period_id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Period Details</a>
+            <a href="{{ url_for('teacher_section_attendance_details', section_period_id=subject.section_period_id, subject_id=subject.id) }}" class="btn btn-primary me-2">
+                <i class="fas fa-clipboard-check"></i> Attendance
+            </a>
+            <a href="{{ url_for('teacher_section_period_view', section_period_id=subject.section_period_id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Period Details
+            </a>
         </div>
     </div>
     

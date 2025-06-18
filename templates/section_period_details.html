@@ -5,7 +5,7 @@
 {% block content %}
 <div class="dashboard-container">
     <h2>{{ section_period.section.name }} ({{ section_period.period_name }} {{ section_period.school_year }})</h2>
-    <p class="dashboard-welcome">Manage students, subjects, attendance, and grades for this specific {{ section_period.period_type | lower }}.</p>
+    <p class="dashboard-welcome">Manage students and subjects for this specific {{ section_period.period_type | lower }}.</p>
     <p class="dashboard-welcome">Assigned Account: <strong>{{ section_period.assigned_teacher.username if section_period.assigned_teacher else 'Not Assigned' }}</strong></p>
 
     <div class="dashboard-grid">
@@ -22,45 +22,72 @@
     </div>
 
     {% if students %}
-    <div class="card mt-40">
-        <h3>Student List</h3>
-        <div class="table-responsive">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Student ID</th>
-                        <th>Average Grade</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for student in students %}
+    <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#studentListCollapse" aria-expanded="false" aria-controls="studentListCollapse">
+        Show/Hide Student List
+    </button>
+    <div class="collapse" id="studentListCollapse">
+        <div class="card mt-40">
+            <h3>Student List</h3>
+            <div class="mb-3">
+                <input type="text" id="studentSearchInput" class="form-control" placeholder="Search students by name or ID...">
+            </div>
+            <div class="table-responsive">
+                <table class="data-table" id="studentTable">
+                    <thead>
                         <tr>
-                            <td>{{ student.name }}</td>
-                            <td>{{ student.student_id_number }}</td>
-                            <td><span class="average-grade-value">{{ student.average_grade }}</span></td>
-                            <td>
-                                <div class="button-group">
-                                    <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-edit btn-icon-small" title="Edit Student Details">
-                                        <i class="fas fa-user-edit"></i> Edit
-                                    </a>
-                                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
-                                            data-delete-url="{{ url_for('delete_student_admin', student_id=student.id) }}"
-                                            data-redirect-url="{{ url_for('section_period_details', section_period_id=section_period.id) }}"
-                                            data-confirmation-message="Are you sure you want to delete student {{ student.name }}? This will also delete ALL their attendance and grades."
-                                            data-item-name="Student {{ student.name }}"
-                                            title="Delete Student">
-                                        <i class="fas fa-user-slash"></i> Delete
-                                    </button>
-                                </div>
-                            </td>
+                            <th>Name</th>
+                            <th>Student ID</th>
+                            <th>Average Grade</th>
+                            <th>Actions</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                            <tr>
+                                <td>{{ student.name }}</td>
+                                <td>{{ student.student_id_number }}</td>
+                                <td><span class="average-grade-value">{{ student.average_grade }}</span></td>
+                                <td>
+                                    <div class="button-group">
+                                        <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-edit btn-icon-small" title="Edit Student Details">
+                                            <i class="fas fa-user-edit"></i> Edit
+                                        </a>
+                                        <button type="button" class="btn btn-danger btn-icon-small delete-btn"
+                                                data-delete-url="{{ url_for('delete_student_admin', student_id=student.id) }}"
+                                                data-redirect-url="{{ url_for('section_period_details', section_period_id=section_period.id) }}"
+                                                data-confirmation-message="Are you sure you want to delete student {{ student.name }}? This will also delete ALL their attendance and grades."
+                                                data-item-name="Student {{ student.name }}"
+                                                title="Delete Student">
+                                            <i class="fas fa-user-slash"></i> Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('studentSearchInput');
+        const table = document.getElementById('studentTable');
+        searchInput.addEventListener('keyup', function() {
+            const filter = searchInput.value.toLowerCase();
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const name = row.children[0].textContent.toLowerCase();
+                const id = row.children[1].textContent.toLowerCase();
+                if (name.includes(filter) || id.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    });
+    </script>
     {% else %}
     <p class="no-data-message mt-40">No students added to this period yet. Start by adding one!</p>
     {% endif %}
@@ -109,7 +136,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form action="{{ url_for('edit_section_subject', section_period_id=section_period.id, subject_id=subject.id) }}" method="POST">
+                <form id="editSubjectForm-{{ subject.id }}" action="{{ url_for('edit_section_subject', section_period_id=section_period.id, subject_id=subject.id) }}" method="POST">
                     <div class="mb-3">
                         <label for="subject_name-{{ subject.id }}" class="form-label">Subject Name</label>
                         <input type="text" class="form-control" id="subject_name-{{ subject.id }}" name="subject_name" value="{{ subject.subject_name }}" required>
@@ -117,6 +144,16 @@
                     <div class="mb-3">
                         <label for="assigned_teacher_name-{{ subject.id }}" class="form-label">Assigned Teacher Name</label>
                         <input type="text" class="form-control" id="assigned_teacher_name-{{ subject.id }}" name="assigned_teacher_name" value="{{ subject.assigned_teacher_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="subject_password-{{ subject.id }}" class="form-label">Subject Password</label>
+                        <input type="password" class="form-control" id="subject_password-{{ subject.id }}" name="subject_password" value="{{ subject.subject_password }}" required>
+                        <div class="form-text">This password will be required for teachers to access the gradebook.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password-{{ subject.id }}" class="form-label">Enter your admin password to confirm changes</label>
+                        <input type="password" class="form-control" id="password-{{ subject.id }}" name="password" required>
+                        <div class="form-text">Your admin password is required to save changes to this subject.</div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -129,4 +166,36 @@
 </div>
 {% endfor %}
 {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add form validation for edit subject forms
+    {% if section_subjects %}
+    {% for subject in section_subjects %}
+    const form{{ subject.id }} = document.getElementById('editSubjectForm-{{ subject.id }}');
+    if (form{{ subject.id }}) {
+        form{{ subject.id }}.addEventListener('submit', function(e) {
+            const password = document.getElementById('password-{{ subject.id }}').value;
+            const subjectName = document.getElementById('subject_name-{{ subject.id }}').value;
+            const teacherName = document.getElementById('assigned_teacher_name-{{ subject.id }}').value;
+            const subjectPassword = document.getElementById('subject_password-{{ subject.id }}').value;
+            
+            if (!password.trim()) {
+                e.preventDefault();
+                alert('Your admin password is required to save changes.');
+                document.getElementById('password-{{ subject.id }}').focus();
+                return false;
+            }
+            
+            if (!subjectName.trim() || !teacherName.trim() || !subjectPassword.trim()) {
+                e.preventDefault();
+                alert('Subject name, assigned teacher name, and subject password are required.');
+                return false;
+            }
+        });
+    }
+    {% endfor %}
+    {% endif %}
+});
+</script>
 {% endblock %}
