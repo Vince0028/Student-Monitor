@@ -103,60 +103,54 @@
 </div>
 {% endfor %}
 
-{# Add this script section at the very end of your HTML file, before {% endblock %} #}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const reassignBtn = document.getElementById('reassignTeachersBtn');
+        const confirmModal = document.getElementById('confirmationModal');
+        const confirmBtn = document.getElementById('reassignConfirmBtn');
+        const passwordInput = document.getElementById('reassignPasswordInput');
+        let bootstrapModal = null;
+
         if (reassignBtn) {
             reassignBtn.addEventListener('click', function() {
-                // Show a modal for password confirmation
-                showConfirmationModal(
-                    'Confirm Teacher Reassignment',
-                    'This action will attempt to assign registered teacher accounts to periods that are currently unassigned based on their grade level and specialization. Please enter your password to confirm.',
-                    'Confirm Reassignment',
-                    (password) => {
-                        fetch('{{ url_for("reassign_period_teachers") }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: `password=${encodeURIComponent(password)}`
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                // Reload page to reflect changes and show flash message
-                                window.location.href = data.redirect_url || '{{ url_for("index") }}';
-                            } else {
-                                // Stay on page and show error message
-                                console.error('Reassignment failed:', data.message);
-                                alert(data.message); // Using alert temporarily for quick feedback
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('An unexpected error occurred during reassignment.');
-                        });
-                    }
-                );
+                if (passwordInput) passwordInput.value = '';
+                if (confirmModal) {
+                    bootstrapModal = new bootstrap.Modal(confirmModal);
+                    bootstrapModal.show();
+                }
             });
         }
 
-        // --- Generic Confirmation Modal (reuse for other deletions/sensitive ops) ---
-        // This relies on a modal HTML structure being present in base.html or elsewhere.
-        // Assuming you have a basic modal structure with #confirmationModal, #confirmModalText, #confirmModalInput, #confirmModalBtn, #cancelModalBtn
-        // If not, you'll need to create one, or use a simpler prompt/confirm.
-        function showConfirmationModal(title, message, confirmButtonText, callback) {
-            // Placeholder for a proper modal. For now, use prompt for password.
-            // In a real app, you'd use a dedicated modal HTML/JS.
-            const password = prompt(message + '\n\nPlease enter your password:');
-            if (password !== null) { // User clicked OK
-                callback(password);
-            } else { // User clicked Cancel
-                // Do nothing
-            }
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function() {
+                const password = passwordInput.value;
+                if (!password) {
+                    passwordInput.focus();
+                    return;
+                }
+                fetch('{{ url_for("reassign_period_teachers") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `password=${encodeURIComponent(password)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = data.redirect_url || '{{ url_for("index") }}';
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('An unexpected error occurred during reassignment.');
+                })
+                .finally(() => {
+                    if (bootstrapModal) bootstrapModal.hide();
+                });
+            });
         }
-        // END of Generic Confirmation Modal
     });
 </script>
 {% endblock %}
