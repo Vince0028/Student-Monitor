@@ -1,0 +1,94 @@
+{% extends 'parent_base.html' %}
+
+{% block title %}Dashboard - Parent Portal{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h2>Welcome, {{ session.parent_name }}!</h2>
+    <p>Here's an overview of your children's academic progress</p>
+</div>
+
+{% if students %}
+    <div class="students-grid">
+        {% for student in students %}
+        <div class="student-card">
+            <div class="student-header">
+                <div class="student-avatar">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <div class="student-info">
+                    <h3>{{ student.first_name }} {{ student.last_name }}</h3>
+                    <p class="student-id">ID: {{ student.student_id_number }}</p>
+                    <p class="student-class">
+                        {{ student.grade_level }} - {{ student.section_name }}
+                        {% if student.strand_name %}
+                            ({{ student.strand_name }})
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <div class="student-stats">
+                <div class="stat-item">
+                    <i class="fas fa-chart-line"></i>
+                    <div class="stat-content">
+                        <span class="stat-label">Average Grade</span>
+                        <span class="stat-value">{{ "%.2f"|format(student.average_grade) if student.average_grade != "N/A" else "N/A" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            {% if student.latest_grades %}
+            <div class="recent-grades">
+                <h4><i class="fas fa-clock"></i> Recent Grades</h4>
+                <div class="grades-list">
+                    {% for grade in student.latest_grades[:3] %}
+                    <div class="grade-item">
+                        <span class="subject">{{ grade.subject_name }}</span>
+                        <span class="grade-value">{{ "%.2f"|format(grade.grade_value) }}</span>
+                        <span class="period">{{ grade.period_name }} {{ grade.school_year }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="student-actions">
+                <a href="{{ url_for('student_details', student_id=student.id) }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-eye"></i> View Details
+                </a>
+                <a href="{{ url_for('student_grades', student_id=student.id) }}" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-chart-line"></i> Grades
+                </a>
+                <a href="{{ url_for('student_attendance', student_id=student.id) }}" class="btn btn-info btn-sm">
+                    <i class="fas fa-calendar-check"></i> Attendance
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="empty-state">
+        <div class="empty-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <h3>No Students Found</h3>
+        <p>It looks like no students have been linked to your account yet.</p>
+        <p>Please contact the school administration to link your children to your account.</p>
+    </div>
+{% endif %}
+
+<div class="dashboard-footer">
+    <div class="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="action-buttons">
+            <a href="{{ url_for('parent_profile') }}" class="btn btn-outline">
+                <i class="fas fa-user-edit"></i> Update Profile
+            </a>
+            <a href="{{ url_for('parent_logout') }}" class="btn btn-outline">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

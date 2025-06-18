@@ -1,0 +1,50 @@
+{% extends 'parent_base.html' %}
+
+{% block title %}Welcome - Parent Portal{% endblock %}
+
+{% block content %}
+<div class="welcome-section">
+    <div class="welcome-content">
+        <h1>Welcome to the Parent Portal</h1>
+        <p class="welcome-subtitle">Stay connected with your child's academic progress</p>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <i class="fas fa-chart-line"></i>
+                <h3>Track Grades</h3>
+                <p>Monitor your child's academic performance across all subjects</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-calendar-check"></i>
+                <h3>Attendance Records</h3>
+                <p>View detailed attendance reports and patterns</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-bell"></i>
+                <h3>Real-time Updates</h3>
+                <p>Get instant notifications about your child's progress</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-shield-alt"></i>
+                <h3>Secure Access</h3>
+                <p>Your child's information is protected and private</p>
+            </div>
+        </div>
+
+        <div class="cta-buttons">
+            {% if not session.parent_id %}
+                <a href="{{ url_for('parent_login') }}" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+                <a href="{{ url_for('parent_register') }}" class="btn btn-secondary">
+                    <i class="fas fa-user-plus"></i> Register
+                </a>
+            {% else %}
+                <a href="{{ url_for('parent_dashboard') }}" class="btn btn-primary">
+                    <i class="fas fa-home"></i> Go to Dashboard
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

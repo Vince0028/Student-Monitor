@@ -1,0 +1,146 @@
+{% extends 'parent_base.html' %}
+
+{% block title %}{{ student.first_name }} {{ student.last_name }} - Details{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <a href="{{ url_for('parent_dashboard') }}" style="display: inline-flex; align-items: center; gap: 0.5rem; color: #4a90e2; text-decoration: none; margin-bottom: 1rem;">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+    
+    <div style="background: linear-gradient(135deg, #4a90e2, #357ab8); color: #fff; padding: 2rem; border-radius: 12px; text-align: center; margin-bottom: 2rem;">
+        <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 2rem;">
+            <i class="fas fa-user-graduate"></i>
+        </div>
+        <h1 style="margin: 0 0 0.5rem 0; font-size: 2rem;">{{ student.first_name }} {{ student.last_name }}</h1>
+        <p style="margin: 0 0 0.3rem 0; opacity: 0.9;">Student ID: {{ student.student_id_number }}</p>
+        <p style="margin: 0; opacity: 0.9;">
+            {{ student.grade_level }} - {{ student.section_name }}
+            {% if student.strand_name %}
+                ({{ student.strand_name }})
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Grades Section -->
+    <div style="background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #4a90e2, #357ab8); color: #fff; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-chart-line"></i> Academic Performance
+            </h2>
+            <a href="{{ url_for('student_grades', student_id=student.id) }}" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.3);">
+                View All Grades
+            </a>
+        </div>
+        
+        <div style="padding: 1.5rem;">
+            {% if grades %}
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #357ab8;">{{ grades|length }}</div>
+                        <div style="color: #666; font-size: 0.9rem;">Total Grades</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">{{ "%.2f"|format(grades|map(attribute='grade_value')|sum / grades|length) }}</div>
+                        <div style="color: #666; font-size: 0.9rem;">Average</div>
+                    </div>
+                </div>
+                
+                <h3 style="color: #357ab8; margin-bottom: 1rem;">Recent Grades</h3>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 0.8rem; text-align: left; color: #357ab8; font-weight: 600;">Subject</th>
+                                <th style="padding: 0.8rem; text-align: left; color: #357ab8; font-weight: 600;">Grade</th>
+                                <th style="padding: 0.8rem; text-align: left; color: #357ab8; font-weight: 600;">Period</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for grade in grades[:5] %}
+                            <tr style="border-bottom: 1px solid #e9ecef;">
+                                <td style="padding: 0.8rem;">{{ grade.subject_name }}</td>
+                                <td style="padding: 0.8rem; font-weight: bold; color: #28a745;">{{ "%.2f"|format(grade.grade_value) }}</td>
+                                <td style="padding: 0.8rem; color: #666;">{{ grade.period_name }} {{ grade.school_year }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-chart-line" style="font-size: 3rem; color: #4a90e2; margin-bottom: 1rem;"></i>
+                    <p style="color: #666;">No grades available yet.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Attendance Section -->
+    <div style="background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #4a90e2, #357ab8); color: #fff; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-calendar-check"></i> Attendance Summary
+            </h2>
+            <a href="{{ url_for('student_attendance', student_id=student.id) }}" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.3);">
+                View Details
+            </a>
+        </div>
+        
+        <div style="padding: 1.5rem;">
+            {% if attendance_records %}
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="text-align: center; padding: 1rem; background: #d4edda; border-radius: 8px;">
+                        <i class="fas fa-check-circle" style="color: #28a745; font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #28a745;">{{ attendance_summary.present }}</div>
+                        <div style="color: #666; font-size: 0.9rem;">Present</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: #f8d7da; border-radius: 8px;">
+                        <i class="fas fa-times-circle" style="color: #dc3545; font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #dc3545;">{{ attendance_summary.absent }}</div>
+                        <div style="color: #666; font-size: 0.9rem;">Absent</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: #fff3cd; border-radius: 8px;">
+                        <i class="fas fa-clock" style="color: #ffc107; font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #ffc107;">{{ attendance_summary.late }}</div>
+                        <div style="color: #666; font-size: 0.9rem;">Late</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: #d1ecf1; border-radius: 8px;">
+                        <i class="fas fa-user-clock" style="color: #17a2b8; font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #17a2b8;">{{ attendance_summary.excused }}</div>
+                        <div style="color: #666; font-size: 0.9rem;">Excused</div>
+                    </div>
+                </div>
+                
+                {% set total = attendance_summary.present + attendance_summary.absent + attendance_summary.late + attendance_summary.excused %}
+                {% if total > 0 %}
+                    {% set rate = ((attendance_summary.present + attendance_summary.excused) / total * 100) %}
+                    <div style="text-align: center; padding: 1.5rem; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #357ab8;">{{ "%.1f"|format(rate) }}%</div>
+                        <div style="color: #666;">Attendance Rate</div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-calendar-check" style="font-size: 3rem; color: #4a90e2; margin-bottom: 1rem;"></i>
+                    <p style="color: #666;">No attendance records available yet.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div style="text-align: center;">
+    <a href="{{ url_for('student_grades', student_id=student.id) }}" class="btn btn-primary" style="margin-right: 1rem;">
+        <i class="fas fa-chart-line"></i> View All Grades
+    </a>
+    <a href="{{ url_for('student_attendance', student_id=student.id) }}" class="btn btn-info" style="margin-right: 1rem;">
+        <i class="fas fa-calendar-check"></i> View Attendance Details
+    </a>
+    <a href="{{ url_for('parent_dashboard') }}" class="btn btn-outline">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+{% endblock %} 

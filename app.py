@@ -1824,7 +1824,7 @@ def add_subject_to_section_period(section_period_id):
         if session.get('user_type') == 'admin':
             return redirect(url_for('admin_dashboard'))
         else:
-             return redirect(url_for('teacher_dashboard'))
+            return redirect(url_for('teacher_dashboard'))
 
     if request.method == 'POST':
         subject_name = request.form.get('subject_name')
@@ -1832,6 +1832,7 @@ def add_subject_to_section_period(section_period_id):
 
         if not subject_name or not assigned_teacher_name:
             flash('Subject Name and Assigned Teacher Name are required.', 'error')
+            return render_template('add_subject_to_section_period.html', section_period=section_period)
         else:
             # Check if subject already exists in this section period
             existing_subject = g.session.query(SectionSubject).filter(
@@ -1841,6 +1842,7 @@ def add_subject_to_section_period(section_period_id):
 
             if existing_subject:
                 flash(f'A subject named "{subject_name}" already exists in this section period.', 'error')
+                return render_template('add_subject_to_section_period.html', section_period=section_period)
             else:
                 new_subject = SectionSubject(
                     section_period_id=section_period_id,
@@ -1855,10 +1857,10 @@ def add_subject_to_section_period(section_period_id):
                 except Exception as e:
                     g.session.rollback()
                     flash('An error occurred while adding the subject.', 'error')
-        
-        # Correct redirect logic
-        redirect_url = url_for('section_period_details', section_period_id=section_period_id) if session['user_type'] == 'admin' else url_for('teacher_section_period_view', section_period_id=section_period_id)
-        return redirect(redirect_url)
+                redirect_url = url_for('section_period_details', section_period_id=section_period_id) if session['user_type'] == 'admin' else url_for('teacher_section_period_view', section_period_id=section_period_id)
+                return redirect(redirect_url)
+    # For GET or after error, render the form
+    return render_template('add_subject_to_section_period.html', section_period=section_period)
 
 @app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/edit', methods=['POST'])
 @login_required
@@ -1903,40 +1905,17 @@ def edit_section_subject(section_period_id, subject_id):
 @user_type_required('teacher', 'admin')
 def delete_section_subject(section_period_id, subject_id):
     db_session = g.session
-    user_id = uuid.UUID(session['user_id']) # Logged-in teacher
+    user_id = uuid.UUID(session['user_id'])
+    user_type = session['user_type']
     password = request.form.get('password')
 
     if not password or not verify_current_user_password(user_id, password):
         return jsonify({'success': False, 'message': 'Incorrect password.'})
 
-    teacher_specialization = session.get('specialization')
-    teacher_grade_level = session.get('grade_level_assigned')
-
-    section_period = db_session.query(SectionPeriod).options(
-        joinedload(SectionPeriod.section).joinedload(Section.grade_level),
-        joinedload(SectionPeriod.section).joinedload(Section.strand), # Load strand via section
-        joinedload(SectionPeriod.assigned_teacher)
-    ).filter_by(id=section_period_id).first()
-    
-    if not section_period:
-        return jsonify({'success': False, 'message': 'Period not found.'})
-    
-    # Permission check for the logged-in teacher to delete subjects from this period
-    # This is now based on the period's assigned_teacher_id matching the logged-in user
-    if section_period.section.grade_level.name != teacher_grade_level or \
-       (section_period.assigned_teacher_id and str(section_period.assigned_teacher_id) != str(user_id)) :
-        return jsonify({'success': False, 'message': 'You do not have permission to delete subjects from this period.'})
-
-    if section_period.section.grade_level.level_type == 'SHS':
-        if not section_period.section.strand or section_period.section.strand.name != teacher_specialization:
-            return jsonify({'success': False, 'message': 'You do not have permission to delete subjects from this period (incorrect strand).'})
-    elif section_period.section.grade_level.level_type == 'JHS':
-        if section_period.section.strand_id is not None:
-             return jsonify({'success': False, 'message': 'You do not have permission to delete subjects from this period (JHS period incorrectly assigned to a strand).'})
-    
-    # Fetch the SectionSubject ensuring it belongs to this period
-    # No longer filtering by assigned_teacher_for_subject_id == user_id, as the logged-in teacher (e.g., g12ict) can delete any subject in their managed period
-    subject_to_delete = db_session.query(SectionSubject).filter(
+    # First, fetch the subject to delete with its section period
+    subject_to_delete = db_session.query(SectionSubject).options(
+        joinedload(SectionSubject.section_period)
+    ).filter(
         SectionSubject.id == subject_id,
         SectionSubject.section_period_id == section_period_id
     ).first()
@@ -1944,14 +1923,62 @@ def delete_section_subject(section_period_id, subject_id):
     if not subject_to_delete:
         return jsonify({'success': False, 'message': 'Subject not found.'})
 
+    # Permission checks based on user type
+    if user_type == 'teacher':
+        # For teachers: check if they are the assigned teacher for this period
+        if str(subject_to_delete.section_period.assigned_teacher_id) != str(user_id):
+            return jsonify({'success': False, 'message': 'You do not have permission to delete subjects from this period.'})
+    # For admin users, no additional permission checks needed since they can delete any subject
+
     try:
+        # Delete associated records first
+        app.logger.info(f"Attempting to delete subject {subject_id} and its associated records...")
+        
+        # Delete grades
+        grades = db_session.query(Grade).filter_by(section_subject_id=subject_id).all()
+        for grade in grades:
+            db_session.delete(grade)
+        
+        # Delete attendance records
+        attendance_records = db_session.query(Attendance).filter_by(section_subject_id=subject_id).all()
+        for record in attendance_records:
+            db_session.delete(record)
+        
+        # Delete grading system and its components
+        grading_system = db_session.query(GradingSystem).filter_by(section_subject_id=subject_id).first()
+        if grading_system:
+            components = db_session.query(GradingComponent).filter_by(system_id=grading_system.id).all()
+            for component in components:
+                # Delete gradable items and scores
+                items = db_session.query(GradableItem).filter_by(component_id=component.id).all()
+                for item in items:
+                    scores = db_session.query(StudentScore).filter_by(item_id=item.id).all()
+                    for score in scores:
+                        db_session.delete(score)
+                    db_session.delete(item)
+                db_session.delete(component)
+            db_session.delete(grading_system)
+
+        # Finally delete the subject
         db_session.delete(subject_to_delete)
         db_session.commit()
-        return jsonify({'success': True, 'message': f'Subject "{subject_to_delete.subject_name}" has been deleted from its associated period (and its associated grades).'})
+        app.logger.info(f"Successfully deleted subject {subject_id} and all associated records")
+        
+        # Return appropriate redirect URL based on user type
+        if user_type == 'admin':
+            redirect_url = url_for('section_period_details', section_period_id=section_period_id)
+        else:
+            redirect_url = url_for('teacher_section_period_view', section_period_id=section_period_id)
+            
+        return jsonify({
+            'success': True, 
+            'message': f'Subject "{subject_to_delete.subject_name}" has been deleted.',
+            'redirect_url': redirect_url
+        })
     except Exception as e:
         db_session.rollback()
-        app.logger.error(f"Error deleting subject: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': 'An error occurred while deleting the subject.'})
+        app.logger.error(f"Error deleting subject: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': f'An error occurred while deleting the subject: {str(e)}'})
 
 
 @app.route('/teacher/section/<uuid:section_id>/delete', methods=['POST'])

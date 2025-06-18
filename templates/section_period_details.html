@@ -105,7 +105,7 @@
                     </button>
                     <button type="button" class="btn btn-danger btn-icon-small delete-btn"
                             data-delete-url="{{ url_for('delete_section_subject', section_period_id=section_period.id, subject_id=subject.id) }}"
-                            data-redirect-url="{{ url_for('section_period_details', section_period_id=section_period.id) }}"
+                            data-redirect-url="{{ url_for('section_period_details', section_period_id=section_period.id) if session.user_type == 'admin' else url_for('teacher_section_period_view', section_period_id=section_period.id) }}"
                             data-confirmation-message="Are you sure you want to delete subject {{ subject.subject_name }}? This will also delete all associated grades."
                             data-item-name="Subject {{ subject.subject_name }}"
                             title="Delete Subject">

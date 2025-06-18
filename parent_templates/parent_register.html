@@ -1,0 +1,69 @@
+{% extends 'parent_base.html' %}
+
+{% block title %}Register - Parent Portal{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2 class="form-title">
+        <i class="fas fa-user-plus"></i> Parent Registration
+    </h2>
+    <p style="text-align: center; color: #666; margin-bottom: 2rem;">Create your account to access your child's information</p>
+
+    <form method="POST">
+        <div class="form-group">
+            <label for="username">
+                <i class="fas fa-user"></i> Username *
+            </label>
+            <input type="text" id="username" name="username" required>
+        </div>
+
+        <div class="form-group">
+            <label for="email">
+                <i class="fas fa-envelope"></i> Email Address *
+            </label>
+            <input type="email" id="email" name="email" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+                <label for="first_name">
+                    <i class="fas fa-user"></i> First Name *
+                </label>
+                <input type="text" id="first_name" name="first_name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="last_name">
+                    <i class="fas fa-user"></i> Last Name *
+                </label>
+                <input type="text" id="last_name" name="last_name" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="phone_number">
+                <i class="fas fa-phone"></i> Phone Number
+            </label>
+            <input type="tel" id="phone_number" name="phone_number">
+        </div>
+
+        <div class="form-group">
+            <label for="password">
+                <i class="fas fa-lock"></i> Password *
+            </label>
+            <input type="password" id="password" name="password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary form-submit">
+            <i class="fas fa-user-plus"></i> Register
+        </button>
+    </form>
+
+    <div class="form-footer">
+        <p>Already have an account? <a href="{{ url_for('parent_login') }}">Login here</a></p>
+        <a href="{{ url_for('index') }}" style="display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+    </div>
+</div>
+{% endblock %} 

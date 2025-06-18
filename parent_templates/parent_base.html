@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Parent Portal - Monitor your child's academic progress">
+    <title>{% block title %}Parent Portal - Student Monitor{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+    <header class="parent-header">
+        <div class="container">
+            <h1 class="parent-title">
+                <a href="{{ url_for('parent_dashboard') if session.parent_id else url_for('index') }}">
+                    <i class="fas fa-graduation-cap"></i> Parent Portal
+                </a>
+            </h1>
+            <nav class="parent-nav">
+                <ul class="nav-links">
+                    {% if session.parent_id %}
+                        <li><a href="{{ url_for('parent_dashboard') }}"><i class="fas fa-home"></i> Dashboard</a></li>
+                        <li><a href="{{ url_for('parent_profile') }}"><i class="fas fa-user-circle"></i> Profile</a></li>
+                        <li><a href="{{ url_for('parent_logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('parent_login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
+                        <li><a href="{{ url_for('parent_register') }}"><i class="fas fa-user-plus"></i> Register</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="parent-main">
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                <i class="fas fa-info-circle"></i>
+                                {{ message }}
+                                <button type="button" class="close-btn" onclick="this.parentElement.remove()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="parent-footer">
+        <div class="container">
+            <p>&copy; 2024 Student Monitor - Parent Portal. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                alert.style.opacity = '0';
+                setTimeout(function() {
+                    alert.remove();
+                }, 300);
+            });
+        }, 5000);
+    </script>
+</body>
+</html> 

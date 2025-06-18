@@ -904,6 +904,7 @@ body {
     }
 }
 
+<<<<<<< HEAD
 /* Button Styles */
 .button-group {
     display: flex;
@@ -1006,4 +1007,39 @@ body {
     justify-content: center !important;
     align-items: center !important;
     display: inline-flex !important;
+=======
+/* Fix: Make button group inline and restrict select width */
+.button-group {
+    display: inline-flex; /* was flex */
+    align-items: center;
+    gap: 10px;
+}
+
+/* Fix: Set a fixed width for the select */
+.button-group select {
+    width: 160px;   /* or whatever looks best */
+    min-width: 0;
+    max-width: 200px;
+    height: 40px;
+    font-size: 1em;
+    border-radius: 8px;
+}
+
+/* Make the delete button height match the select but with smaller padding */
+.button-group .btn {
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px; /* Reduced padding to make button smaller */
+    font-size: 0.9em; /* Slightly smaller font */
+}
+
+/* Specific styling for delete button to make it more compact */
+.button-group .btn-danger {
+    padding: 0 10px; /* Even smaller padding for delete button */
+    min-width: auto; /* Remove min-width constraint */
+    width: auto; /* Let it size naturally */
+>>>>>>> 38ebb57696c7fb45bbe45a3553e8e23eae982b51
 }
