@@ -1,0 +1,116 @@
+{% extends 'parent_base.html' %}
+
+{% block title %}Profile - Parent Portal{% endblock %}
+
+{% block content %}
+<div class="profile-card">
+    <div class="profile-header">
+        <div class="profile-avatar">
+            <i class="fas fa-user-circle"></i>
+        </div>
+        <h2 class="profile-name">{{ parent.first_name }} {{ parent.last_name }}</h2>
+        <p class="profile-email">{{ parent.email }}</p>
+    </div>
+
+    <div class="profile-body">
+        <div class="profile-info">
+            <div class="info-item">
+                <span class="info-label">Username:</span>
+                <span class="info-value">{{ parent.username }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Phone Number:</span>
+                <span class="info-value">{{ parent.phone_number or 'Not provided' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Account Created:</span>
+                <span class="info-value">{{ parent.created_at.strftime('%B %d, %Y') }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Children Linked:</span>
+                <span class="info-value">{{ parent.students|length }} student(s)</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <h3 style="color: #357ab8; margin-bottom: 1rem;">
+                <i class="fas fa-user-edit"></i> Update Information
+            </h3>
+            
+            <form method="POST" style="margin-bottom: 2rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label for="first_name">
+                            <i class="fas fa-user"></i> First Name *
+                        </label>
+                        <input type="text" id="first_name" name="first_name" value="{{ parent.first_name }}" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="last_name">
+                            <i class="fas fa-user"></i> Last Name *
+                        </label>
+                        <input type="text" id="last_name" name="last_name" value="{{ parent.last_name }}" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">
+                        <i class="fas fa-envelope"></i> Email Address *
+                    </label>
+                    <input type="email" id="email" name="email" value="{{ parent.email }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone_number">
+                        <i class="fas fa-phone"></i> Phone Number
+                    </label>
+                    <input type="tel" id="phone_number" name="phone_number" value="{{ parent.phone_number or '' }}">
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Update Information
+                </button>
+            </form>
+
+            <h3 style="color: #357ab8; margin-bottom: 1rem;">
+                <i class="fas fa-lock"></i> Change Password
+            </h3>
+            
+            <form method="POST">
+                <div class="form-group">
+                    <label for="current_password">
+                        <i class="fas fa-key"></i> Current Password *
+                    </label>
+                    <input type="password" id="current_password" name="current_password" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="new_password">
+                        <i class="fas fa-lock"></i> New Password
+                    </label>
+                    <input type="password" id="new_password" name="new_password">
+                    <small style="color: #666; font-size: 0.9rem;">Leave blank if you don't want to change your password</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_password">
+                        <i class="fas fa-lock"></i> Confirm New Password
+                    </label>
+                    <input type="password" id="confirm_password" name="confirm_password">
+                </div>
+
+                <button type="submit" class="btn btn-secondary">
+                    <i class="fas fa-key"></i> Change Password
+                </button>
+            </form>
+        </div>
+
+        <div style="margin-top: 2rem; text-align: center;">
+            <a href="{{ url_for('parent_dashboard') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,39 @@
+{% extends 'parent_base.html' %}
+
+{% block title %}Login - Parent Portal{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2 class="form-title">
+        <i class="fas fa-sign-in-alt"></i> Parent Login
+    </h2>
+    <p style="text-align: center; color: #666; margin-bottom: 2rem;">Access your child's academic information</p>
+
+    <form method="POST">
+        <div class="form-group">
+            <label for="username">
+                <i class="fas fa-user"></i> Username
+            </label>
+            <input type="text" id="username" name="username" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">
+                <i class="fas fa-lock"></i> Password
+            </label>
+            <input type="password" id="password" name="password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary form-submit">
+            <i class="fas fa-sign-in-alt"></i> Login
+        </button>
+    </form>
+
+    <div class="form-footer">
+        <p>Don't have an account? <a href="{{ url_for('parent_register') }}">Register here</a></p>
+        <a href="{{ url_for('index') }}" style="display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+    </div>
+</div>
+{% endblock %} 
