@@ -77,6 +77,7 @@ CREATE TABLE students_info (
     section_period_id UUID NOT NULL REFERENCES section_periods(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     student_id_number VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255), -- Added for student password storage
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

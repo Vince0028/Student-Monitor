@@ -71,5 +71,85 @@
             });
         }, 5000);
     </script>
+    
+    <!-- Password Toggle Functionality -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Function to create password toggle button
+            function createPasswordToggle(passwordInput) {
+                // Check if toggle already exists
+                if (passwordInput.parentElement.classList.contains('password-field-container')) {
+                    return;
+                }
+                
+                // Create container
+                const container = document.createElement('div');
+                container.className = 'password-field-container';
+                
+                // Move the input into the container
+                passwordInput.parentNode.insertBefore(container, passwordInput);
+                container.appendChild(passwordInput);
+                
+                // Create toggle button
+                const toggleBtn = document.createElement('button');
+                toggleBtn.type = 'button';
+                toggleBtn.className = 'password-toggle-btn';
+                toggleBtn.textContent = passwordInput.type === 'password' ? 'Show' : 'Hide';
+                toggleBtn.setAttribute('aria-label', 'Toggle password visibility');
+                toggleBtn.style.display = passwordInput.value ? '' : 'none';
+                
+                // Add button to container
+                container.appendChild(toggleBtn);
+                
+                // Add click event
+                toggleBtn.addEventListener('click', function() {
+                    const isPassword = passwordInput.type === 'password';
+                    passwordInput.type = isPassword ? 'text' : 'password';
+                    toggleBtn.textContent = isPassword ? 'Hide' : 'Show';
+                    toggleBtn.classList.toggle('show', isPassword);
+                });
+
+                // Show/hide button based on input value, but do NOT reset field type or button state
+                passwordInput.addEventListener('input', function() {
+                    toggleBtn.style.display = passwordInput.value ? '' : 'none';
+                });
+            }
+            
+            // Find all password inputs and add toggle buttons
+            const passwordInputs = document.querySelectorAll('input[type="password"], input[type="text"]');
+            passwordInputs.forEach(function(input) {
+                // Only add toggle to password fields or text fields that were toggled from password
+                if (input.type === 'password' || (input.type === 'text' && input.name && input.name.toLowerCase().includes('password'))) {
+                    createPasswordToggle(input);
+                }
+            });
+            
+            // Watch for dynamically added password fields (for modals, etc.)
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1) { // Element node
+                            const newPasswordInputs = node.querySelectorAll ? node.querySelectorAll('input[type="password"], input[type="text"]') : [];
+                            newPasswordInputs.forEach(function(input) {
+                                if (input.type === 'password' || (input.type === 'text' && input.name && input.name.toLowerCase().includes('password'))) {
+                                    createPasswordToggle(input);
+                                }
+                            });
+                            // Check if the node itself is a password input
+                            if ((node.tagName === 'INPUT') && (node.type === 'password' || (node.type === 'text' && node.name && node.name.toLowerCase().includes('password')))) {
+                                createPasswordToggle(node);
+                            }
+                        }
+                    });
+                });
+            });
+            
+            // Start observing
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+    </script>
 </body>
 </html> 

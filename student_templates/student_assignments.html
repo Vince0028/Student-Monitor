@@ -1,5 +1,31 @@
 {% extends 'student_base.html' %}
 
+<<<<<<< HEAD
+{% block title %}Assignments - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="form-page-container">
+    <h2>Assignments</h2>
+    <div class="assignment-actions">
+        <a href="{{ url_for('student_submit_assignment') }}" class="btn btn-primary">Submit Assignment</a>
+        <a href="{{ url_for('student_assignments_completed') }}" class="btn btn-success">View Completed Assignments</a>
+        <a href="{{ url_for('student_assignments_past_due') }}" class="btn btn-danger">View Past Due Assignments</a>
+        <a href="{{ url_for('student_assignments_upcoming') }}" class="btn btn-info">View Upcoming Assignments</a>
+    </div>
+    <form method="GET" class="app-form" style="margin-top: 2rem;">
+        <div class="form-group">
+            <label for="subject">Filter by Subject:</label>
+            <select id="subject" name="subject">
+                <option value="">All Subjects</option>
+                {% for subject in subjects %}
+                    <option value="{{ subject }}" {% if selected_subject == subject %}selected{% endif %}>{{ subject }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-secondary">Filter</button>
+        </div>
+    </form>
+    <!-- Assignment list would go here -->
+=======
 {% block title %}Assignments - Student Portal{% endblock %}
 
 {% block content %}
@@ -48,5 +74,6 @@
             <p>No assignments found.</p>
         </div>
     {% endif %}
+>>>>>>> e3c8666a7cdacd4ae5ed11fc7b5b6628c7d6deef
 </div>
 {% endblock %} 

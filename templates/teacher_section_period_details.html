@@ -47,6 +47,76 @@
         width: 100%;
         overflow-x: auto;
     }
+    /* Adviser Password Modal Improvements */
+    #adviserPasswordModal {
+        position: fixed;
+        z-index: 1050;
+        left: 0; top: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.35);
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+    #adviserPasswordModal .modal-dialog {
+        margin: 0 auto;
+        top: 10vh;
+        max-width: 400px;
+        width: 95%;
+    }
+    #adviserPasswordModal .modal-content {
+        border-radius: 12px;
+        box-shadow: 0 4px 32px rgba(0,0,0,0.15);
+        padding: 0 1.5rem 1.5rem 1.5rem;
+    }
+    #adviserPasswordModal .modal-header {
+        border-bottom: none;
+        padding: 1.5rem 0 0.5rem 0;
+    }
+    #adviserPasswordModal .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+    #adviserPasswordModal .form-group {
+        margin-bottom: 1.2rem;
+    }
+    #adviserPasswordModal .password-input-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    #adviserPasswordModal .form-control {
+        flex: 1;
+        font-size: 1rem;
+        padding: 0.5rem 0.75rem;
+    }
+    #adviserPasswordModal .show-btn {
+        background: none;
+        border: none;
+        color: #007bff;
+        font-weight: 500;
+        cursor: pointer;
+        margin-right: 0.5rem;
+    }
+    #adviserPasswordModal .fa-eye, #adviserPasswordModal .fa-eye-slash {
+        font-size: 1.1rem;
+        color: #333;
+        cursor: pointer;
+    }
+    #adviserPasswordModal .modal-footer {
+        border: none;
+        padding: 0;
+        margin-top: 1.5rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+    }
+    #adviserPasswordError {
+        display: none;
+        color: #dc3545;
+        font-size: 0.98rem;
+        margin-top: 0.5rem;
+        text-align: center;
+    }
 </style>
 
 <div class="dashboard-container">
@@ -111,32 +181,32 @@
                 </table>
             </div>
     </div>
-    <div id="adviserPasswordModal" class="modal" tabindex="-1" role="dialog" style="display:none;">
+    <div id="adviserPasswordModal" class="modal" tabindex="-1" role="dialog">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Enter Adviser Password</h5>
           </div>
           <div class="modal-body">
-            <form id="adviserPasswordForm" onsubmit="event.preventDefault(); submitAdviserPassword();">
-              <div class="form-group" style="position: relative;">
-                <label for="adviserPasswordInput">Adviser Password:</label>
-                <div style="display: flex; align-items: center;">
-                  <input type="password" class="form-control" id="adviserPasswordInput" name="adviserPassword" required style="flex: 1;">
-                  <button type="button" id="toggleAdviserPasswordBtn" style="margin-left: 8px; background: none; border: none; cursor: pointer;" tabindex="-1" onclick="toggleAdviserPasswordVisibility()">
+            <form id="adviserPasswordForm" autocomplete="off">
+              <div class="form-group">
+                <label for="adviserPasswordInput" style="font-weight: 500;">Adviser Password:</label>
+                <div class="password-input-group">
+                  <input type="password" class="form-control" id="adviserPasswordInput" name="adviserPassword" required>
+                  <button type="button" id="toggleAdviserPasswordBtn" tabindex="-1" onclick="toggleAdviserPasswordVisibility()" style="background: none; border: none; padding: 0 0.5rem; display: flex; align-items: center;">
                     <span id="adviserEyeIcon" class="fas fa-eye"></span>
                   </button>
                 </div>
               </div>
-              <div id="adviserPasswordError" class="text-danger" style="display:none;"></div>
+              <div id="adviserPasswordError">Incorrect password. Please try again.</div>
+              <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Submit</button>
+                <button type="button" class="btn btn-secondary" onclick="hideAdviserPasswordModal()">Cancel</button>
+              </div>
             </form>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-primary" onclick="submitAdviserPassword()">Submit</button>
-            <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeAdviserPasswordModal()">Cancel</button>
-          </div>
         </div>
-        </div>
+      </div>
     </div>
     <script>
     let gradesVisible = false;
@@ -232,6 +302,7 @@
         } else {
             // If visible, just hide
             studentListVisible = false;
+            adviserPasswordVerified = false;
             sessionStorage.setItem('studentListVisible_{{ section_period.id }}', 'false');
             updateStudentListVisibility();
         }
@@ -244,6 +315,14 @@
         studentListVisible = persisted === 'true';
         updateStudentListVisibility();
         updateGradesVisibility();
+        // Fix: Attach submit handler to adviserPasswordForm
+        const adviserPasswordForm = document.getElementById('adviserPasswordForm');
+        if (adviserPasswordForm) {
+            adviserPasswordForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitAdviserPassword();
+            });
+        }
     });
     </script>
     {% else %}

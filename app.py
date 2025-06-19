@@ -9,7 +9,7 @@ import decimal
 import bcrypt
 
 # Import SQLAlchemy components
-from sqlalchemy import create_engine, Column, Integer, String, Date, Numeric, ForeignKey, DateTime, UniqueConstraint, and_, or_, case, func
+from sqlalchemy import create_engine, Column, Integer, String, Date, Numeric, ForeignKey, DateTime, UniqueConstraint, and_, or_, case, func, text
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base, aliased, joinedload
 from sqlalchemy.sql import func
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
@@ -153,12 +153,12 @@ class SectionPeriod(Base): # Renamed from SectionSemester
 class StudentInfo(Base):
     __tablename__ = 'students_info'
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    section_period_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_periods.id'), nullable=False) # Links to SectionPeriod
+    section_period_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_periods.id'), nullable=False)
     name = Column(String(255), nullable=False)
     student_id_number = Column(String(255), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
     section_period = relationship('SectionPeriod', back_populates='students_in_period')
     attendance_records = relationship('Attendance', back_populates='student_info', cascade='all, delete-orphan')
     grades = relationship('Grade', back_populates='student_info', cascade='all, delete-orphan')
@@ -1591,35 +1591,20 @@ def edit_student(student_id):
         flash('Student not found.', 'danger')
         return redirect(url_for('admin_dashboard')) 
 
-    # Fetch all section periods manageable by this user for the dropdown
-    if user_type == 'admin':
-        section_periods_for_dropdown = db_session.query(SectionPeriod).options(
-            joinedload(SectionPeriod.section).joinedload(Section.grade_level),
-            joinedload(SectionPeriod.section).joinedload(Section.strand)
-        ).filter_by(created_by_admin=user_id).order_by(
-            SectionPeriod.school_year.desc(), 
-            SectionPeriod.period_name, 
-            Section.name.asc(),
-            Strand.name.asc().nulls_first()
-        ).join(Section).outerjoin(Strand).all()
-        # Permission: admin can edit if they created the period
-        current_period_manageable = any(str(s.id) == str(student_to_edit.section_period_id) for s in section_periods_for_dropdown)
-    elif user_type == 'teacher':
-        section_periods_for_dropdown = db_session.query(SectionPeriod).options(
-            joinedload(SectionPeriod.section).joinedload(Section.grade_level),
-            joinedload(SectionPeriod.section).joinedload(Section.strand)
-        ).filter_by(assigned_teacher_id=user_id).order_by(
-            SectionPeriod.school_year.desc(), 
-            SectionPeriod.period_name, 
-            Section.name.asc(),
-            Strand.name.asc().nulls_first()
-        ).join(Section).outerjoin(Strand).all()
-        # Permission: teacher can edit if they are assigned to the period
-        current_period_manageable = any(str(s.id) == str(student_to_edit.section_period_id) for s in section_periods_for_dropdown)
-    else:
-        section_periods_for_dropdown = []
-        current_period_manageable = False
+    # Fetch all section periods manageable by this admin for the dropdown
+    # Corrected ORDER BY clause to avoid DatatypeMismatch error
+    section_periods_for_dropdown = db_session.query(SectionPeriod).options(
+        joinedload(SectionPeriod.section).joinedload(Section.grade_level),
+        joinedload(SectionPeriod.section).joinedload(Section.strand) # Load strand via section
+    ).filter_by(created_by_admin=admin_id).order_by(
+        SectionPeriod.school_year.desc(), 
+        SectionPeriod.period_name, 
+        # Corrected ordering: Directly use columns from joined tables
+        Section.name.asc(),  # Order by section name
+        Strand.name.asc().nulls_first() # Order by strand name, putting None (JHS) first
+    ).join(Section).outerjoin(Strand).all() # Ensure joins are explicit for ordering
 
+    current_period_manageable = any(str(s.id) == str(student_to_edit.section_period_id) for s in section_periods_for_dropdown)
     if not current_period_manageable:
          flash('You do not have permission to edit this student.', 'danger')
          if student_to_edit and student_to_edit.section_period_id:
@@ -1630,6 +1615,7 @@ def edit_student(student_id):
         student_name = request.form['name'].strip()
         student_id_number = request.form['student_id_number'].strip()
         new_section_period_id_str = request.form.get('section_period_id')
+        password = request.form.get('password', '').strip()
 
         if not student_name or not student_id_number or not new_section_period_id_str:
             flash('All student fields are required.', 'error')
@@ -1655,9 +1641,15 @@ def edit_student(student_id):
             student_to_edit.name = student_name
             student_to_edit.student_id_number = student_id_number
             student_to_edit.section_period_id = new_section_period_id
+            
+            # Update password if provided (store raw password for admin visibility)
+            if password and password.strip():
+                student_to_edit.password_hash = password  # Store raw password for admin
+                flash(f'Student "{student_name}" updated successfully with new password!', 'success')
+            else:
+                flash(f'Student "{student_name}" updated successfully! (Password unchanged)', 'success')
 
             db_session.commit()
-            flash(f'Student "{student_name}" updated successfully!', 'success')
             return redirect(url_for('section_period_details', section_period_id=student_to_edit.section_period.id))
         except Exception as e:
             db_session.rollback()
@@ -3000,18 +2992,6 @@ def view_attendance_history(section_period_id, subject_id):
                          subject=subject,
                          summary=summary,
                          dates=dates_query)
-
-@app.route('/api/verify_admin_password', methods=['POST'])
-def api_verify_admin_password():
-    data = request.get_json()
-    password = data.get('password')
-    if not password:
-        return jsonify({'success': False})
-    db_session = g.session
-    admin = db_session.query(User).filter_by(user_type='admin').first()
-    if admin and check_password_hash(admin.password_hash, password):
-        return jsonify({'success': True})
-    return jsonify({'success': False})
 
 @app.route('/api/verify_adviser_password', methods=['POST'])
 @login_required
