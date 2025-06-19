@@ -1,0 +1,1 @@
+ALTER TABLE sections ADD COLUMN adviser_password VARCHAR(255); 

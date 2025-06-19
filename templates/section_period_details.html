@@ -37,7 +37,12 @@
                     <tr>
                         <th>Name</th>
                         <th>Student ID</th>
-                        <th>Average Grade</th>
+                        <th>
+                            AVERAGE GRADE
+                            <button type="button" id="toggleAverageGradeBtn" class="btn btn-link btn-sm" title="Show/Hide Average Grade" style="padding:0; margin-left:4px;" onclick="toggleGradeVisibility()">
+                                <i id="eyeIcon" class="fas fa-eye"></i>
+                            </button>
+                        </th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -46,7 +51,7 @@
                         <tr>
                             <td>{{ student.name }}</td>
                             <td>{{ student.student_id_number }}</td>
-                            <td><span class="average-grade-value">{{ student.average_grade }}</span></td>
+                            <td class="average-grade-cell"><span class="average-grade-value">{{ student.average_grade }}</span></td>
                             <td>
                                 <div class="button-group">
                                     <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-edit btn-icon-small" title="Edit Student Details">
@@ -70,23 +75,40 @@
     </div>
     </div>
     <script>
+    // Set the default state to hidden (eye on, grades masked)
+    let showGrades = false;
     document.addEventListener('DOMContentLoaded', function() {
-        const searchInput = document.getElementById('studentSearchInput');
-        const table = document.getElementById('studentTable');
-        searchInput.addEventListener('keyup', function() {
-            const filter = searchInput.value.toLowerCase();
-            const rows = table.querySelectorAll('tbody tr');
-            rows.forEach(row => {
-                const name = row.children[0].textContent.toLowerCase();
-                const id = row.children[1].textContent.toLowerCase();
-                if (name.includes(filter) || id.includes(filter)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
+        setGradeVisibility(false);
     });
+
+    function toggleGradeVisibility() {
+        showGrades = !showGrades;
+        setGradeVisibility(showGrades);
+    }
+
+    function setGradeVisibility(visible) {
+        const gradeCells = document.querySelectorAll('.average-grade-cell');
+        const eyeIcon = document.getElementById('eyeIcon');
+        gradeCells.forEach(cell => {
+            // Store the original grade in a data attribute if not already set
+            if (!cell.hasAttribute('data-grade')) {
+                const gradeValueElem = cell.querySelector('.average-grade-value');
+                if (gradeValueElem) {
+                    cell.setAttribute('data-grade', gradeValueElem.textContent);
+                } else {
+                    cell.setAttribute('data-grade', cell.textContent);
+                }
+            }
+            if (!visible) {
+                cell.innerText = '***';
+            } else {
+                cell.innerText = cell.getAttribute('data-grade');
+            }
+        });
+        if (eyeIcon) {
+            eyeIcon.className = !visible ? 'fas fa-eye' : 'fas fa-eye-slash';
+        }
+    }
     </script>
     {% else %}
     <p class="no-data-message mt-40">No students added to this period yet. Start by adding one!</p>

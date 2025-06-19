@@ -1,0 +1,1 @@
+ALTER TABLE sections ADD COLUMN assigned_user_id UUID REFERENCES users(id); 
