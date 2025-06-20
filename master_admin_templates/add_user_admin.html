@@ -1,30 +1,93 @@
 {% extends 'admin_base.html' %}
 {% block content %}
-<div class="dashboard-container">
-    <h2>Add New User</h2>
+<div class="dashboard-container" style="max-width: 500px; margin: 0 auto;">
+    <h2 style="text-align: center; margin-bottom: 1.5em;"><i class="fas fa-user-plus"></i> Add New {{ user_type|capitalize }}</h2>
     <form method="POST">
         <div class="form-group">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
-        </div>
-        <div class="form-group">
-            <label for="user_type">User Type:</label>
-            <select id="user_type" name="user_type" required>
-                <option value="">Select User Type</option>
-                <option value="admin">Admin</option>
-                <option value="teacher">Teacher</option>
+            <label for="user_type">Account Type:</label>
+            <select id="user_type" name="user_type" class="form-control" required onchange="this.form.submit()">
+                <option value="admin" {% if user_type == 'admin' %}selected{% endif %}>Admin</option>
+                <option value="teacher" {% if user_type == 'teacher' %}selected{% endif %}>Teacher</option>
+                <option value="student" {% if user_type == 'student' %}selected{% endif %}>Student</option>
+                <option value="parent" {% if user_type == 'parent' %}selected{% endif %}>Parent</option>
             </select>
         </div>
         <div class="form-group">
-            <label for="specialization">Specialization (optional):</label>
-            <input type="text" id="specialization" name="specialization">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" class="form-control" required>
         </div>
         <div class="form-group">
-            <label for="grade_level_assigned">Grade Level Assigned (optional):</label>
-            <input type="text" id="grade_level_assigned" name="grade_level_assigned">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" class="form-control" required>
         </div>
-        <button type="submit" class="admin-card-link">Add User</button>
-        <a href="{{ url_for('manage_users') }}" class="admin-card-link" style="background: #666; margin-left: 1em;">Cancel</a>
+        <div class="form-group">
+            <label for="firstname">First Name:</label>
+            <input type="text" id="firstname" name="firstname" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="lastname">Last Name:</label>
+            <input type="text" id="lastname" name="lastname" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="middlename">Middle Name:</label>
+            <input type="text" id="middlename" name="middlename" class="form-control">
+        </div>
+        {% if user_type == 'student' or user_type == 'teacher' %}
+        <div class="form-group">
+            <label for="grade_level_assigned">Grade Level Assigned:</label>
+            <select id="grade_level_assigned" name="grade_level_assigned" class="form-control" required>
+                <option value="">Select Grade Level</option>
+                {% for gl in grade_levels %}
+                <option value="{{ gl }}">{{ gl }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        {% if user_type == 'teacher' %}
+        <div class="form-group">
+            <label for="specialization">Specialization:</label>
+            <select id="specialization" name="specialization" class="form-control">
+                <option value="">None</option>
+                {% for s in strands %}
+                <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        {% if user_type == 'student' %}
+        <div class="form-group" id="student-strand-group" style="display: none;">
+            <label for="specialization">Strand (for Grade 11/12):</label>
+            <select id="specialization" name="specialization" class="form-control">
+                <option value="">None</option>
+                {% for s in strands %}
+                <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1em;"><i class="fas fa-plus-circle"></i> Add {{ user_type|capitalize }}</button>
+        <a href="{{ url_for('manage_users', user_type=user_type) }}" class="btn btn-secondary" style="width: 100%; margin-top: 0.7em;"><i class="fas fa-arrow-left"></i> Cancel</a>
     </form>
 </div>
+<script>
+    // Show/hide strand for students in Grade 11/12
+    document.addEventListener('DOMContentLoaded', function() {
+        function toggleStudentStrand() {
+            var grade = document.getElementById('grade_level_assigned');
+            var strandGroup = document.getElementById('student-strand-group');
+            if (!grade || !strandGroup) return;
+            var val = grade.value;
+            if (val === 'Grade 11' || val === 'Grade 12' || val === '11' || val === '12') {
+                strandGroup.style.display = '';
+            } else {
+                strandGroup.style.display = 'none';
+            }
+        }
+        var grade = document.getElementById('grade_level_assigned');
+        if (grade) {
+            grade.addEventListener('change', toggleStudentStrand);
+            toggleStudentStrand();
+        }
+    });
+</script>
 {% endblock %} 

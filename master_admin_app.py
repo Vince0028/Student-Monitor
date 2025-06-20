@@ -44,6 +44,7 @@ def admin_login():
         password = request.form['password']
         if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
             session['admin_logged_in'] = True
+            session['admin_username'] = username
             return redirect(url_for('admin_dashboard'))
         else:
             flash('Invalid credentials', 'danger')
@@ -145,6 +146,7 @@ def delete_strand_admin(strand_id):
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin_logged_in', None)
+    session.pop('admin_username', None)
     return redirect(url_for('admin_login'))
 
 # --- Section Management ---
@@ -257,6 +259,10 @@ class User(db.Model):
     user_type = db.Column(db.String(10), nullable=False)
     specialization = db.Column(db.String(255))
     grade_level_assigned = db.Column(db.String(50))
+    firstname = db.Column(db.String(255))
+    lastname = db.Column(db.String(255))
+    middlename = db.Column(db.String(255))
+    password_hash = db.Column(db.String(255))
 
 # --- Admin Log Model ---
 class AdminLog(db.Model):
@@ -278,52 +284,106 @@ def admin_logs():
 def manage_users():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-    users = User.query.filter_by(user_type='admin').order_by(User.username).all()
+    user_type = request.args.get('user_type', 'admin')
+    search = request.args.get('search', '').strip()
+    grade_level = request.args.get('grade_level', '')
+    strand = request.args.get('strand', '')
+    query = User.query
+    normalized_grade_level = grade_level
+    if user_type:
+        query = query.filter_by(user_type=user_type)
+    if user_type == 'student' and grade_level:
+        # Accept both '11', 'Grade 11', etc.
+        grade_level_options = [grade_level]
+        if grade_level.startswith('Grade '):
+            grade_level_options.append(grade_level.replace('Grade ', ''))
+        elif grade_level.isdigit():
+            grade_level_options.append(f'Grade {grade_level}')
+        query = query.filter(User.grade_level_assigned.in_(grade_level_options))
+        if grade_level in ['11', '12', 'Grade 11', 'Grade 12'] and strand:
+            query = query.filter(User.specialization == strand)
+        # For template logic
+        if grade_level in ['11', '12', 'Grade 11', 'Grade 12']:
+            normalized_grade_level = '11or12'
+    if search:
+        query = query.filter(User.username.ilike(f'%{search}%'))
+    users = query.order_by(User.username.asc()).all()
     user_list = [
         {
             'id': str(u.id),
             'username': u.username,
             'user_type': u.user_type,
-            'specialization': u.specialization or 'N/A',
-            'grade_level_assigned': u.grade_level_assigned or 'N/A'
+            'grade_level_assigned': u.grade_level_assigned or '',
+            'specialization': u.specialization or ''
         }
         for u in users
     ]
-    return render_template('manage_users.html', users=user_list)
+    grade_levels = [f'Grade {i}' for i in range(7, 13)]
+    strands = ['STEM', 'ABM', 'HUMMS', 'HE', 'EIM']
+    return render_template(
+        'manage_users.html',
+        users=user_list,
+        selected_user_type=user_type,
+        search=search,
+        selected_grade_level=grade_level,
+        normalized_grade_level=normalized_grade_level,
+        selected_strand=strand,
+        grade_levels=grade_levels,
+        strands=strands
+    )
 
 @app.route('/admin/users/add', methods=['GET', 'POST'])
 def add_user_admin():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
+    user_type = request.args.get('user_type', 'admin')
+    grade_levels = [f'Grade {i}' for i in range(7, 13)]
+    strands = ['STEM', 'ABM', 'HUMMS', 'HE', 'EIM']
     if request.method == 'POST':
         username = request.form['username'].strip()
+        password = request.form['password'].strip()
         user_type = request.form['user_type']
+        firstname = request.form.get('firstname', '').strip()
+        lastname = request.form.get('lastname', '').strip()
+        middlename = request.form.get('middlename', '').strip()
         specialization = request.form.get('specialization') or None
         grade_level_assigned = request.form.get('grade_level_assigned') or None
-        if not username or not user_type:
-            flash('Username and user type are required.', 'danger')
-            return render_template('add_user_admin.html')
-        if user_type != 'admin':
-            flash('You can only add admin users here.', 'danger')
-            return render_template('add_user_admin.html')
+        if not username or not user_type or not password or not firstname or not lastname:
+            flash('Username, password, first name, last name, and user type are required.', 'danger')
+            return render_template('add_user_admin.html', user_type=user_type, grade_levels=grade_levels, strands=strands)
+        # For students, use grade_level_assigned and specialization (strand)
+        if user_type == 'student':
+            grade_level_assigned = request.form.get('grade_level_assigned')
+            if grade_level_assigned in ['Grade 11', 'Grade 12', '11', '12']:
+                specialization = request.form.get('specialization')
+            else:
+                specialization = None
+        # For teachers, use grade_level_assigned and specialization
+        if user_type == 'teacher':
+            grade_level_assigned = request.form.get('grade_level_assigned')
+            specialization = request.form.get('specialization')
         try:
-            new_user = User(username=username, user_type=user_type, specialization=specialization, grade_level_assigned=grade_level_assigned)
+            new_user = User(
+                username=username,
+                user_type=user_type,
+                specialization=specialization,
+                grade_level_assigned=grade_level_assigned,
+                firstname=firstname,
+                lastname=lastname,
+                middlename=middlename,
+                password_hash=password # In production, hash the password!
+            )
             db.session.add(new_user)
             db.session.commit()
-            # Log the action
-            acting_admin = ADMIN_USERNAME if 'admin_logged_in' in session else 'unknown'
-            log = AdminLog(action='add', target_username=username, acting_admin=acting_admin)
-            db.session.add(log)
-            db.session.commit()
-            flash('Admin user added successfully!', 'success')
-            return redirect(url_for('manage_users'))
+            flash(f'{user_type.capitalize()} user added successfully!', 'success')
+            return redirect(url_for('manage_users', user_type=user_type))
         except IntegrityError:
             db.session.rollback()
             flash('A user with that username already exists.', 'danger')
         except Exception as e:
             db.session.rollback()
             flash('An error occurred while adding the user.', 'danger')
-    return render_template('add_user_admin.html')
+    return render_template('add_user_admin.html', user_type=user_type, grade_levels=grade_levels, strands=strands)
 
 @app.route('/admin/users/<user_id>/edit', methods=['GET', 'POST'])
 def edit_user_admin(user_id):
@@ -351,7 +411,7 @@ def edit_user_admin(user_id):
             user.grade_level_assigned = grade_level_assigned
             db.session.commit()
             # Log the action
-            acting_admin = ADMIN_USERNAME if 'admin_logged_in' in session else 'unknown'
+            acting_admin = session.get('admin_username', 'unknown')
             log = AdminLog(action='edit', target_username=username, acting_admin=acting_admin)
             db.session.add(log)
             db.session.commit()
@@ -378,7 +438,7 @@ def delete_user_admin(user_id):
         db.session.delete(user)
         db.session.commit()
         # Log the action
-        acting_admin = ADMIN_USERNAME if 'admin_logged_in' in session else 'unknown'
+        acting_admin = session.get('admin_username', 'unknown')
         log = AdminLog(action='delete', target_username=username, acting_admin=acting_admin)
         db.session.add(log)
         db.session.commit()
@@ -387,6 +447,10 @@ def delete_user_admin(user_id):
         db.session.rollback()
         flash('An error occurred while deleting the user.', 'danger')
     return redirect(url_for('manage_users'))
+
+@app.route('/')
+def root_redirect():
+    return redirect(url_for('admin_login'))
 
 if __name__ == '__main__':
     app.run(debug=True, port=5005) 

@@ -2,28 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - Master Admin Portal</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
 </head>
 <body>
-    <div class="login-container">
-        <h2>Master Admin Login</h2>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <ul class="flashes">
-              {% for category, message in messages %}
-                <li class="{{ category }}">{{ message }}</li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-        {% endwith %}
-        <form method="POST">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required><br>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required><br>
-            <button type="submit">Login</button>
-        </form>
+    <div class="parent-main" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f8f9fa;">
+        <div class="dashboard-container" style="max-width: 400px; width: 100%;">
+            <h2 style="text-align: center; margin-bottom: 1.5em;"><i class="fas fa-user-shield"></i> Master Admin Login</h2>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                <div class="flash-messages">
+                  {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                      <i class="fas fa-info-circle"></i> {{ message }}
+                      <button type="button" class="close-btn" onclick="this.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            {% endwith %}
+            <form method="POST">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" class="form-control" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1em;"><i class="fas fa-sign-in-alt"></i> Login</button>
+            </form>
+        </div>
     </div>
 </body>
 </html> 

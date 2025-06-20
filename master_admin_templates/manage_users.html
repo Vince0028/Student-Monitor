@@ -1,29 +1,64 @@
 {% extends 'admin_base.html' %}
 {% block content %}
 <div class="dashboard-container">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h2>Manage Admin Users</h2>
-        <a href="{{ url_for('admin_logs') }}" class="admin-card-link" style="background: #444;">View Admin Logs</a>
+    <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Manage Users</h2>
+        <a href="{{ url_for('admin_logs') }}" class="btn btn-info btn-sm"><i class="fas fa-clipboard-list"></i> View Admin Logs</a>
     </div>
-    <a href="{{ url_for('add_user_admin') }}" class="admin-card-link" style="margin-bottom: 1.5em; display: inline-block;">+ Add New Admin</a>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5em; align-items: center; margin-bottom: 1.5em;">
+        <form method="get" action="{{ url_for('manage_users') }}" style="display: flex; gap: 0.5em; align-items: center; flex-wrap: wrap;">
+            <input type="hidden" name="user_type" value="{{ selected_user_type }}">
+            {% if selected_user_type == 'student' %}
+                <select name="grade_level" class="form-control" style="min-width: 120px;">
+                    <option value="">All Grades</option>
+                    {% for gl in grade_levels %}
+                        <option value="{{ gl }}" {% if selected_grade_level == gl %}selected{% endif %}>{{ gl }}</option>
+                    {% endfor %}
+                </select>
+                {% if normalized_grade_level == '11or12' %}
+                    <select name="strand" class="form-control" style="min-width: 120px;">
+                        <option value="">All Strands</option>
+                        {% for s in strands %}
+                            <option value="{{ s }}" {% if selected_strand == s %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                {% endif %}
+            {% endif %}
+            <input type="text" name="search" value="{{ search }}" placeholder="Search username..." class="form-control" style="min-width: 180px;">
+            <button type="submit" class="btn btn-outline btn-sm"><i class="fas fa-search"></i> Search</button>
+        </form>
+        <div style="margin-left: auto; display: flex; gap: 0.5em;">
+            {% for type, label, icon in [
+                ('admin', 'Admin', 'fa-user-shield'),
+                ('teacher', 'Teacher', 'fa-chalkboard-teacher'),
+                ('student', 'Student', 'fa-user-graduate'),
+                ('parent', 'Parent', 'fa-user-friends')
+            ] %}
+                <a href="{{ url_for('manage_users', user_type=type) }}" class="btn btn-sm {% if selected_user_type == type %}btn-primary{% else %}btn-outline{% endif %}">
+                    <i class="fas {{ icon }}"></i> {{ label }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+    <a href="{{ url_for('add_user_admin') }}?user_type={{ selected_user_type }}" class="btn btn-primary" style="margin-bottom: 1.5em;"><i class="fas fa-user-plus"></i> Add New {{ selected_user_type|capitalize }}</a>
     <div class="table-responsive">
-        <table class="data-table" style="width:100%; margin-top: 1em;">
+        <table class="data-table" style="margin: 0 auto; min-width: 400px;">
             <thead>
                 <tr>
-                    <th>Username</th>
-                    <th>User Type</th>
-                    <th>Actions</th>
+                    <th style="text-align: left;">Username</th>
+                    <th style="text-align: left;">User Type</th>
+                    <th style="text-align: center;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for user in users %}
                 <tr>
-                    <td>{{ user.username }}</td>
-                    <td>{{ user.user_type }}</td>
-                    <td>
-                        <a href="{{ url_for('edit_user_admin', user_id=user.id) }}" class="admin-card-link" style="padding: 0.3em 0.8em; font-size: 0.95em;">Edit</a>
+                    <td style="text-align: left;">{{ user.username }}</td>
+                    <td style="text-align: left;">{{ user.user_type|capitalize }}</td>
+                    <td style="text-align: center;">
+                        <a href="{{ url_for('edit_user_admin', user_id=user.id) }}" class="btn btn-outline btn-sm" style="margin-right: 0.5em;"><i class="fas fa-edit"></i> Edit</a>
                         <form action="{{ url_for('delete_user_admin', user_id=user.id) }}" method="POST" style="display:inline;">
-                            <button type="submit" class="admin-card-link" style="background: #b00; margin-left: 0.5em; padding: 0.3em 0.8em; font-size: 0.95em; border:none; cursor:pointer;">Delete</button>
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this user?');"><i class="fas fa-trash-alt"></i> Delete</button>
                         </form>
                     </td>
                 </tr>
@@ -31,6 +66,6 @@
             </tbody>
         </table>
     </div>
-    <a href="{{ url_for('admin_dashboard') }}" class="admin-card-link" style="background: #666; margin-top: 2em;">&larr; Back to Dashboard</a>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary" style="margin-top: 2em;"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
 </div>
 {% endblock %} 
