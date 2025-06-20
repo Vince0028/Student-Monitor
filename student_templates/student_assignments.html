@@ -4,26 +4,28 @@
 
 {% block content %}
 <div class="dashboard-container">
-  <h2><i class="fas fa-tasks"></i> Assignments</h2>
-  <div class="dashboard-card-grid">
-    <!-- Upcoming Assignments Card -->
-    <a href="{{ url_for('student_assignments_upcoming') }}" class="feature-card">
-      <div class="feature-card-icon"><i class="fas fa-hourglass-start"></i></div>
-      <div class="feature-card-title">Upcoming Assignments</div>
-      <div class="feature-card-desc">See assignments that are due soon and plan ahead.</div>
-    </a>
-    <!-- Completed Assignments Card -->
-    <a href="{{ url_for('student_assignments_completed') }}" class="feature-card">
-      <div class="feature-card-icon"><i class="fas fa-check-circle"></i></div>
-      <div class="feature-card-title">Completed Assignments</div>
-      <div class="feature-card-desc">Review assignments you have already submitted.</div>
-    </a>
-    <!-- Past Due Assignments Card -->
-    <a href="{{ url_for('student_assignments_past_due') }}" class="feature-card">
-      <div class="feature-card-icon"><i class="fas fa-exclamation-triangle"></i></div>
-      <div class="feature-card-title">Past Due Assignments</div>
-      <div class="feature-card-desc">View assignments that are overdue and need attention.</div>
-    </a>
-  </div>
+    <div style="margin-bottom: 2.5rem;">
+        <h3 style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem; margin-left: 200px;"><i class="fas fa-tasks"></i> Assignments</h3>
+    </div>
+    <div class="dashboard-card-grid">
+        <!-- Upcoming Assignments Card -->
+        <a href="{{ url_for('student_assignments_upcoming') }}" class="feature-card">
+            <div class="feature-card-icon"><i class="fas fa-hourglass-start"></i></div>
+            <div class="feature-card-title">Upcoming Assignments</div>
+            <div class="feature-card-desc">See assignments that are due soon and plan ahead.</div>
+        </a>
+        <!-- Completed Assignments Card -->
+        <a href="{{ url_for('student_assignments_completed') }}" class="feature-card">
+            <div class="feature-card-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="feature-card-title">Completed Assignments</div>
+            <div class="feature-card-desc">Review assignments you have already submitted.</div>
+        </a>
+        <!-- Past Due Assignments Card -->
+        <a href="{{ url_for('student_assignments_past_due') }}" class="feature-card">
+            <div class="feature-card-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="feature-card-title">Past Due Assignments</div>
+            <div class="feature-card-desc">View assignments that are overdue and need attention.</div>
+        </a>
+    </div>
 </div>
 {% endblock %}  

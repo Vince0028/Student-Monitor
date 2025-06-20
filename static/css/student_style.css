@@ -81,15 +81,10 @@ body {
   font-size: 1.2em;
 }
 
-.student-main {
-  padding: 2.5rem 0 2rem 0;
-  min-height: 80vh;
-  flex: 1 0 auto;
-  margin-top: 2rem;
-  margin-bottom: 2rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+.student-main,
+.student-main.assignments-main {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 .flash-messages {
@@ -329,19 +324,22 @@ border-radius: 8px;
 
 /* --- Dashboard Card Grid and Feature Cards --- */
 .dashboard-card-grid {
-display: grid;
-grid-template-columns: repeat(3, 1fr);
-gap: 3rem;
-margin: 2rem 0 0 0;
-width: 100%;
-padding: 0 3rem;
-justify-items: center;
-align-items: start;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3rem; /* Adjust this value to control gaps between cards */
+  margin: 2rem auto 0 auto;
+  width: 100%;
+  max-width: 1400px;
+  padding: 0 2rem;
+  justify-content: center;
+  place-items: center;
+  transform: translateX(-30px);
 }
 
 .dashboard-card-grid .feature-card {
-width: 100%;
-max-width: 400px;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 1.5rem;
 }
 
 /* Assignments pages only: use .assignments-grid for their card layout */
@@ -349,7 +347,7 @@ max-width: 400px;
 display: grid;
 grid-template-columns: repeat(3, minmax(280px, 1fr));
 gap: 2.5rem;
-margin-top: 2.5rem;
+margin-top: 2.5rem; 
 width: 100%;
 max-width: 1400px;
 margin-left: auto;
@@ -415,10 +413,7 @@ font-size: 1.05em;
 .dashboard-card-grid {
   grid-template-columns: repeat(2, 1fr);
   gap: 2rem;
-  padding: 0 2rem;
-}
-.assignments-grid {
-  grid-template-columns: 1fr 1fr;
+  padding: 0 1rem;
 }
 }
 @media (max-width: 700px) {
@@ -426,9 +421,6 @@ font-size: 1.05em;
   grid-template-columns: 1fr;
   padding: 0 1rem;
   gap: 1.5rem;
-}
-.assignments-grid {
-  grid-template-columns: 1fr;
 }
 }
 
@@ -537,5 +529,48 @@ margin-top: 0 !important;
 }
 
 .dashboard-card-grid {
-gap: 2rem 2rem !important;
+gap: 4rem 4rem !important;
+}
+
+/* Assignment Pages: Unified Grid Positioning */
+.student-main.assignments-main .dashboard-card-grid {
+  margin: 2rem auto 0 auto;
+  width: 100%;
+  max-width: 1400px;
+  padding: 0 2rem;
+  justify-content: center;
+  place-items: center;
+  transform: translateX(100px);
+}
+
+/* Completed Assignments Page: Grid Positioning */
+.completed-assignments-dashboard .dashboard-card-grid {
+  margin: 0 auto 0 auto !important;
+  width: 100% !important;
+  max-width: 1400px !important;
+  padding: 0 2rem !important;
+  justify-content: center !important;
+  place-items: center !important;
+  transform: translateX(400px) translateY(25px) !important;
+}
+
+/* Past Due Assignments Page: Grid Positioning */
+.past-due-assignments-dashboard .dashboard-card-grid {
+  margin: 0 auto 0 auto !important;
+  width: 100% !important;
+  max-width: 1400px !important;
+  padding: 0 2rem !important;
+  justify-content: center !important;
+  place-items: center !important;
+  transform: translateX(400px) translateY(25px) !important;
+}
+
+.upcoming-assignments-dashboard .dashboard-card-grid {
+  margin: 0 auto 0 auto !important;
+  width: 100% !important;
+  max-width: 1400px !important;
+  padding: 0 2rem !important;
+  justify-content: center !important;
+  place-items: center !important;
+  transform: translateX(400px) translateY(25px) !important;
 }
