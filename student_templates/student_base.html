@@ -3,155 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<<<<<<< HEAD
-    <title>{% block title %}Student Monitor{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-</head>
-<body>
-    <header class="app-header">
-        <div class="container">
-            <h1 class="app-title"><a href="{{ url_for('student_dashboard') if session.get('student_id') else url_for('index') }}">Student Monitor</a></h1>
-            <nav class="main-nav">
-                <ul class="nav-links">
-                    {% if session.get('student_id') %}
-=======
     <title>{% block title %}Student Portal - Student Monitor{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        body { margin: 0; padding: 0; background: #f7f8fa; }
+        .container { max-width: 1700px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+    </style>
 </head>
-<body>
+<body {% if request.endpoint == 'student_login' %}class="no-scroll-page login-page"{% elif request.endpoint in ['student_dashboard', 'student_assignments'] %}class="no-scroll-page"{% endif %} style="min-height: 100vh; display: flex; flex-direction: column;">
     <header class="student-header">
-        <div class="container">
-            <h1 class="student-title">
-                <a href="{{ url_for('student_dashboard') if session.student_id else url_for('student_login') }}">
+        <div class="container" style="display: flex; align-items: center; justify-content: space-between; padding-top: 1rem; padding-bottom: 1rem;">
+            <h1 class="student-title" style="margin: 0;">
+                <a href="{{ url_for('student_dashboard') if session.student_id else url_for('student_login') }}" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
                     <i class="fas fa-user-graduate"></i> Student Portal
                 </a>
             </h1>
             <nav class="student-nav">
-                <ul class="nav-links">
+                {% if request.endpoint != 'student_login' %}
+                <ul class="nav-links" style="display: flex; gap: 1.5rem; align-items: center; margin: 0;">
                     {% if session.student_id %}
-                        <li><a href="{{ url_for('student_dashboard') }}"><i class="fas fa-home"></i> Dashboard</a></li>
-                        <li><a href="{{ url_for('student_assignments') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
-                        <li><a href="{{ url_for('student_grades') }}"><i class="fas fa-chart-line"></i> Grades</a></li>
-                        <li><a href="{{ url_for('student_attendance') }}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
->>>>>>> e3c8666a7cdacd4ae5ed11fc7b5b6628c7d6deef
-                        <li><a href="{{ url_for('student_logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        {% if request.endpoint == 'student_dashboard' %}
+                            <li style="display:none;"><a href="{{ url_for('student_dashboard') }}"><i class="fas fa-home"></i> Dashboard</a></li>
+                            <li style="display:none;"><a href="{{ url_for('student_grades') }}"><i class="fas fa-chart-line"></i> Grades</a></li>
+                            <li style="display:none;"><a href="{{ url_for('student_attendance') }}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+                            <li><a href="{{ url_for('student_logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        {% else %}
+                            <li><a href="{{ url_for('student_dashboard') }}"><i class="fas fa-home"></i> Dashboard</a></li>
+                            <li><a href="{{ url_for('student_grades') }}"><i class="fas fa-chart-line"></i> Grades</a></li>
+                            <li><a href="{{ url_for('student_attendance') }}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+                            <li><a href="{{ url_for('student_logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        {% endif %}
                     {% else %}
-                        <li><a href="{{ url_for('student_login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
+                        {% if request.endpoint != 'student_login' %}
+                            <li><a href="{{ url_for('student_login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
+                        {% endif %}
                     {% endif %}
                 </ul>
+                {% endif %}
             </nav>
         </div>
     </header>
-<<<<<<< HEAD
-    <main class="app-main container">
-        <div class="flash-messages">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-        </div>
-        {% block content %}{% endblock %}
-    </main>
-    <footer class="app-footer">
+    <main class="student-main{% if request.endpoint in ['student_assignments', 'student_assignments_upcoming', 'student_assignments_completed', 'student_assignments_past_due'] %} assignments-main{% endif %}" style="flex: 1 0 auto;">
         <div class="container">
-            <p>&copy; 2025 Student Monitor. All rights reserved.</p>
-        </div>
-    </footer>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-    {% block scripts %}{% endblock %}
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Password Toggle Functionality -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Function to create password toggle button
-            function createPasswordToggle(passwordInput) {
-                if (passwordInput.parentElement.classList.contains('password-field-container')) {
-                    return;
-                }
-                const container = document.createElement('div');
-                container.className = 'password-field-container';
-                passwordInput.parentNode.insertBefore(container, passwordInput);
-                container.appendChild(passwordInput);
-                const toggleBtn = document.createElement('button');
-                toggleBtn.type = 'button';
-                toggleBtn.className = 'password-toggle-btn';
-                toggleBtn.textContent = 'Show';
-                toggleBtn.setAttribute('aria-label', 'Toggle password visibility');
-                toggleBtn.style.display = passwordInput.value ? '' : 'none';
-                container.appendChild(toggleBtn);
-                toggleBtn.addEventListener('click', function() {
-                    const isPassword = passwordInput.type === 'password';
-                    passwordInput.type = isPassword ? 'text' : 'password';
-                    toggleBtn.textContent = isPassword ? 'Hide' : 'Show';
-                    toggleBtn.classList.toggle('show', isPassword);
-                });
-                passwordInput.addEventListener('input', function() {
-                    toggleBtn.style.display = passwordInput.value ? '' : 'none';
-                });
-            }
-            const passwordInputs = document.querySelectorAll('input[type="password"], input[type="text"]');
-            passwordInputs.forEach(function(input) {
-                if (input.type === 'password' || (input.type === 'text' && input.name && input.name.toLowerCase().includes('password'))) {
-                    createPasswordToggle(input);
-                }
-            });
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    mutation.addedNodes.forEach(function(node) {
-                        if (node.nodeType === 1) {
-                            const newPasswordInputs = node.querySelectorAll ? node.querySelectorAll('input[type="password"], input[type="text"]') : [];
-                            newPasswordInputs.forEach(function(input) {
-                                if (input.type === 'password' || (input.type === 'text' && input.name && input.name.toLowerCase().includes('password'))) {
-                                    createPasswordToggle(input);
-                                }
-                            });
-                            if ((node.tagName === 'INPUT') && (node.type === 'password' || (node.type === 'text' && node.name && node.name.toLowerCase().includes('password')))) {
-                                createPasswordToggle(node);
-                            }
-                        }
-                    });
-                });
-            });
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
-        });
-    </script>
-</body>
-</html>
-=======
-    <main class="student-main">
-        <div class="container">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="flash-messages">
+            <div class="flash-messages" style="position: fixed; top: 130px; left: 50%; transform: translateX(-50%); z-index: 9999; width: auto; max-width: 90vw; pointer-events: none;">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
                         {% for category, message in messages %}
-                            <div class="alert alert-{{ category }}">
+                            <div class="alert alert-{{ category }}" style="pointer-events: auto; min-width: 250px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
                                 <i class="fas fa-info-circle"></i>
                                 {{ message }}
-                                <button type="button" class="close-btn" onclick="this.parentElement.remove()">
-                                    <i class="fas fa-times"></i>
-                                </button>
                             </div>
                         {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
+                    {% endif %}
+                {% endwith %}
+            </div>
             {% block content %}{% endblock %}
         </div>
     </main>
-    <footer class="student-footer">
+    <footer class="student-footer" style="flex-shrink: 0; width: 100%; position: relative; bottom: 0; left: 0;">
         <div class="container">
             <p>&copy; 2024 Student Monitor - Student Portal. All rights reserved.</p>
         </div>
     </footer>
+    <script>
+    // Auto-fade flash messages after 3 seconds
+    window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            document.querySelectorAll('.flash-messages .alert').forEach(function(el) {
+                el.style.transition = 'opacity 0.5s';
+                el.style.opacity = '0';
+                setTimeout(function() { el.remove(); }, 500);
+            });
+        }, 3000);
+    });
+    </script>
 </body>
-</html> 
->>>>>>> e3c8666a7cdacd4ae5ed11fc7b5b6628c7d6deef
+</html>

@@ -3,8 +3,20 @@
 {% block title %}Upcoming Assignments - Student Monitor{% endblock %}
 
 {% block content %}
-<div class="form-page-container">
-    <h2>Upcoming Assignments</h2>
-    <!-- List of upcoming assignments would go here -->
+<div class="dashboard-container">
+  <h2 style="margin-top: 2rem; margin-bottom: 2rem; text-align: left;"><i class="fas fa-hourglass-start"></i> Upcoming Assignments</h2>
+  <div class="dashboard-card-grid">
+    <!-- Subject Placeholder Card Example -->
+    <a href="{{ url_for('student_submit_assignment') }}" class="feature-card">
+      <div class="feature-card-icon"><i class="fas fa-book"></i></div>
+      <div class="feature-card-title">Subject Name</div>
+      <div class="feature-card-desc">Assignments for this subject will appear here.</div>
+    </a>
+    <a href="{{ url_for('student_submit_assignment') }}" class="feature-card">
+      <div class="feature-card-icon"><i class="fas fa-book"></i></div>
+      <div class="feature-card-title">Another Subject</div>
+      <div class="feature-card-desc">Assignments for this subject will appear here.</div> 
+    </a>
+  </div>
 </div>
-{% endblock %} 
+{% endblock %}  

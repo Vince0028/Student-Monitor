@@ -1,215 +1,541 @@
+html, body {
+  height: 100%;
+}
 body {
-    background: #f8f9fa;
-    color: #222;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    margin: 0;
-    padding: 0;
+  background: #f8f9fa;
+  color: #222;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .container {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 0 20px;
+  max-width: 1700px;
+  margin: 0 auto;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .student-header {
-    background: linear-gradient(135deg, #1976d2, #1565c0);
-    color: #fff;
-    padding: 1.5rem 0 1rem 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  background: linear-gradient(135deg, #1976d2, #1565c0);
+  color: #fff;
+  padding: 1.5rem 0 1rem 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
 .student-header .container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .student-title {
-    font-size: 2.2rem;
-    font-weight: bold;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  font-size: 2.2rem;
+  font-weight: bold;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .student-title i {
-    font-size: 2.2rem;
+  font-size: 2.2rem;
 }
 
 .student-title a {
-    color: #fff;
-    text-decoration: none;
+  color: #fff;
+  text-decoration: none;
 }
 
 .student-nav ul {
-    display: flex;
-    list-style: none;
-    gap: 18px;
-    margin: 0;
-    padding: 0;
+  display: flex;
+  list-style: none;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
 }
 
 .student-nav a {
-    color: #fff;
-    text-decoration: none;
-    font-weight: 500;
-    padding: 7px 16px;
-    border-radius: 6px;
-    transition: background 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 7px 16px;
+  border-radius: 6px;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.15rem;
+  padding: 12px 24px;
+  font-weight: 700;
 }
 
 .student-nav a:hover {
-    background: rgba(255,255,255,0.13);
+  background: rgba(255,255,255,0.13);
+}
+
+.student-nav a i {
+  font-size: 1.2em;
 }
 
 .student-main {
-    padding: 2.5rem 0 2rem 0;
-    min-height: 80vh;
+  padding: 2.5rem 0 2rem 0;
+  min-height: 80vh;
+  flex: 1 0 auto;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .flash-messages {
-    margin-bottom: 2rem;
+  margin-bottom: 2rem;
 }
 
 .alert {
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #eaf6ff;
-    color: #1976d2;
-    font-weight: 500;
-    box-shadow: 0 1px 4px rgba(25,118,210,0.07);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #eaf6ff;
+  color: #1976d2;
+  font-weight: 500;
+  box-shadow: 0 1px 4px rgba(25,118,210,0.07);
 }
 
 .close-btn {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    color: inherit;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: inherit;
 }
 
 .student-footer {
-    background: #1565c0;
-    color: #fff;
-    text-align: center;
-    padding: 1rem 0;
-    margin-top: 2rem;
-    font-size: 1rem;
+  background: #1565c0;
+  color: #fff;
+  text-align: center;
+  padding: 1rem 0;
+  margin-top: 2rem;
+  font-size: 1rem;
+  flex-shrink: 0;
+  width: 100%;
+  position: relative;
+  bottom: 0;
+  left: 0;
 }
 
 @media (max-width: 900px) {
-    .container {
-        padding: 0 8px;
-    }
+  .container {
+      padding: 0 8px;
+  }
 }
 
 @media (max-width: 600px) {
-    .student-header .container {
-        flex-direction: column;
-        gap: 1rem;
-    }
-    .student-title {
-        font-size: 1.3rem;
-    }
-    .student-title i {
-        font-size: 1.3rem;
-    }
-    .student-main {
-        padding: 1rem 0;
-    }
+  .student-header .container {
+      flex-direction: column;
+      gap: 1rem;
+  }
+  .student-title {
+      font-size: 1.3rem;
+  }
+  .student-title i {
+      font-size: 1.3rem;
+  }
+  .student-main {
+      padding: 1rem 0;
+  }
 }
 
 .form-container {
-    max-width: 400px;
-    margin: 3rem auto;
-    background: #fff;
-    padding: 2.5rem 2rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(25,118,210,0.10);
+  max-width: 400px;
+  margin: 3rem auto;
+  background: #fff;
+  padding: 2.5rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(25,118,210,0.10);
 }
 
 .form-title {
-    text-align: center;
-    color: #1976d2;
-    margin-bottom: 2rem;
-    font-size: 1.8rem;
-    font-weight: bold;
+  text-align: center;
+  color: #1976d2;
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+  font-weight: bold;
 }
 
 .form-group {
-    margin-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: #1565c0;
-    font-weight: 500;
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #1565c0;
+  font-weight: 500;
 }
 
 .form-group input[type="text"],
 .form-group input[type="password"],
 .form-group input[type="email"],
 .form-group input[type="tel"] {
-    width: 100%;
-    padding: 0.8rem;
-    border: 2px solid #e3eafc;
-    border-radius: 6px;
-    font-size: 1rem;
-    transition: border-color 0.2s;
-    box-sizing: border-box;
+  width: 100%;
+  padding: 0.8rem;
+  border: 2px solid #e3eafc;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
 }
 
 .form-group input:focus {
-    outline: none;
-    border-color: #1976d2;
+  outline: none;
+  border-color: #1976d2;
 }
 
 .form-submit {
-    width: 100%;
-    margin-top: 1rem;
-    background: #1976d2;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 0.7rem 1.5rem;
-    font-weight: 600;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    justify-content: center;
+  width: 100%;
+  margin-top: 1rem;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.7rem 1.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
 }
 
 .form-submit:hover, .form-submit:focus {
-    background: #1565c0;
-    color: #fff;
+  background: #1565c0;
+  color: #fff;
 }
 
 .form-footer {
-    text-align: center;
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid #e3eafc;
+  text-align: center;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e3eafc;
 }
 
 .form-footer a {
-    color: #1976d2;
-    text-decoration: none;
-    font-weight: 500;
+  color: #1976d2;
+  text-decoration: none;
+  font-weight: 500;
 }
 
 .form-footer a:hover {
-    text-decoration: underline;
-} 
+  text-decoration: underline;
+}
+
+/* --- Fix: No-Scroll Page with Header, Centered Content, and Sticky Footer --- */
+.no-scroll-page {
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+}
+.no-scroll-page .student-main,
+.no-scroll-page .dashboard-container {
+flex: 1 0 auto;
+margin-top: 0 !important;
+margin-bottom: 0 !important;
+min-height: unset !important;
+height: auto;
+display: flex;
+flex-direction: column;
+justify-content: center;
+}
+.no-scroll-page .student-footer {
+flex-shrink: 0;
+margin-top: 0;
+}
+.login-bg {
+min-height: unset;
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+padding: 2rem;
+}
+
+/* --- Login Page Card Design (Restored) --- */
+.login-card {
+background: #fff;
+border-radius: 16px;
+box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+padding: 2.5rem 2rem;
+max-width: 500px;
+min-width: 340px;
+width: 100%;
+}
+.login-header {
+text-align: center;
+margin-bottom: 2rem;
+}
+.login-icon {
+font-size: 3rem;
+color: #2563eb;
+margin-bottom: 1rem;
+}
+.login-title {
+font-size: 2rem;
+font-weight: bold;
+margin-bottom: 0.25rem;
+}
+.login-desc {
+color: #6b7280;
+margin-bottom: 0;
+}
+.login-form .form-group {
+margin-bottom: 1.25rem;
+}
+.login-label {
+display: block;
+margin-bottom: 0.5rem;
+color: #374151;
+font-weight: 500;
+}
+.login-input {
+width: 100%;
+padding: 0.75rem;
+border: 1.5px solid #d1d5db;
+border-radius: 8px;
+font-size: 1rem;
+transition: border-color 0.2s;
+}
+.login-input:focus {
+border-color: #2563eb;
+outline: none;
+}
+.login-btn {
+width: 100%;
+padding: 0.75rem;
+font-size: 1.1rem;
+font-weight: 600;
+border-radius: 8px;
+}
+
+/* --- Dashboard Card Grid and Feature Cards --- */
+.dashboard-card-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 3rem;
+margin: 2rem 0 0 0;
+width: 100%;
+padding: 0 3rem;
+justify-items: center;
+align-items: start;
+}
+
+.dashboard-card-grid .feature-card {
+width: 100%;
+max-width: 400px;
+}
+
+/* Assignments pages only: use .assignments-grid for their card layout */
+.assignments-grid {
+display: grid;
+grid-template-columns: repeat(3, minmax(280px, 1fr));
+gap: 2.5rem;
+margin-top: 2.5rem;
+width: 100%;
+max-width: 1400px;
+margin-left: auto;
+margin-right: auto;
+justify-items: stretch;
+justify-content: stretch;
+}
+
+.feature-card {
+display: flex;
+flex-direction: column;
+background: #fff;
+border-radius: 16px;
+box-shadow: 0 4px 16px rgba(25, 118, 210, 0.08);
+padding: 2rem 1.5rem 1.5rem 1.5rem;
+text-decoration: none;
+color: #222;
+transition: box-shadow 0.2s, transform 0.2s;
+cursor: pointer;
+border: 1.5px solid #e3eafc;
+}
+.feature-card:hover, .feature-card:focus {
+box-shadow: 0 8px 32px rgba(25, 118, 210, 0.16);
+transform: translateY(-4px) scale(1.02);
+border-color: #1976d2;
+text-decoration: none;
+}
+.feature-card-icon {
+font-size: 2.2rem;
+margin-bottom: 1rem;
+color: #1976d2;
+text-align: left;
+}
+.feature-card-title {
+font-size: 1.3rem;
+font-weight: 700;
+margin-bottom: 0.5rem;
+color: #4f46e5;
+}
+.feature-card-desc {
+color: #6b7280;
+margin-bottom: 1.2rem;
+font-size: 1rem;
+}
+.feature-card-stats {
+margin-top: auto;
+display: flex;
+flex-direction: column;
+gap: 0.3rem;
+font-size: 1.05em;
+}
+.feature-card-stats .pending { color: #ed8936; font-weight: 600; }
+.feature-card-stats .completed { color: #38a169; font-weight: 600; }
+.feature-card-stats .past-due { color: #e53e3e; font-weight: 600; }
+.feature-card-stats .gpa { color: #38a169; font-weight: 600; }
+.feature-card-stats .semester { color: #4f46e5; font-weight: 600; }
+.feature-card-stats .credits { color: #4f46e5; font-weight: 600; }
+.feature-card-stats .attendance-week { color: #38a169; font-weight: 600; }
+.feature-card-stats .attendance-month { color: #4f46e5; font-weight: 600; }
+.feature-card-stats .attendance-overall { color: #4f46e5; font-weight: 600; }
+
+@media (max-width: 1100px) {
+.dashboard-card-grid {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  padding: 0 2rem;
+}
+.assignments-grid {
+  grid-template-columns: 1fr 1fr;
+}
+}
+@media (max-width: 700px) {
+.dashboard-card-grid {
+  grid-template-columns: 1fr;
+  padding: 0 1rem;
+  gap: 1.5rem;
+}
+.assignments-grid {
+  grid-template-columns: 1fr;
+}
+}
+
+/* --- Custom File Input for Assignment Upload --- */
+.login-form .form-group input[type="file"] {
+display: none;
+}
+.custom-file-label {
+display: block;
+width: 100%;
+padding: 0.75rem;
+background: #f3f4f6;
+border: 1.5px solid #d1d5db;
+border-radius: 8px;
+font-size: 1rem;
+color: #6b7280;
+cursor: pointer;
+text-align: left;
+transition: border-color 0.2s, background 0.2s;
+}
+.custom-file-label:hover, .custom-file-label:focus {
+border-color: #2563eb;
+background: #e0e7ff;
+color: #2563eb;
+}
+.selected-file-name {
+display: block;
+margin-top: 0.5rem;
+color: #374151;
+font-size: 0.97em;
+word-break: break-all;
+}
+
+/* --- Button and Card Cursor Pointer --- */
+.btn, .btn:hover, .feature-card, .feature-card:hover, .custom-file-label:hover {
+cursor: pointer;
+}
+
+html.no-scroll-page, body.no-scroll-page, .no-scroll-page {
+overflow: hidden !important;
+height: 100vh !important;
+}
+.no-scroll-page .student-main,
+.no-scroll-page .dashboard-container {
+margin-top: 0 !important;
+margin-bottom: 0 !important;
+min-height: unset !important;
+height: 100%;
+}
+
+.dashboard-container {
+width: 100% !important;
+max-width: none !important;
+display: block !important;
+padding: 0 !important;
+margin: 0 !important;
+}
+
+.dashboard-container h2 {
+margin: 0 0 1rem 0 !important;
+padding: 0 !important;
+text-align: center !important;
+}
+
+.no-scroll-page .student-main {
+flex: 1 0 auto;
+display: flex;
+flex-direction: column;
+justify-content: flex-start;
+margin-top: 2rem;
+margin-bottom: 0;
+min-height: unset;
+height: auto;
+}
+.no-scroll-page.login-page .student-main {
+justify-content: center;
+margin-top: 0;
+}
+
+.no-scroll-page .student-main.assignments-main {
+margin-top: 0.5rem !important;
+padding-top: 0 !important;
+}
+.no-scroll-page .student-main.assignments-main .dashboard-container {
+max-width: 1000px;
+margin-left: auto !important;
+margin-right: auto !important;
+padding-left: 2.5rem;
+padding-right: 2.5rem;
+margin-top: 0 !important;
+margin-bottom: 2.5rem !important;
+}
+
+.dashboard-container h2 {
+text-align: left !important;
+margin-left: 0 !important;
+}
+
+.student-main.assignments-main, .student-main.assignments-main .container {
+margin: 0 !important;
+padding: 0 !important;
+width: 100% !important;
+}
+.student-main.assignments-main .container > *:first-child {
+margin-top: 0 !important;
+}
+
+.dashboard-card-grid {
+gap: 2rem 2rem !important;
+}

@@ -1,44 +1,46 @@
 {% extends 'student_base.html' %}
 
-<<<<<<< HEAD
 {% block title %}Student Dashboard - Student Monitor{% endblock %}
 
 {% block content %}
-<div class="dashboard-header">
-    <h2>Welcome, {{ session.student_name }}!</h2>
-    <p>This is your student dashboard. Use the options below to navigate.</p>
-</div>
-<div class="dashboard-options">
-    <a href="{{ url_for('student_assignments') }}" class="btn btn-primary btn-lg">Assignments</a>
-    <a href="{{ url_for('student_grades') }}" class="btn btn-secondary btn-lg">Check Summary of Grades</a>
-    <a href="{{ url_for('student_attendance') }}" class="btn btn-info btn-lg">Check Attendance</a>
-=======
-{% block title %}Dashboard - Student Portal{% endblock %}
-
-{% block content %}
-<div class="dashboard-header" style="text-align:center; margin-bottom:2.5rem; padding:2rem; background:linear-gradient(135deg, #1976d2, #1565c0); color:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(25,118,210,0.15);">
-    <h2 style="font-size:2.2rem; margin-bottom:0.5rem;">Welcome, {{ student.first_name }}!</h2>
-    <p style="font-size:1.1rem; opacity:0.9;">Here is your academic overview</p>
-</div>
-<div class="dashboard-cards" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1.5rem; margin-bottom:2rem;">
-    <div class="dashboard-card" style="background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06); padding:2rem 1.5rem; text-align:center; transition:transform 0.2s, box-shadow 0.2s;">
-        <i class="fas fa-tasks" style="font-size:2.2rem; color:#1976d2; margin-bottom:0.7rem;"></i>
-        <h3 style="color:#1565c0; margin-bottom:0.5rem;">Assignments</h3>
-        <p style="color:#666; margin-bottom:1.2rem;">Manage and submit your assignments</p>
-        <a href="{{ url_for('student_assignments') }}" class="btn btn-primary btn-sm"><i class="fas fa-arrow-right"></i> View Assignments</a>
+<div class="dashboard-container">
+    <div style="margin-bottom: 2.5rem;">
+        <h3 style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;">Welcome back, {{ session.student_name }}!</h3>
     </div>
-    <div class="dashboard-card" style="background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06); padding:2rem 1.5rem; text-align:center; transition:transform 0.2s, box-shadow 0.2s;">
-        <i class="fas fa-chart-line" style="font-size:2.2rem; color:#1976d2; margin-bottom:0.7rem;"></i>
-        <h3 style="color:#1565c0; margin-bottom:0.5rem;">Grades</h3>
-        <p style="color:#666; margin-bottom:1.2rem;">Check your grades summary</p>
-        <a href="{{ url_for('student_grades') }}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-right"></i> View Grades</a>
+    <div class="dashboard-card-grid">
+        <!-- Assignments Card -->
+        <a href="{{ url_for('student_assignments') }}" class="feature-card">
+            <div class="feature-card-icon"><i class="fas fa-book-open"></i></div>
+            <div class="feature-card-title">Assignments</div>
+            <div class="feature-card-desc">View, filter, and submit your assignments</div>
+            <div class="feature-card-stats">
+                <div><span>Pending:</span> <span class="pending">3</span></div>
+                <div><span>Completed:</span> <span class="completed">12</span></div>
+                <div><span>Past Due:</span> <span class="past-due">1</span></div>
+            </div>
+        </a>
+        <!-- Grades Card -->
+        <a href="{{ url_for('student_grades') }}" class="feature-card">
+            <div class="feature-card-icon"><i class="fas fa-graduation-cap"></i></div>
+            <div class="feature-card-title">Grades Summary</div>
+            <div class="feature-card-desc">Check your academic performance</div>
+            <div class="feature-card-stats">
+                <div><span>Overall GPA:</span> <span class="gpa">3.7</span></div>
+                <div><span>Current Semester:</span> <span class="semester">3.8</span></div>
+                <div><span>Credits Completed:</span> <span class="credits">45/120</span></div>
+            </div>
+        </a>
+        <!-- Attendance Card -->
+        <a href="{{ url_for('student_attendance') }}" class="feature-card">
+            <div class="feature-card-icon"><i class="fas fa-calendar-alt"></i></div>
+            <div class="feature-card-title">Attendance</div>
+            <div class="feature-card-desc">Track your class attendance</div>
+            <div class="feature-card-stats">
+                <div><span>This Week:</span> <span class="attendance-week">95%</span></div>
+                <div><span>This Month:</span> <span class="attendance-month">92%</span></div>
+                <div><span>Overall:</span> <span class="attendance-overall">94%</span></div>
+            </div>
+        </a>
     </div>
-    <div class="dashboard-card" style="background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06); padding:2rem 1.5rem; text-align:center; transition:transform 0.2s, box-shadow 0.2s;">
-        <i class="fas fa-calendar-check" style="font-size:2.2rem; color:#1976d2; margin-bottom:0.7rem;"></i>
-        <h3 style="color:#1565c0; margin-bottom:0.5rem;">Attendance</h3>
-        <p style="color:#666; margin-bottom:1.2rem;">Review your attendance records</p>
-        <a href="{{ url_for('student_attendance') }}" class="btn btn-info btn-sm"><i class="fas fa-arrow-right"></i> View Attendance</a>
-    </div>
->>>>>>> e3c8666a7cdacd4ae5ed11fc7b5b6628c7d6deef
 </div>
 {% endblock %} 

@@ -3,25 +3,50 @@
 {% block title %}Submit Assignment - Student Monitor{% endblock %}
 
 {% block content %}
-<div class="form-page-container">
-    <h2>Submit Assignment</h2>
-    <form method="POST" enctype="multipart/form-data" class="app-form">
-        <div class="form-group">
-            <label for="subject">Select Subject:</label>
-            <select id="subject" name="subject" required>
-                <option value="">-- Select Subject --</option>
-                {% for subject in subjects %}
-                    <option value="{{ subject }}">{{ subject }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="assignment_file">Assignment File:</label>
-            <input type="file" id="assignment_file" name="assignment_file" required>
-        </div>
-        <div class="button-group-right">
-            <button type="submit" class="btn btn-primary">Submit Assignment</button>
-        </div>
+<div class="login-bg">
+  <div class="login-card" style="max-width: 430px;">
+    <div class="login-header">
+      <i class="fas fa-upload login-icon"></i>
+      <h2 class="login-title">Submit Assignment</h2>
+      <p class="login-desc">Upload your work for your selected subject below.</p>
+    </div>
+    <form method="POST" enctype="multipart/form-data" class="login-form">
+      <div class="form-group">
+        <label for="subject" class="login-label">Select Subject</label>
+        <select id="subject" name="subject" class="login-input" required>
+          <option value="">-- Select Subject --</option>
+          {% for subject in subjects %}
+            <option value="{{ subject }}">{{ subject }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="assignment_file" class="login-label">Assignment File</label>
+        <label for="assignment_file" class="custom-file-label" id="fileLabel">Choose file...</label>
+        <input type="file" id="assignment_file" name="assignment_file" class="login-input" required onchange="updateFileName()">
+        <span class="selected-file-name" id="selectedFileName"></span>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block login-btn">
+        <i class="fas fa-upload"></i> Submit Assignment
+      </button>
     </form>
+  </div>
 </div>
+<script>
+function updateFileName() {
+  const input = document.getElementById('assignment_file');
+  const label = document.getElementById('fileLabel');
+  const fileNameSpan = document.getElementById('selectedFileName');
+  if (input.files && input.files.length > 0) {
+    label.textContent = 'Choose file...';
+    fileNameSpan.textContent = input.files[0].name;
+  } else {
+    label.textContent = 'Choose file...';
+    fileNameSpan.textContent = '';
+  }
+}
+document.getElementById('fileLabel').onclick = function() {
+  document.getElementById('assignment_file').click();
+};
+</script>
 {% endblock %} 
