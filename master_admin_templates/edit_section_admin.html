@@ -1,0 +1,32 @@
+{% extends 'admin_base.html' %}
+{% block content %}
+<div class="dashboard-container">
+    <h2>Edit Section</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label for="name">Section Name:</label>
+            <input type="text" id="name" name="name" value="{{ section.name }}" required>
+        </div>
+        <div class="form-group">
+            <label for="grade_level_id">Grade Level:</label>
+            <select id="grade_level_id" name="grade_level_id" required>
+                <option value="">Select Grade Level</option>
+                {% for gl in grade_levels %}
+                <option value="{{ gl.id }}" {% if section.grade_level_id == gl.id %}selected{% endif %}>{{ gl.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="strand_id">Strand (optional):</label>
+            <select id="strand_id" name="strand_id">
+                <option value="">None</option>
+                {% for s in strands %}
+                <option value="{{ s.id }}" {% if section.strand_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="admin-card-link">Save Changes</button>
+        <a href="{{ url_for('manage_sections') }}" class="admin-card-link" style="background: #666; margin-left: 1em;">Cancel</a>
+    </form>
+</div>
+{% endblock %} 

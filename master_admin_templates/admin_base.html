@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Master Admin Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+</head>
+<body>
+    <header style="display: flex; justify-content: space-between; align-items: center;">
+        <h1 style="margin: 0;">Master Admin Portal</h1>
+        <a href="{{ url_for('admin_logout') }}" class="admin-card-link" style="background: #b00; margin-right: 1em;">Logout</a>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html> 

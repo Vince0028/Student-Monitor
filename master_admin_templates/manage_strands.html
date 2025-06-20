@@ -1,0 +1,33 @@
+{% extends 'admin_base.html' %}
+{% block content %}
+<div class="dashboard-container">
+    <h2>Manage Strands</h2>
+    <a href="{{ url_for('add_strand_admin') }}" class="admin-card-link" style="margin-bottom: 1.5em; display: inline-block;">+ Add New Strand</a>
+    <div class="table-responsive">
+        <table class="data-table" style="width:100%; margin-top: 1em;">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Grade Level</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for strand in strands %}
+                <tr>
+                    <td>{{ strand.name }}</td>
+                    <td>{{ strand.grade_level }}</td>
+                    <td>
+                        <a href="{{ url_for('edit_strand_admin', strand_id=strand.id) }}" class="admin-card-link" style="padding: 0.3em 0.8em; font-size: 0.95em;">Edit</a>
+                        <form action="{{ url_for('delete_strand_admin', strand_id=strand.id) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="admin-card-link" style="background: #b00; margin-left: 0.5em; padding: 0.3em 0.8em; font-size: 0.95em; border:none; cursor:pointer;">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <a href="{{ url_for('admin_dashboard') }}" class="admin-card-link" style="background: #666; margin-top: 2em;">&larr; Back to Dashboard</a>
+</div>
+{% endblock %} 

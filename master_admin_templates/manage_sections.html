@@ -1,0 +1,35 @@
+{% extends 'admin_base.html' %}
+{% block content %}
+<div class="dashboard-container">
+    <h2>Manage Sections</h2>
+    <a href="{{ url_for('add_section_admin') }}" class="admin-card-link" style="margin-bottom: 1.5em; display: inline-block;">+ Add New Section</a>
+    <div class="table-responsive">
+        <table class="data-table" style="width:100%; margin-top: 1em;">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Grade Level</th>
+                    <th>Strand</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for section in sections %}
+                <tr>
+                    <td>{{ section.name }}</td>
+                    <td>{{ section.grade_level }}</td>
+                    <td>{{ section.strand }}</td>
+                    <td>
+                        <a href="{{ url_for('edit_section_admin', section_id=section.id) }}" class="admin-card-link" style="padding: 0.3em 0.8em; font-size: 0.95em;">Edit</a>
+                        <form action="{{ url_for('delete_section_admin', section_id=section.id) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="admin-card-link" style="background: #b00; margin-left: 0.5em; padding: 0.3em 0.8em; font-size: 0.95em; border:none; cursor:pointer;">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <a href="{{ url_for('admin_dashboard') }}" class="admin-card-link" style="background: #666; margin-top: 2em;">&larr; Back to Dashboard</a>
+</div>
+{% endblock %} 

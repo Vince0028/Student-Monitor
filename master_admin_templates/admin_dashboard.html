@@ -1,0 +1,29 @@
+{% extends 'admin_base.html' %}
+{% block content %}
+<div class="dashboard-container">
+    <h2>Welcome, Master Admin!</h2>
+    <p class="dashboard-subheading">Manage all aspects of the student monitoring system from this portal.</p>
+    <div class="admin-grid">
+        <div class="admin-card">
+            <div class="admin-card-icon"><span class="fas fa-layer-group"></span></div>
+            <h3>Strands</h3>
+            <p>View, add, or edit strands.</p>
+            <a href="{{ url_for('manage_strands') }}" class="admin-card-link">Manage Strands</a>
+        </div>
+        <div class="admin-card">
+            <div class="admin-card-icon"><span class="fas fa-users"></span></div>
+            <h3>Sections</h3>
+            <p>Manage all sections and assignments.</p>
+            <a href="{{ url_for('manage_sections') }}" class="admin-card-link">Manage Sections</a>
+        </div>
+        <div class="admin-card">
+            <div class="admin-card-icon"><span class="fas fa-user-shield"></span></div>
+            <h3>Users</h3>
+            <p>Administer user accounts and permissions.</p>
+            <a href="{{ url_for('manage_users') }}" class="admin-card-link">Manage Users</a>
+        </div>
+    </div>
+</div>
+<!-- Font Awesome CDN for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %} 
