@@ -31,6 +31,17 @@
     th.item-header:hover .delete-item-btn {
         display: inline-block; /* Show on hover */
     }
+    /* Scrollable grade sheet if more than 5 students */
+    #gradeSheetScrollWrap {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    #gradeSheetTable thead th {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        z-index: 2;
+    }
 </style>
 {% endblock %}
 
@@ -83,68 +94,74 @@
             <h5 class="mb-0">Grade Sheet</h5>
         </div>
         <div class="card-body">
+            <!-- Student Search Bar -->
+            <div class="mb-3">
+                <input type="text" id="studentSearch" class="form-control" placeholder="Search student by name...">
+            </div>
             <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead class="thead-light">
-                        <tr>
-                            <th rowspan="2" class="align-middle">Student Name</th>
-                            {% for component in components %}
-                                <th colspan="{{ component.items|length + 1 }}" class="text-center">
-                                    {{ component.name }} ({{ component.weight }}%)<br>
-                                    <button type="button" class="btn btn-success btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#addItemModal-{{ component.id }}">
-                                        <i class="fas fa-plus"></i> Add Item
-                                    </button>
-                                </th>
-                            {% endfor %}
-                            <th rowspan="2" class="align-middle">Total Grade</th>
-                            <th rowspan="2" class="align-middle">Actions</th>
-                        </tr>
-                        <tr>
-                            {% for component in components %}
-                                {% for item in component.items %}
-                                <th class="item-header text-center" title="Max: {{ item.max_score }}">
-                                    {{ item.title }}
-                                    <button class="btn btn-danger btn-xs delete-item-btn" data-item-id="{{ item.id }}" title="Delete {{ item.title }}"><i class="fas fa-times"></i></button>
-                                </th>
+                <div id="gradeSheetScrollWrap" style="max-height: 400px; overflow-y: auto;">
+                    <table id="gradeSheetTable" class="table table-bordered table-hover">
+                        <thead class="thead-light">
+                            <tr>
+                                <th rowspan="2" class="align-middle">Student Name</th>
+                                {% for component in components %}
+                                    <th colspan="{{ component.items|length + 1 }}" class="text-center">
+                                        {{ component.name }} ({{ component.weight }}%)<br>
+                                        <button type="button" class="btn btn-success btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#addItemModal-{{ component.id }}">
+                                            <i class="fas fa-plus"></i> Add Item
+                                        </button>
+                                    </th>
                                 {% endfor %}
-                                <!-- Empty th for component average column in the second header row -->
-                                <th class="text-center">%</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for student in students %}
-                        <tr data-student-id="{{ student.id }}">
-                            <td>{{ student.name }}</td>
-                            {% for component in components %}
-                                {% for item in component.items %}
-                                <td class="text-center">
-                                    <input type="number" 
-                                           class="form-control form-control-sm grade-input"
-                                           data-item-id="{{ item.id }}"
-                                           data-student-id="{{ student.id }}"
-                                           value="{{ scores.get(student.id, {}).get(item.id, '') }}"
-                                           max="{{ item.max_score }}"
-                                           min="0"
-                                           step="0.01">
-                                </td>
+                                <th rowspan="2" class="align-middle">Total Grade</th>
+                                <th rowspan="2" class="align-middle">Actions</th>
+                            </tr>
+                            <tr>
+                                {% for component in components %}
+                                    {% for item in component.items %}
+                                    <th class="item-header text-center" title="Max: {{ item.max_score }}">
+                                        {{ item.title }}
+                                        <button class="btn btn-danger btn-xs delete-item-btn" data-item-id="{{ item.id }}" title="Delete {{ item.title }}"><i class="fas fa-times"></i></button>
+                                    </th>
+                                    {% endfor %}
+                                    <!-- Empty th for component average column in the second header row -->
+                                    <th class="text-center">%</th>
                                 {% endfor %}
-                                <td class="text-center font-weight-bold component-average-{{ student.id }}-{{ component.id }}">
-                                    {{- component_averages.get(student.id, {}).get(component.id, 'N/A') -}}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr data-student-id="{{ student.id }}">
+                                <td>{{ student.name }}</td>
+                                {% for component in components %}
+                                    {% for item in component.items %}
+                                    <td class="text-center">
+                                        <input type="number" 
+                                               class="form-control form-control-sm grade-input"
+                                               data-item-id="{{ item.id }}"
+                                               data-student-id="{{ student.id }}"
+                                               value="{{ scores.get(student.id, {}).get(item.id, '') }}"
+                                               max="{{ item.max_score }}"
+                                               min="0"
+                                               step="0.01">
+                                    </td>
+                                    {% endfor %}
+                                    <td class="text-center font-weight-bold component-average-{{ student.id }}-{{ component.id }}">
+                                        {{- component_averages.get(student.id, {}).get(component.id, 'N/A') -}}
+                                    </td>
+                                {% endfor %}
+                                <td class="text-center font-weight-bold total-grade-{{ student.id }}">
+                                    {{- total_grades.get(student.id, 'N/A') -}}
                                 </td>
+                                <td>
+                                    <a href="{{ url_for('grade_student_for_subject', subject_id=subject.id, student_id=student.id) }}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-edit"></i> Grade
+                                    </a>
+                                </td>
+                            </tr>
                             {% endfor %}
-                            <td class="text-center font-weight-bold total-grade-{{ student.id }}">
-                                {{- total_grades.get(student.id, 'N/A') -}}
-                            </td>
-                            <td>
-                                <a href="{{ url_for('grade_student_for_subject', subject_id=subject.id, student_id=student.id) }}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-edit"></i> Grade
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -358,6 +375,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
         });
+
+        // Student search bar filtering
+        const searchInput = document.getElementById('studentSearch');
+        const table = document.getElementById('gradeSheetTable');
+        if (searchInput && table) {
+            searchInput.addEventListener('keyup', function() {
+                const filter = searchInput.value.toLowerCase();
+                const rows = table.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    const studentNameCell = row.querySelector('td');
+                    if (studentNameCell) {
+                        const name = studentNameCell.textContent.toLowerCase();
+                        row.style.display = name.includes(filter) ? '' : 'none';
+                    }
+                });
+            });
+        }
 
         console.log("Gradebook script finished setup.");
     } catch (e) {

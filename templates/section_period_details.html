@@ -31,7 +31,7 @@
             <div class="mb-3">
                 <input type="text" id="studentSearchInput" class="form-control" placeholder="Search students by name or ID...">
             </div>
-        <div class="table-responsive">
+        <div class="student-list-scrollable">
                 <table class="data-table" id="studentTable">
                 <thead>
                     <tr>
@@ -110,6 +110,21 @@
         }
     }
     </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('studentSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                document.querySelectorAll('#studentTable tbody tr').forEach(row => {
+                    const name = row.children[0].textContent.toLowerCase();
+                    const id = row.children[1].textContent.toLowerCase();
+                    row.style.display = (name.includes(searchTerm) || id.includes(searchTerm)) ? '' : 'none';
+                });
+            });
+        }
+    });
+    </script>
     {% else %}
     <p class="no-data-message mt-40">No students added to this period yet. Start by adding one!</p>
     {% endif %}
@@ -172,11 +187,6 @@
                         <input type="password" class="form-control" id="subject_password-{{ subject.id }}" name="subject_password" value="{{ subject.subject_password }}" required>
                         <div class="form-text">This password will be required for teachers to access the gradebook.</div>
                     </div>
-                    <div class="mb-3">
-                        <label for="password-{{ subject.id }}" class="form-label">Enter your admin password to confirm changes</label>
-                        <input type="password" class="form-control" id="password-{{ subject.id }}" name="password" required>
-                        <div class="form-text">Your admin password is required to save changes to this subject.</div>
-                    </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -220,4 +230,14 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
 });
 </script>
+
+<style>
+    /* ...existing styles... */
+    .student-list-scrollable {
+        max-height: 350px;
+        overflow-y: auto;
+        display: block;
+        width: 100%;
+    }
+</style>
 {% endblock %}

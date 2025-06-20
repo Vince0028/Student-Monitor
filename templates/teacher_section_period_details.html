@@ -89,14 +89,6 @@
         font-size: 1rem;
         padding: 0.5rem 0.75rem;
     }
-    #adviserPasswordModal .show-btn {
-        background: none;
-        border: none;
-        color: #007bff;
-        font-weight: 500;
-        cursor: pointer;
-        margin-right: 0.5rem;
-    }
     #adviserPasswordModal .fa-eye, #adviserPasswordModal .fa-eye-slash {
         font-size: 1.1rem;
         color: #333;
@@ -117,6 +109,12 @@
         margin-top: 0.5rem;
         text-align: center;
     }
+    .student-list-scrollable {
+        max-height: 350px;
+        overflow-y: auto;
+        display: block;
+        width: 100%;
+    }
 </style>
 
 <div class="dashboard-container">
@@ -132,14 +130,14 @@
         <div class="card dashboard-option-card">
             <h3>Students in This {{ section_period.period_type | capitalize }}</h3>
             <p>View and manage individual student profiles for this specific {{ section_period.period_type | lower }}.</p>
-            <a href="{{ url_for('add_student_to_section_period', section_period_id=section_period.id) }}" class="btn btn-primary btn-icon">
+            <button class="btn btn-primary btn-icon" id="addStudentBtn" type="button">
                 <i class="fas fa-user-plus"></i> Add New Student
-            </a>
+            </button>
         </div>
         <div class="card dashboard-option-card">
             <h3>Subjects in This {{ section_period.period_type | capitalize }}</h3>
             <p>Add new subjects and assign actual teacher names for this {{ section_period.period_type | lower }}.</p>
-            <a href="{{ url_for('add_subject_to_section_period', section_period_id=section_period.id) }}" class="btn btn-primary btn-icon"><i class="fas fa-book-medical"></i> Add New Subject</a>
+            <button class="btn btn-primary btn-icon" id="addSubjectBtn" type="button"><i class="fas fa-book-medical"></i> Add New Subject</button>
         </div>
     </div>
 
@@ -148,38 +146,41 @@
         Show/View Student List
     </button>
     <div id="studentListContainer" style="display:none;">
-            <div class="table-responsive">
+        <div class="mb-3">
+            <input type="text" id="studentSearchInput" class="form-control" placeholder="Search students by name or ID...">
+        </div>
+        <div class="student-list-scrollable">
             <table class="table table-hover" id="studentTable">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Student ID</th>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Student ID</th>
                         <th>AVERAGE GRADE
                             <button type="button" id="toggleGradesBtn" onclick="toggleGradesVisibility()" style="background: none; border: none; cursor: pointer; margin-left: 6px;">
                                 <span id="gradesEyeIcon" class="fas fa-eye"></span>
                             </button>
                         </th>
-                            <th>Action</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                        <tr>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.student_id_number }}</td>
+                            <td class="average-grade-cell">
+                                <span class="masked-grade">***</span>
+                                <span class="real-grade" style="display:none;">{{ '%.3f'|format(student.average_grade) if student.average_grade != 'N/A' else 'N/A' }}</span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
+                                <button class="btn btn-danger btn-sm" onclick="confirmDeleteStudent('{{ student.id }}')">Delete</button>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {% for student in students %}
-                            <tr>
-                                <td>{{ student.name }}</td>
-                                <td>{{ student.student_id_number }}</td>
-                        <td class="average-grade-cell">
-                            <span class="masked-grade">***</span>
-                            <span class="real-grade" style="display:none;">{{ '%.3f'|format(student.average_grade) if student.average_grade != 'N/A' else 'N/A' }}</span>
-                                </td>
-                                <td>
-                            <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
-                            <button class="btn btn-danger btn-sm" onclick="confirmDeleteStudent('{{ student.id }}')">Delete</button>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
     <div id="adviserPasswordModal" class="modal" tabindex="-1" role="dialog">
       <div class="modal-dialog" role="document">
@@ -189,14 +190,9 @@
           </div>
           <div class="modal-body">
             <form id="adviserPasswordForm" autocomplete="off">
-              <div class="form-group">
+              <div class="form-group" style="position: relative;">
                 <label for="adviserPasswordInput" style="font-weight: 500;">Adviser Password:</label>
-                <div class="password-input-group">
-                  <input type="password" class="form-control" id="adviserPasswordInput" name="adviserPassword" required>
-                  <button type="button" id="toggleAdviserPasswordBtn" tabindex="-1" onclick="toggleAdviserPasswordVisibility()" style="background: none; border: none; padding: 0 0.5rem; display: flex; align-items: center;">
-                    <span id="adviserEyeIcon" class="fas fa-eye"></span>
-                  </button>
-                </div>
+                <input type="password" class="form-control" id="adviserPasswordInput" name="adviserPassword" required autocomplete="off">
               </div>
               <div id="adviserPasswordError">Incorrect password. Please try again.</div>
               <div class="modal-footer">
@@ -243,17 +239,6 @@
             }
         });
     }
-    function toggleAdviserPasswordVisibility() {
-        const input = document.getElementById('adviserPasswordInput');
-        const eyeIcon = document.getElementById('adviserEyeIcon');
-        if (input.type === 'password') {
-            input.type = 'text';
-            eyeIcon.className = 'fas fa-eye-slash';
-        } else {
-            input.type = 'password';
-            eyeIcon.className = 'fas fa-eye';
-        }
-    }
     function toggleGradesVisibility() {
         if (!adviserPasswordVerified || !studentListVisible) {
             return;
@@ -278,6 +263,7 @@
         if (studentListVisible) {
             container.style.display = 'block';
             if (btn) btn.textContent = 'Hide Student List';
+            attachStudentSearchListener();
         } else {
             container.style.display = 'none';
             if (btn) btn.textContent = 'Show/View Student List';
@@ -305,6 +291,20 @@
             adviserPasswordVerified = false;
             sessionStorage.setItem('studentListVisible_{{ section_period.id }}', 'false');
             updateStudentListVisibility();
+        }
+    }
+    function attachStudentSearchListener() {
+        const searchInput = document.getElementById('studentSearchInput');
+        if (searchInput && !searchInput.hasListener) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                document.querySelectorAll('#studentTable tbody tr').forEach(row => {
+                    const name = row.children[0].textContent.toLowerCase();
+                    const id = row.children[1].textContent.toLowerCase();
+                    row.style.display = (name.includes(searchTerm) || id.includes(searchTerm)) ? '' : 'none';
+                });
+            });
+            searchInput.hasListener = true;
         }
     }
     document.addEventListener('DOMContentLoaded', function() {
@@ -511,5 +511,73 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 {% endfor %}
 {% endif %}
+
+<!-- Adviser Password Modal for Add Actions -->
+<div id="adviserAddPasswordModal" class="modal" tabindex="-1" role="dialog" style="display:none;">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Enter Adviser Password</h5>
+      </div>
+      <div class="modal-body">
+        <form id="adviserAddPasswordForm" onsubmit="event.preventDefault(); submitAdviserAddPassword();">
+          <input type="hidden" id="adviserAddTargetUrl" name="adviserAddTargetUrl" value="">
+          <input type="hidden" id="adviserAddSectionId" name="adviserAddSectionId" value="{{ section_period.section.id }}">
+          <div class="form-group" style="position: relative;">
+            <label for="adviserAddPasswordInput">Adviser Password:</label>
+            <input type="password" class="form-control" id="adviserAddPasswordInput" name="adviserAddPassword" required autocomplete="off">
+          </div>
+          <div id="adviserAddPasswordError" class="text-danger" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="submitAdviserAddPassword()">Submit</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeAdviserAddPasswordModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('addStudentBtn').addEventListener('click', function() {
+    showAdviserAddPasswordModal("{{ url_for('add_student_to_section_period', section_period_id=section_period.id) }}");
+});
+document.getElementById('addSubjectBtn').addEventListener('click', function() {
+    showAdviserAddPasswordModal("{{ url_for('add_subject_to_section_period', section_period_id=section_period.id) }}");
+});
+function showAdviserAddPasswordModal(targetUrl) {
+    document.getElementById('adviserAddTargetUrl').value = targetUrl;
+    document.getElementById('adviserAddPasswordInput').value = '';
+    document.getElementById('adviserAddPasswordError').style.display = 'none';
+    document.getElementById('adviserAddPasswordModal').style.display = 'block';
+}
+function closeAdviserAddPasswordModal() {
+    document.getElementById('adviserAddPasswordModal').style.display = 'none';
+}
+function submitAdviserAddPassword() {
+    const password = document.getElementById('adviserAddPasswordInput').value;
+    const sectionId = document.getElementById('adviserAddSectionId').value;
+    const targetUrl = document.getElementById('adviserAddTargetUrl').value;
+    if (!password) {
+        document.getElementById('adviserAddPasswordError').innerText = 'Password is required.';
+        document.getElementById('adviserAddPasswordError').style.display = 'block';
+        return;
+    }
+    fetch('/api/verify_adviser_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section_id: sectionId, password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = targetUrl;
+        } else {
+            document.getElementById('adviserAddPasswordError').innerText = 'Incorrect adviser password.';
+            document.getElementById('adviserAddPasswordError').style.display = 'block';
+        }
+    });
+}
+</script>
 
 {% endblock %}

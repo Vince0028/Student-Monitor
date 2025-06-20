@@ -61,27 +61,43 @@
     <div class="card mt-40">
         <h3>Existing Sections in {{ grade_level.name }}</h3>
         <div class="list-container">
-            {% for section in sections %}
-            <div class="list-item">
-                <span>{{ section.name }}</span> {# No strand for JHS sections #}
-                <div class="button-group">
-                    <a href="{{ url_for('section_details', section_id=section.id) }}" class="btn btn-view btn-icon-small">
-                        <i class="fas fa-folder-open"></i> View Periods
-                    </a>
-                    <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editSectionModal-{{ section.id }}">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
-                            data-delete-url="{{ url_for('delete_section_admin', section_id=section.id) }}"
-                            data-redirect-url="{{ url_for('grade_level_details', grade_level_id=grade_level.id) }}"
-                            data-confirmation-message="Are you sure you want to delete section {{ section.name }}? This will also delete ALL its periods, students, subjects, attendance, and grades within it!"
-                            data-item-name="Section {{ section.name }}"
-                            title="Delete Section">
-                        <i class="fas fa-trash-alt"></i> Delete
-                    </button>
-                </div>
-            </div>
-            {% endfor %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Section Name</th>
+                        <th>Adviser</th>
+                        <th>Overall Section Average Grade</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for section in sections %}
+                <tr>
+                    <td>{{ section.name }}</td>
+                    <td>{{ section.adviser_name or 'N/A' }}</td>
+                    <td>{% if section.average_grade != 'N/A' and section.average_grade is not none %}{{ '%.2f'|format(section.average_grade) }}{% else %}N/A{% endif %}</td>
+                    <td>
+                        <div class="button-group">
+                            <a href="{{ url_for('section_details', section_id=section.id) }}" class="btn btn-view btn-icon-small">
+                                <i class="fas fa-folder-open"></i> View Periods
+                            </a>
+                            <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editSectionModal-{{ section.id }}">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button type="button" class="btn btn-danger btn-icon-small delete-btn"
+                                    data-delete-url="{{ url_for('delete_section_admin', section_id=section.id) }}"
+                                    data-redirect-url="{{ url_for('grade_level_details', grade_level_id=grade_level.id) }}"
+                                    data-confirmation-message="Are you sure you want to delete section {{ section.name }}? This will also delete ALL its periods, students, subjects, attendance, and grades within it!"
+                                    data-item-name="Section {{ section.name }}"
+                                    title="Delete Section">
+                                <i class="fas fa-trash-alt"></i> Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     {% else %}

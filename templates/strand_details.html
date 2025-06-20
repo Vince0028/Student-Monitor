@@ -37,6 +37,8 @@
                 <thead>
                     <tr>
                         <th>Section Name</th>
+                        <th>Adviser</th>
+                        <th>Overall Section Average Grade</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -44,6 +46,8 @@
                     {% for section in sections %}
                         <tr>
                             <td>{{ section.name }}</td>
+                            <td>{{ section.adviser_name or 'N/A' }}</td>
+                            <td>{% if section.average_grade != 'N/A' and section.average_grade is not none %}{{ '%.2f'|format(section.average_grade) }}{% else %}N/A{% endif %}</td>
                             <td>
                                 <div class="button-group">
                                     <a href="{{ url_for('section_details', section_id=section.id) }}" class="btn btn-view btn-icon-small" title="View Section Details">
