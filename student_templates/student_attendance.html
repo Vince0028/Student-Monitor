@@ -1,0 +1,43 @@
+{% extends 'student_base.html' %}
+
+{% block title %}Attendance - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="form-page-container">
+    <h2>Attendance Records</h2>
+    {% if attendance_by_subject %}
+        {% for subject, records in attendance_by_subject.items() %}
+            <h3>{{ subject }}</h3>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td>{{ record.attendance_date.strftime('%b %d, %Y') }}</td>
+                        <td>{{ record.status|capitalize }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="attendance-summary">
+                <strong>Summary:</strong>
+                Present: {{ subject_summaries[subject].present }},
+                Absent: {{ subject_summaries[subject].absent }},
+                Late: {{ subject_summaries[subject].late }},
+                Excused: {{ subject_summaries[subject].excused }},
+                Total: {{ subject_summaries[subject].total }}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-calendar-check"></i>
+            <p>No attendance records available yet.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

@@ -1,0 +1,46 @@
+{% extends 'student_base.html' %}
+
+{% block title %}Student Dashboard - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div style="margin-bottom: 2.5rem;">
+        <h3 style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem; margin-left: 0px;">Welcome back, {{ session.student_name }}!</h3>
+    </div>
+    <div class="dashboard-card-grid">
+        <!-- Assignments Card -->
+        <a href="{{ url_for('student_assignments') }}" class="feature-card">
+            <div class="feature-card-icon"><i class="fas fa-book-open"></i></div>
+            <div class="feature-card-title">Assignments</div>
+            <div class="feature-card-desc">View, filter, and submit your assignments</div>
+            <div class="feature-card-stats">
+                <div><span>Pending:</span> <span class="pending">3</span></div>
+                <div><span>Completed:</span> <span class="completed">12</span></div>
+                <div><span>Past Due:</span> <span class="past-due">1</span></div>
+            </div>
+        </a>
+        <!-- Grades Card -->
+        <a href="{{ url_for('student_grades') }}" class="feature-card">
+            <div class="feature-card-icon"><i class="fas fa-graduation-cap"></i></div>
+            <div class="feature-card-title">Grades Summary</div>
+            <div class="feature-card-desc">Check your academic performance</div>
+            <div class="feature-card-stats">
+                <div><span>Overall GPA:</span> <span class="gpa">3.7</span></div>
+                <div><span>Current Semester:</span> <span class="semester">3.8</span></div>
+                <div><span>Credits Completed:</span> <span class="credits">45/120</span></div>
+            </div>
+        </a>
+        <!-- Attendance Card -->
+        <a href="{{ url_for('student_attendance') }}" class="feature-card">
+            <div class="feature-card-icon"><i class="fas fa-calendar-alt"></i></div>
+            <div class="feature-card-title">Attendance</div>
+            <div class="feature-card-desc">Track your class attendance</div>
+            <div class="feature-card-stats">
+                <div><span>This Week:</span> <span class="attendance-week">95%</span></div>
+                <div><span>This Month:</span> <span class="attendance-month">92%</span></div>
+                <div><span>Overall:</span> <span class="attendance-overall">94%</span></div>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %} 

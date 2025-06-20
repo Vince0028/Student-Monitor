@@ -1,0 +1,35 @@
+{% extends 'student_base.html' %}
+
+{% block title %}Summary of Grades - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="form-page-container">
+    <h2>Summary of Grades</h2>
+    {% if grades_by_period %}
+        {% for period, data in grades_by_period.items() %}
+            <h3>{{ data.period_name }} {{ data.school_year }}</h3>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for grade in data.grades %}
+                    <tr>
+                        <td>{{ grade.section_subject.subject_name if grade.section_subject else 'N/A' }}</td>
+                        <td>{{ '%.2f'|format(grade.grade_value) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-chart-line"></i>
+            <p>No grades available yet.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 
