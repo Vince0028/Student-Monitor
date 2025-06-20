@@ -23,7 +23,7 @@
                     <tr>
                         <th>Section Name</th>
                         <th>Strand</th>
-                        <th>Overall Section Average Grade</th>
+                        <th>Adviser</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -32,16 +32,10 @@
                     <tr>
                         <td>{{ section.name }}</td>
                         <td>{{ section.strand_name or 'N/A' }}</td>
-                        <td>
-                            {% if section.average_grade is not none and section.average_grade != 'N/A' %}
-                                <span class="average-grade-value">{{ "%.2f" | format(section.average_grade | float) }}%</span>
-                            {% else %}
-                                N/A
-                            {% endif %}
-                        </td>
+                        <td>{{ section.adviser_name or 'N/A' }}</td>
                         <td>
                             <div class="button-group" style="display: flex; align-items: center; gap: 10px;">
-                                <select onchange="if (this.value) window.location.href = this.value;" class="btn btn-view btn-icon-small">
+                                <select onchange="handlePeriodSelect(this, '{{ section.id }}', '{{ section.section_password|default('') }}')" class="btn btn-view btn-icon-small">
                                     <option value="">View Period...</option>
                                     {% if section.periods %}
                                         {% for period in section.periods | sort(attribute='school_year', reverse=True) %}
@@ -53,7 +47,6 @@
                                         <option value="" disabled>No periods assigned to you</option>
                                     {% endif %}
                                 </select>
-                        
                                 <button type="button" class="btn btn-danger btn-icon-small delete-btn"
                                         data-delete-url="{{ url_for('delete_teacher_section', section_id=section.id) }}"
                                         data-redirect-url="{{ url_for('teacher_dashboard') }}"
@@ -64,7 +57,6 @@
                                 </button>
                             </div>
                         </td>
-                        
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -76,4 +68,321 @@
     {% endif %}
 
 </div>
+
+<!-- Section Password Modal -->
+<div id="sectionPasswordModal" class="modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Enter Section Password</h5>
+      </div>
+      <div class="modal-body">
+        <form id="sectionPasswordForm" onsubmit="event.preventDefault(); submitSectionPassword();">
+          <input type="hidden" id="targetPeriodUrl" name="targetPeriodUrl" value="">
+          <div class="form-group" style="position: relative;">
+            <label for="sectionPasswordInput">Section Password:</label>
+            <input type="password" class="form-control" id="sectionPasswordInput" name="sectionPassword" required autocomplete="off">
+          </div>
+          <div id="sectionPasswordError" class="text-danger" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="submitSectionPassword()">Submit</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeSectionPasswordModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section Grade Password Modal -->
+<div id="sectionGradePasswordModal" class="modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Enter Admin Password</h5>
+      </div>
+      <div class="modal-body">
+        <form id="sectionGradePasswordForm" onsubmit="event.preventDefault(); submitSectionGradePassword();">
+          <input type="hidden" id="targetSectionId" name="targetSectionId" value="">
+          <div class="form-group">
+            <label for="adminPasswordInput">Admin Password:</label>
+            <input type="password" class="form-control" id="adminPasswordInput" name="adminPassword" required>
+          </div>
+          <div id="sectionGradePasswordError" class="text-danger" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="submitSectionGradePassword()">Submit</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeSectionGradePasswordModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Adviser Password Modal for Student List -->
+<div id="adviserPasswordModal" class="modal" tabindex="-1" role="dialog" style="display:none;">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Enter Adviser Password</h5>
+      </div>
+      <div class="modal-body">
+        <form id="adviserPasswordForm" onsubmit="event.preventDefault(); submitAdviserPassword();">
+          <input type="hidden" id="adviserSectionId" name="adviserSectionId" value="">
+          <div class="form-group" style="position: relative;">
+            <label for="adviserPasswordInput">Adviser Password:</label>
+            <div style="display: flex; align-items: center;">
+              <input type="password" class="form-control" id="adviserPasswordInput" name="adviserPassword" required style="flex: 1;">
+              <button type="button" id="adviserDashboardToggleBtn" style="margin-left: 8px; background: none; border: none; cursor: pointer;" tabindex="-1" onclick="toggleAdviserPasswordVisibility()">
+                <span id="adviserEyeIcon" class="fas fa-eye"></span>
+              </button>
+            </div>
+          </div>
+          <div id="adviserPasswordError" class="text-danger" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="submitAdviserPassword()">Submit</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeAdviserPasswordModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Adviser Password Modal for Section Delete -->
+<div id="adviserDeletePasswordModal" class="modal" tabindex="-1" role="dialog" style="display:none;">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Enter Adviser Password to Delete Section</h5>
+      </div>
+      <div class="modal-body">
+        <form id="adviserDeletePasswordForm" onsubmit="event.preventDefault(); submitAdviserDeletePassword();">
+          <input type="hidden" id="adviserDeleteSectionId" name="adviserDeleteSectionId" value="">
+          <div class="form-group" style="position: relative;">
+            <label for="adviserDeletePasswordInput">Adviser Password:</label>
+            <input type="password" class="form-control" id="adviserDeletePasswordInput" name="adviserDeletePassword" required autocomplete="off">
+          </div>
+          <div id="adviserDeletePasswordError" class="text-danger" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="submitAdviserDeletePassword()">Delete</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeAdviserDeletePasswordModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let selectedSectionPassword = '';
+let selectedPeriodUrl = '';
+let sectionAverages = {};
+let sectionGradeRevealed = {};
+let studentListRevealed = {};
+// Store the real average grades in a JS object for quick access
+{% for section in sections %}
+    sectionAverages['{{ section.id }}'] = '{{ section.average_grade if section.average_grade != 'N/A' else '' }}';
+    sectionGradeRevealed['{{ section.id }}'] = false;
+{% endfor %}
+
+function handlePeriodSelect(selectElem, sectionId, sectionPassword) {
+    const url = selectElem.value;
+    if (!url) return;
+    selectedSectionPassword = sectionPassword;
+    selectedPeriodUrl = url;
+    // Show modal
+    document.getElementById('sectionPasswordModal').style.display = 'block';
+    document.getElementById('sectionPasswordInput').value = '';
+    document.getElementById('sectionPasswordError').style.display = 'none';
+    document.getElementById('sectionPasswordInput').type = 'password';
+    document.getElementById('eyeIcon').className = 'fas fa-eye';
+}
+function closeSectionPasswordModal() {
+    document.getElementById('sectionPasswordModal').style.display = 'none';
+}
+function submitSectionPassword() {
+    const input = document.getElementById('sectionPasswordInput').value;
+    if (input === selectedSectionPassword) {
+        window.location.href = selectedPeriodUrl;
+    } else {
+        document.getElementById('sectionPasswordError').innerText = 'Incorrect section password.';
+        document.getElementById('sectionPasswordError').style.display = 'block';
+    }
+}
+function toggleSectionPasswordVisibility() {
+    const input = document.getElementById('sectionPasswordInput');
+    const eyeIcon = document.getElementById('eyeIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        eyeIcon.className = 'fas fa-eye-slash';
+    } else {
+        input.type = 'password';
+        eyeIcon.className = 'fas fa-eye';
+    }
+}
+// Modal close on outside click
+window.onclick = function(event) {
+    const modal = document.getElementById('sectionPasswordModal');
+    if (event.target === modal) {
+        closeSectionPasswordModal();
+    }
+}
+
+function toggleSectionAverageGrade(sectionId) {
+    if (!sectionGradeRevealed[sectionId]) {
+        // Ask for password only if not revealed yet
+        showSectionGradeModal(sectionId);
+    } else {
+        // Toggle back to hidden
+        document.getElementById('section-average-' + sectionId).innerText = '***';
+        document.getElementById('section-eye-' + sectionId).className = 'fas fa-eye';
+        sectionGradeRevealed[sectionId] = false;
+    }
+}
+function showSectionGradeModal(sectionId) {
+    document.getElementById('sectionGradePasswordModal').style.display = 'block';
+    document.getElementById('targetSectionId').value = sectionId;
+    document.getElementById('adminPasswordInput').value = '';
+    document.getElementById('sectionGradePasswordError').style.display = 'none';
+}
+function closeSectionGradePasswordModal() {
+    document.getElementById('sectionGradePasswordModal').style.display = 'none';
+}
+function submitSectionGradePassword() {
+    const password = document.getElementById('adminPasswordInput').value;
+    const sectionId = document.getElementById('targetSectionId').value;
+    // AJAX call to verify admin password
+    fetch('/api/verify_admin_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show the grade
+            document.getElementById('section-average-' + sectionId).innerText = sectionAverages[sectionId] ? sectionAverages[sectionId] + '%' : 'N/A';
+            document.getElementById('section-eye-' + sectionId).className = 'fas fa-eye-slash';
+            sectionGradeRevealed[sectionId] = true;
+            closeSectionGradePasswordModal();
+        } else {
+            document.getElementById('sectionGradePasswordError').innerText = 'Incorrect admin password.';
+            document.getElementById('sectionGradePasswordError').style.display = 'block';
+        }
+    });
+}
+
+function showHideStudentList(sectionId) {
+    if (!studentListRevealed[sectionId]) {
+        // Prompt for adviser password
+        document.getElementById('adviserPasswordModal').style.display = 'block';
+        document.getElementById('adviserSectionId').value = sectionId;
+        document.getElementById('adviserPasswordInput').value = '';
+        document.getElementById('adviserPasswordError').style.display = 'none';
+        document.getElementById('adviserPasswordInput').type = 'password';
+        document.getElementById('adviserEyeIcon').className = 'fas fa-eye';
+    } else {
+        // Hide the student list
+        document.getElementById('student-list-' + sectionId).style.display = 'none';
+        studentListRevealed[sectionId] = false;
+    }
+}
+function closeAdviserPasswordModal() {
+    document.getElementById('adviserPasswordModal').style.display = 'none';
+}
+function submitAdviserPassword() {
+    const password = document.getElementById('adviserPasswordInput').value;
+    const sectionId = document.getElementById('adviserSectionId').value;
+    fetch('/api/verify_adviser_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section_id: sectionId, password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reveal the student list
+            document.getElementById('student-list-' + sectionId).style.display = 'block';
+            studentListRevealed[sectionId] = true;
+            closeAdviserPasswordModal();
+        } else {
+            document.getElementById('adviserPasswordError').innerText = 'Incorrect adviser password.';
+            document.getElementById('adviserPasswordError').style.display = 'block';
+        }
+    });
+}
+function toggleAdviserPasswordVisibility() {
+    const input = document.getElementById('adviserPasswordInput');
+    const eyeIcon = document.getElementById('adviserEyeIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        eyeIcon.className = 'fas fa-eye-slash';
+    } else {
+        input.type = 'password';
+        eyeIcon.className = 'fas fa-eye';
+    }
+}
+
+function showAdviserDeletePasswordModal(sectionId, deleteUrl, redirectUrl, itemName) {
+    document.getElementById('adviserDeletePasswordModal').style.display = 'block';
+    document.getElementById('adviserDeleteSectionId').value = sectionId;
+    document.getElementById('adviserDeletePasswordInput').value = '';
+    document.getElementById('adviserDeletePasswordError').style.display = 'none';
+    document.getElementById('adviserDeletePasswordModal').setAttribute('data-delete-url', deleteUrl);
+    document.getElementById('adviserDeletePasswordModal').setAttribute('data-redirect-url', redirectUrl);
+    document.getElementById('adviserDeletePasswordModal').setAttribute('data-item-name', itemName);
+}
+function closeAdviserDeletePasswordModal() {
+    document.getElementById('adviserDeletePasswordModal').style.display = 'none';
+}
+function submitAdviserDeletePassword() {
+    const password = document.getElementById('adviserDeletePasswordInput').value;
+    const sectionId = document.getElementById('adviserDeleteSectionId').value;
+    const deleteUrl = document.getElementById('adviserDeletePasswordModal').getAttribute('data-delete-url');
+    const redirectUrl = document.getElementById('adviserDeletePasswordModal').getAttribute('data-redirect-url');
+    // Verify adviser password first
+    fetch('/api/verify_adviser_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section_id: sectionId, password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Proceed with section deletion
+            fetch(deleteUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'password=' + encodeURIComponent(password)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    window.location.href = redirectUrl;
+                } else {
+                    document.getElementById('adviserDeletePasswordError').innerText = result.message || 'Failed to delete section.';
+                    document.getElementById('adviserDeletePasswordError').style.display = 'block';
+                }
+            });
+        } else {
+            document.getElementById('adviserDeletePasswordError').innerText = 'Incorrect adviser password.';
+            document.getElementById('adviserDeletePasswordError').style.display = 'block';
+        }
+    });
+}
+// Attach to delete buttons
+window.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const sectionId = this.closest('tr').querySelector('td').innerText.trim();
+            const deleteUrl = this.getAttribute('data-delete-url');
+            const redirectUrl = this.getAttribute('data-redirect-url');
+            const itemName = this.getAttribute('data-item-name');
+            showAdviserDeletePasswordModal(sectionId, deleteUrl, redirectUrl, itemName);
+        });
+    });
+});
+</script>
 {% endblock %}

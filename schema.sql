@@ -49,6 +49,10 @@ CREATE TABLE sections (
     name VARCHAR(255) NOT NULL, -- e.g., 'A', 'Purity'
     grade_level_id UUID NOT NULL REFERENCES grade_levels(id) ON DELETE CASCADE,
     strand_id UUID REFERENCES strands(id) ON DELETE CASCADE, -- Null for JHS sections
+    adviser_name VARCHAR(255),
+    section_password VARCHAR(255),
+    adviser_password VARCHAR(255),
+    assigned_user_id UUID,
     created_by UUID REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (name, grade_level_id, strand_id)

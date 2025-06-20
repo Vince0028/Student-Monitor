@@ -1,0 +1,1 @@
+ALTER TABLE sections ADD COLUMN section_password VARCHAR(255); 

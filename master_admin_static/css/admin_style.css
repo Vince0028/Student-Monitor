@@ -1,0 +1,141 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+header {
+    background: #222;
+    color: #fff;
+    padding: 1em;
+    text-align: center;
+}
+.dashboard-container {
+    max-width: 900px;
+    margin: 2em auto;
+    background: #fff;
+    padding: 2.5em 2em 2.5em 2em;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+}
+.dashboard-container h2 {
+    margin-bottom: 0.5em;
+    font-size: 2em;
+    font-weight: bold;
+    text-align: center;
+}
+.dashboard-subheading {
+    text-align: center;
+    color: #666;
+    margin-bottom: 2em;
+}
+.admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 2em;
+    margin-top: 2em;
+}
+.admin-card {
+    background: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    padding: 2em 1.5em 1.5em 1.5em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+.admin-card:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+    transform: translateY(-4px) scale(1.03);
+}
+.admin-card-icon {
+    font-size: 2.5em;
+    color: #222;
+    margin-bottom: 0.7em;
+}
+.admin-card h3 {
+    margin: 0.5em 0 0.3em 0;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+.admin-card p {
+    color: #666;
+    font-size: 1em;
+    margin-bottom: 1.2em;
+    text-align: center;
+}
+.admin-card-link {
+    display: inline-block;
+    background: #222;
+    color: #fff;
+    padding: 0.5em 1.2em;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+.admin-card-link:hover {
+    background: #444;
+}
+.login-container {
+    max-width: 400px;
+    margin: auto;
+    margin-top: 8vh;
+    background: #fff;
+    padding: 2em 2.5em 2em 2.5em;
+    border-radius: 10px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.login-container h2 {
+    margin-bottom: 1.5em;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+.login-container form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
+.login-container label {
+    margin-bottom: 0.3em;
+    font-weight: 500;
+}
+.login-container input[type="text"],
+.login-container input[type="password"] {
+    width: 100%;
+    padding: 0.5em;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1em;
+    margin-bottom: 0.7em;
+}
+.login-container button[type="submit"] {
+    background: #222;
+    color: #fff;
+    border: none;
+    padding: 0.7em 0;
+    border-radius: 5px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.login-container button[type="submit"]:hover {
+    background: #444;
+}
+.flashes {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 1em;
+}
+.flashes li.danger {
+    color: #b00;
+} 

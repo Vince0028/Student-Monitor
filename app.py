@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, flash, g, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, g, jsonify, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import uuid
@@ -102,10 +102,14 @@ class Strand(Base):
 class Section(Base):
     __tablename__ = 'sections'
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(255), nullable=False) # e.g., 'A', 'B', 'Purity'
-    grade_level_id = Column(PG_UUID(as_uuid=True), ForeignKey('grade_levels.id'), nullable=False) # Section belongs to a grade level
-    strand_id = Column(PG_UUID(as_uuid=True), ForeignKey('strands.id'), nullable=True) # NEW: Section can belong to a Strand (for SHS)
-    created_by = Column(PG_UUID(as_uuid=True), ForeignKey('users.id')) # Admin who created it
+    name = Column(String(255), nullable=False)
+    grade_level_id = Column(PG_UUID(as_uuid=True), ForeignKey('grade_levels.id'), nullable=False)
+    strand_id = Column(PG_UUID(as_uuid=True), ForeignKey('strands.id'), nullable=True)
+    adviser_name = Column(String(255), nullable=True)
+    section_password = Column(String(255), nullable=True)
+    assigned_user_id = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+    adviser_password = Column(String(255), nullable=True)  # NEW FIELD
+    created_by = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
@@ -114,7 +118,7 @@ class Section(Base):
 
     grade_level = relationship('GradeLevel', back_populates='sections', lazy='joined')
     strand = relationship('Strand', back_populates='sections', foreign_keys=[strand_id]) # NEW relationship
-    creator = relationship('User', back_populates='created_sections_admin')
+    creator = relationship('User', back_populates='created_sections_admin', foreign_keys=[created_by])
     section_periods = relationship('SectionPeriod', back_populates='section', cascade='all, delete-orphan')
 
     def __repr__(self):
@@ -557,12 +561,14 @@ def teacher_section_attendance_history(section_period_id, subject_id):
     ).filter(
         Attendance.section_subject_id == subject_id
     ).group_by(Attendance.attendance_date).order_by(Attendance.attendance_date.desc()).all()
+    attendance_days_count = len(dates_query)
 
     return render_template('attendance_history.html',
                          section_period=section_period,
                          subject=subject,
                          summary=summary,
-                         dates=dates_query)
+                         dates=dates_query,
+                         attendance_days_count=attendance_days_count)
 
 @app.route('/teacher/section_period/<uuid:section_period_id>/attendance/date/<uuid:subject_id>/<date>')
 @login_required
@@ -735,7 +741,17 @@ def admin_dashboard():
     admin_id = uuid.UUID(session['user_id'])
     
     # Get all grade levels created by this admin
-    grade_levels = db_session.query(GradeLevel).filter_by(created_by=admin_id).order_by(GradeLevel.name).all()
+    grade_levels = db_session.query(GradeLevel).filter_by(created_by=admin_id).all()
+    
+    # Sort grade levels by grade number (highest to lowest), then by level type (SHS before JHS)
+    def grade_level_sort_key(gl):
+        import re
+        match = re.search(r'(\d+)', gl.name)
+        number = int(match.group(1)) if match else 0
+        # SHS should come before JHS if same number
+        level_type_priority = 0 if gl.level_type == 'SHS' else 1
+        return (-number, level_type_priority)
+    grade_levels = sorted(grade_levels, key=grade_level_sort_key)
     
     # Get all sections for this admin's grade levels
     sections = db_session.query(Section).join(GradeLevel).filter(GradeLevel.created_by == admin_id).all()
@@ -1012,6 +1028,29 @@ def strand_details(strand_id):
         return redirect(url_for('admin_dashboard'))
     
     sections = db_session.query(Section).filter_by(strand_id=strand_id, grade_level_id=strand.grade_level.id).order_by(Section.name).all()
+
+    # Attach available_accounts, assigned_user_id, and average_grade to each section (SHS)
+    for section in sections:
+        teacher_query = db_session.query(User).filter(User.user_type == 'teacher')
+        teacher_query = teacher_query.filter(User.grade_level_assigned == strand.grade_level.name)
+        teacher_query = teacher_query.filter(User.specialization == strand.name)
+        section.available_accounts = teacher_query.order_by(User.username).all()
+        section.assigned_user_id = section.assigned_user_id
+
+        # --- Add average_grade calculation for admin ---
+        section_periods = db_session.query(SectionPeriod).filter_by(section_id=section.id).all()
+        period_ids = [p.id for p in section_periods]
+        student_ids = db_session.query(StudentInfo.id).filter(StudentInfo.section_period_id.in_(period_ids)).all()
+        student_ids = [s.id for s in student_ids]
+        total_grades_sum = 0
+        total_grades_count = 0
+        if student_ids:
+            all_grades_summary = db_session.query(func.sum(Grade.grade_value), func.count(Grade.grade_value)).\
+                filter(Grade.student_info_id.in_(student_ids)).one_or_none()
+            if all_grades_summary and all_grades_summary[0] is not None and all_grades_summary[1] > 0:
+                total_grades_sum = float(all_grades_summary[0])
+                total_grades_count = all_grades_summary[1]
+        section.average_grade = round(total_grades_sum / total_grades_count, 2) if total_grades_count > 0 else 'N/A'
 
     return render_template('strand_details.html',
                            strand=strand,
@@ -1327,7 +1366,7 @@ def section_period_details(section_period_id):
         ).filter(SectionPeriod.id == section_period_id).one()
 
         # Fetch students and their grades to calculate average
-        students = g.session.query(StudentInfo).filter(StudentInfo.section_period_id == section_period_id).all()
+        students = g.session.query(StudentInfo).filter(StudentInfo.section_period_id == section_period_id).order_by(StudentInfo.name).all()
         for student in students:
             grades = g.session.query(Grade.grade_value).filter(Grade.student_info_id == student.id).all()
             if grades:
@@ -1557,7 +1596,12 @@ def delete_student_admin(student_id):
 @user_type_required('admin', 'teacher') # Allow teachers to edit students
 def edit_student(student_id):
     db_session = g.session
-    admin_id = uuid.UUID(session['user_id'])
+    user_id = uuid.UUID(session['user_id'])
+    user_type = session['user_type']
+    if user_type == 'admin':
+        admin_id = uuid.UUID(session['user_id'])
+    else:
+        admin_id = None
     
     student_to_edit = db_session.query(StudentInfo).options(
         joinedload(StudentInfo.section_period).joinedload(SectionPeriod.section).joinedload(Section.grade_level),
@@ -1569,15 +1613,17 @@ def edit_student(student_id):
         return redirect(url_for('admin_dashboard')) 
 
     # Fetch all section periods manageable by this admin for the dropdown
+    # Corrected ORDER BY clause to avoid DatatypeMismatch error
     section_periods_for_dropdown = db_session.query(SectionPeriod).options(
         joinedload(SectionPeriod.section).joinedload(Section.grade_level),
-        joinedload(SectionPeriod.section).joinedload(Section.strand)
+        joinedload(SectionPeriod.section).joinedload(Section.strand) # Load strand via section
     ).filter_by(created_by_admin=admin_id).order_by(
         SectionPeriod.school_year.desc(), 
         SectionPeriod.period_name, 
-        Section.name.asc(),
-        Strand.name.asc().nulls_first()
-    ).join(Section).outerjoin(Strand).all()
+        # Corrected ordering: Directly use columns from joined tables
+        Section.name.asc(),  # Order by section name
+        Strand.name.asc().nulls_first() # Order by strand name, putting None (JHS) first
+    ).join(Section).outerjoin(Strand).all() # Ensure joins are explicit for ordering
 
     current_period_manageable = any(str(s.id) == str(student_to_edit.section_period_id) for s in section_periods_for_dropdown)
     if not current_period_manageable:
@@ -1658,12 +1704,15 @@ def teacher_dashboard():
         return redirect(url_for('login'))
     print(f"Assigned Grade Level Object found from DB: {assigned_grade_level_obj.name} (Type: {assigned_grade_level_obj.level_type})")
 
-    # Fetch ALL sections that match the teacher's grade level and specialization (if SHS)
+    # Fetch ONLY sections assigned to this teacher account, matching grade level and (if SHS) specialization
     sections_query = db_session.query(Section).options(
         joinedload(Section.grade_level),
         joinedload(Section.strand), # Load strand for SHS sections
         joinedload(Section.section_periods).joinedload(SectionPeriod.assigned_teacher) # Load assigned teacher for periods
-    ).filter(Section.grade_level_id == assigned_grade_level_obj.id)
+    ).filter(
+        Section.grade_level_id == assigned_grade_level_obj.id,
+        Section.assigned_user_id == teacher_id
+    )
 
     if assigned_grade_level_obj.level_type == 'SHS':
         # For SHS, only consider sections that have a strand matching the teacher's specialization
@@ -1701,7 +1750,6 @@ def teacher_dashboard():
             elif assigned_grade_level_obj.level_type == 'JHS' and sp.period_type == 'Quarter':
                 is_correct_period_type = True
             print(f"      Is Correct Period Type ('{sp.period_type}' vs Expected '{assigned_grade_level_obj.level_type}'-period): {is_correct_period_type}")
-
 
             if is_assigned_teacher_match and is_correct_period_type:
                 relevant_periods_for_this_section.append(sp)
@@ -1749,15 +1797,27 @@ def teacher_dashboard():
         section_average = round(total_grades_sum / total_grades_count, 2) if total_grades_count > 0 else 'N/A'
         print(f"  Overall Section Average Grade (by this teacher): {section_average}")
         
+        # Find all students in this section (across all relevant periods assigned to this teacher)
+        student_list = []
+        if relevant_periods_for_this_section:
+            student_list = db_session.query(StudentInfo).filter(
+                StudentInfo.section_period_id.in_([p.id for p in relevant_periods_for_this_section])
+            ).order_by(StudentInfo.name).all()
+        
         sections_with_averages_and_periods.append({
             'id': str(section.id),
             'name': section.name,
             'grade_level_name': section.grade_level.name,
             'type': section.grade_level.level_type,
             'strand_name': section.strand.name if section.strand else None,
+            'adviser_name': section.adviser_name,
             'average_grade': section_average,
-            'periods': relevant_periods_for_this_section
+            'periods': relevant_periods_for_this_section,
+            'section_password': section.section_password,  # Pass the password to the template
+            'adviser_password': section.adviser_password,   # Pass adviser password to the template
+            'students': student_list                       # Pass students for this section
         })
+
 
     display_specialization_text = teacher_specialization if teacher_specialization else "General Education"
     display_specialization_suffix = f"({display_specialization_text} Teacher)"
@@ -1785,7 +1845,7 @@ def teacher_section_period_view(section_period_id):
         ).filter(SectionPeriod.id == section_period_id).one()
 
         # Fetch students and their grades to calculate average
-        students = g.session.query(StudentInfo).filter(StudentInfo.section_period_id == section_period_id).all()
+        students = g.session.query(StudentInfo).filter(StudentInfo.section_period_id == section_period_id).order_by(StudentInfo.name).all()
         for student in students:
             grades = g.session.query(Grade.grade_value).filter(Grade.student_info_id == student.id).all()
             if grades:
@@ -1822,31 +1882,48 @@ def teacher_section_period_view(section_period_id):
 @login_required
 @user_type_required('teacher', 'admin')
 def add_subject_to_section_period(section_period_id):
-    section_period = g.session.query(SectionPeriod).get(section_period_id)
+    db_session = g.session
+    section_period = db_session.query(SectionPeriod).options(
+        joinedload(SectionPeriod.section).joinedload(Section.grade_level),
+        joinedload(SectionPeriod.section).joinedload(Section.strand)
+    ).filter(SectionPeriod.id == section_period_id).first()
     if not section_period:
         flash('Section period not found.', 'error')
         if session.get('user_type') == 'admin':
             return redirect(url_for('admin_dashboard'))
         else:
-             return redirect(url_for('teacher_dashboard'))
+            return redirect(url_for('teacher_dashboard'))
+
+    # Determine available teacher accounts for this section period
+    section = section_period.section
+    grade_level = section.grade_level
+    strand = section.strand
+    teacher_query = db_session.query(User).filter(User.user_type == 'teacher')
+    if grade_level.level_type == 'SHS' and strand:
+        teacher_query = teacher_query.filter(User.grade_level_assigned == grade_level.name)
+        teacher_query = teacher_query.filter(User.specialization == strand.name)
+    elif grade_level.level_type == 'JHS':
+        teacher_query = teacher_query.filter(User.grade_level_assigned == grade_level.name)
+        teacher_query = teacher_query.filter(User.specialization == None)
+    available_teachers = teacher_query.order_by(User.username).all()
 
     if request.method == 'POST':
         subject_name = request.form.get('subject_name')
         assigned_teacher_name = request.form.get('assigned_teacher_name')
 
         if not subject_name or not assigned_teacher_name:
-            flash('Subject Name and Assigned Teacher Name are required.', 'error')
-            return render_template('add_subject_to_section_period.html', section_period=section_period)
+            flash('Subject Name and Assigned Teacher Account are required.', 'error')
+            return render_template('add_subject_to_section_period.html', section_period=section_period, available_teachers=available_teachers)
         else:
             # Check if subject already exists in this section period
-            existing_subject = g.session.query(SectionSubject).filter(
+            existing_subject = db_session.query(SectionSubject).filter(
                 SectionSubject.section_period_id == section_period_id,
                 SectionSubject.subject_name == subject_name
             ).first()
 
             if existing_subject:
                 flash(f'A subject named "{subject_name}" already exists in this section period.', 'error')
-                return render_template('add_subject_to_section_period.html', section_period=section_period)
+                return render_template('add_subject_to_section_period.html', section_period=section_period, available_teachers=available_teachers)
             else:
                 new_subject = SectionSubject(
                     section_period_id=section_period_id,
@@ -1854,17 +1931,17 @@ def add_subject_to_section_period(section_period_id):
                     assigned_teacher_name=assigned_teacher_name,
                     created_by_teacher_id=session['user_id'] # Log who created it
                 )
-                g.session.add(new_subject)
+                db_session.add(new_subject)
                 try:
-                    g.session.commit()
+                    db_session.commit()
                     flash(f'Subject "{subject_name}" added successfully.', 'success')
                 except Exception as e:
-                    g.session.rollback()
+                    db_session.rollback()
                     flash('An error occurred while adding the subject.', 'error')
         redirect_url = url_for('section_period_details', section_period_id=section_period_id) if session['user_type'] == 'admin' else url_for('teacher_section_period_view', section_period_id=section_period_id)
         return redirect(redirect_url)
     # For GET or after error, render the form
-    return render_template('add_subject_to_section_period.html', section_period=section_period)
+    return render_template('add_subject_to_section_period.html', section_period=section_period, available_teachers=available_teachers)
 
 @app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/edit', methods=['POST'])
 @login_required
@@ -1993,28 +2070,17 @@ def delete_teacher_section(section_id):
     user_id = uuid.UUID(session['user_id'])
     password = request.form.get('password')
 
-    if not password or not verify_current_user_password(user_id, password):
-        return jsonify({'success': False, 'message': 'Incorrect password.'})
+    section_to_delete = db_session.query(Section).options(joinedload(Section.grade_level), joinedload(Section.strand)).filter_by(id=section_id).first()
+    if not section_to_delete:
+        return jsonify({'success': False, 'message': 'Section not found.'})
+
+    # Check adviser password instead of account password
+    if not password or password != (section_to_delete.adviser_password or ''):
+        return jsonify({'success': False, 'message': 'Incorrect adviser password.'})
 
     teacher_specialization = session.get('specialization')
     teacher_grade_level = session.get('grade_level_assigned')
     
-    section_to_delete = db_session.query(Section).options(joinedload(Section.grade_level), joinedload(Section.strand)).filter_by(id=section_id).first()
-
-    if not section_to_delete:
-        return jsonify({'success': False, 'message': 'Section not found.'})
-    
-    # A teacher can only delete a section if:
-    # 1. The section belongs to their assigned grade level.
-    # 2. They are the assigned teacher for *all* periods within that section (if any exist)
-    #    OR, if there are no periods, it's an empty section.
-    # 3. (For SHS) Their specialization matches the section's strand.
-    # 4. (For JHS) The section has NULL strand_id.
-    
-    # 1. Check grade level
-    if section_to_delete.grade_level.name != teacher_grade_level:
-        return jsonify({'success': False, 'message': 'You do not have permission to delete this section (incorrect grade level).'})
-
     all_periods_in_section = db_session.query(SectionPeriod).filter_by(section_id=section_id).all() # No need to load strand here, it's on the section
     
     # 2, 3 & 4. Check assignment for all periods and strand match for SHS / NULL strand for JHS
@@ -2277,12 +2343,21 @@ def edit_section_admin(section_id):
     try:
         section = g.session.query(Section).filter(Section.id == section_id).one()
         new_name = request.form.get('section_name')
+        new_adviser = request.form.get('adviser_name')
+        new_password = request.form.get('section_password')
+        new_assigned_user_id = request.form.get('assigned_user_id')
+        new_adviser_password = request.form.get('adviser_password')  # NEW
 
         if not new_name:
             flash('Section name cannot be empty.', 'error')
             return redirect(request.referrer or url_for('admin_dashboard'))
 
         section.name = new_name
+        section.adviser_name = new_adviser
+        section.section_password = new_password
+        section.assigned_user_id = new_assigned_user_id if new_assigned_user_id else None
+        if new_adviser_password:
+            section.adviser_password = new_adviser_password
         g.session.commit()
         flash('Section updated successfully!', 'success')
 
@@ -2818,12 +2893,13 @@ def teacher_section_attendance_details(section_period_id, subject_id):
         ).filter(
             Attendance.section_subject_id == subject_id
         ).group_by(Attendance.attendance_date).order_by(Attendance.attendance_date.desc()).all()
-
+        attendance_days_count = len(dates_query)
         return render_template('attendance_history.html',
-                            section_period=section_period,
-                            subject=subject,
-                            summary=summary,
-                            dates=dates_query)
+                         section_period=section_period,
+                         subject=subject,
+                         summary=summary,
+                         dates=dates_query,
+                         attendance_days_count=attendance_days_count)
 
     # Get all students in this section period
     students = db_session.query(StudentInfo).filter(
@@ -2947,18 +3023,20 @@ def view_attendance_history(section_period_id, subject_id):
                          summary=summary,
                          dates=dates_query)
 
-def ensure_password_column_exists():
-    """Ensure the password_hash column exists in the students_info table"""
-    try:
-        with engine.connect() as conn:
-            conn.execute(text("ALTER TABLE students_info ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255)"))
-            conn.commit()
-            print("Password column check completed")
-    except Exception as e:
-        print(f"Password column check error: {e}")
-
-# Ensure password column exists on startup
-ensure_password_column_exists()
+@app.route('/api/verify_adviser_password', methods=['POST'])
+@login_required
+@user_type_required('teacher')
+def api_verify_adviser_password():
+    data = request.get_json()
+    section_id = data.get('section_id')
+    password = data.get('password')
+    if not section_id or not password:
+        return jsonify({'success': False})
+    db_session = g.session
+    section = db_session.query(Section).filter_by(id=section_id).first()
+    if section and section.adviser_password and password == section.adviser_password:
+        return jsonify({'success': True})
+    return jsonify({'success': False})
 
 if __name__ == '__main__':
     app.run(debug=True)
