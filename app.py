@@ -156,6 +156,7 @@ class StudentInfo(Base):
     section_period_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_periods.id'), nullable=False)
     name = Column(String(255), nullable=False)
     student_id_number = Column(String(255), unique=True, nullable=False)
+    gender = Column(String(10), nullable=True)  # NEW FIELD
     password_hash = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -165,7 +166,7 @@ class StudentInfo(Base):
     scores = relationship('StudentScore', back_populates='student', cascade='all, delete-orphan')
 
     def __repr__(self):
-        return f"<StudentInfo(id={self.id}, name='{self.name}', student_id_number='{self.student_id_number}')>"
+        return f"<StudentInfo(id={self.id}, name='{self.name}', student_id_number='{self.student_id_number}', gender='{self.gender}')>"
 
 class SectionSubject(Base):
     __tablename__ = 'section_subjects'
@@ -542,8 +543,12 @@ def teacher_section_attendance_history(section_period_id, subject_id):
             Attendance.section_subject_id == subject_id
         ).all()
 
+        # Set gender to 'Unknown' if missing or empty
+        gender = student.gender if student.gender else 'Unknown'
+
         stats = {
             'name': student.name,
+            'gender': gender,  # Always set for template grouping
             'present_count': sum(1 for a in attendance_records if a.status == 'present'),
             'absent_count': sum(1 for a in attendance_records if a.status == 'absent'),
             'late_count': sum(1 for a in attendance_records if a.status == 'late'),
@@ -598,6 +603,28 @@ def teacher_section_attendance_date(section_period_id, subject_id, date):
         StudentInfo.section_period_id == section_period_id
     ).order_by(StudentInfo.name).all()
 
+    # --- Compute summary statistics for this date ---
+    total_present = 0
+    total_absent = 0
+    total_late = 0
+    total_excused = 0
+    total_boys = 0
+    total_girls = 0
+    for student, attendance in attendance_records:
+        if student.gender == 'Male':
+            total_boys += 1
+        elif student.gender == 'Female':
+            total_girls += 1
+        if attendance:
+            if attendance.status == 'present':
+                total_present += 1
+            elif attendance.status == 'absent':
+                total_absent += 1
+            elif attendance.status == 'late':
+                total_late += 1
+            elif attendance.status == 'excused':
+                total_excused += 1
+
     section_period = db_session.query(SectionPeriod).options(
         joinedload(SectionPeriod.section).joinedload(Section.grade_level),
         joinedload(SectionPeriod.section).joinedload(Section.strand)
@@ -616,7 +643,13 @@ def teacher_section_attendance_date(section_period_id, subject_id, date):
                          section_period=section_period,
                          subject=subject,
                          attendance_records=attendance_records,
-                         date=attendance_date)
+                         date=attendance_date,
+                         total_present=total_present,
+                         total_absent=total_absent,
+                         total_late=total_late,
+                         total_excused=total_excused,
+                         total_boys=total_boys,
+                         total_girls=total_girls)
 
 # --- User Profile Management ---
 @app.route('/profile', methods=['GET', 'POST'])
@@ -631,6 +664,7 @@ def profile():
 
     if request.method == 'POST':
         current_password = request.form.get('current_password')
+        admin_password = request.form.get('admin_password')
         new_username = request.form.get('new_username', '').strip()
         new_password = request.form.get('new_password')
         confirm_new_password = request.form.get('confirm_new_password')
@@ -638,6 +672,23 @@ def profile():
         # Verify current password
         if not verify_current_user_password(user_id, current_password):
             flash('Incorrect current password. No changes were saved.', 'error')
+            return redirect(url_for('profile'))
+
+        # Verify admin password (must match any admin account)
+        if not admin_password:
+            flash('Admin password is required to save changes.', 'error')
+            return redirect(url_for('profile'))
+        admin_user = g.session.query(User).filter_by(user_type='admin').first()
+        admin_password_valid = False
+        if admin_user:
+            # Check all admin accounts
+            admin_users = g.session.query(User).filter_by(user_type='admin').all()
+            for admin in admin_users:
+                if check_password_hash(admin.password_hash, admin_password):
+                    admin_password_valid = True
+                    break
+        if not admin_password_valid:
+            flash('Incorrect admin password. No changes were saved.', 'error')
             return redirect(url_for('profile'))
 
         # Track if any changes other than password were made to provide a specific message
@@ -1436,9 +1487,9 @@ def add_student_to_section_period(section_period_id):
     if request.method == 'POST':
         student_name = request.form['name'].strip()
         student_id_number = request.form['student_id_number'].strip()
-
-        if not student_name or not student_id_number:
-            flash('Student name and ID number are required.', 'error')
+        gender = request.form.get('gender')
+        if not student_name or not student_id_number or not gender:
+            flash('Student name, ID number, and gender are required.', 'error')
             return render_template('add_student_to_section_period.html', section_period=section_period)
 
         try:
@@ -1450,7 +1501,8 @@ def add_student_to_section_period(section_period_id):
             new_student = StudentInfo(
                 section_period_id=section_period_id,
                 name=student_name,
-                student_id_number=student_id_number
+                student_id_number=student_id_number,
+                gender=gender
             )
             db_session.add(new_student)
             db_session.commit()
@@ -1562,9 +1614,6 @@ def delete_student_admin(student_id):
     user_id = uuid.UUID(session['user_id'])
     password = request.form.get('password')
 
-    if not password or not verify_current_user_password(user_id, password):
-        return jsonify({'success': False, 'message': 'Incorrect password.'})
-
     student_to_delete = db_session.query(StudentInfo).options(
         joinedload(StudentInfo.section_period).joinedload(SectionPeriod.section).joinedload(Section.grade_level),
         joinedload(StudentInfo.section_period).joinedload(SectionPeriod.section).joinedload(Section.strand) # Load strand via section
@@ -1573,13 +1622,18 @@ def delete_student_admin(student_id):
     if not student_to_delete:
         return jsonify({'success': False, 'message': 'Student not found.'})
 
-    if not student_to_delete.section_period or student_to_delete.section_period.created_by_admin != user_id:
-        return jsonify({'success': False, 'message': 'You do not have permission to delete this student.'})
-    
+    section = student_to_delete.section_period.section if student_to_delete.section_period else None
+    adviser_password = section.adviser_password if section else None
+
+    # Allow either adviser's password or current user's password
+    if not password or (password != (adviser_password or '') and not verify_current_user_password(user_id, password)):
+        return jsonify({'success': False, 'message': 'Incorrect password.'})
+
+    # Permission check REMOVED
+
     redirect_url_after_delete = url_for('admin_dashboard') # Default fallback
     if student_to_delete.section_period:
         redirect_url_after_delete = url_for('section_period_details', section_period_id=student_to_delete.section_period.id)
-
 
     try:
         db_session.delete(student_to_delete)
@@ -1612,18 +1666,27 @@ def edit_student(student_id):
         flash('Student not found.', 'danger')
         return redirect(url_for('admin_dashboard')) 
 
-    # Fetch all section periods manageable by this admin for the dropdown
-    # Corrected ORDER BY clause to avoid DatatypeMismatch error
-    section_periods_for_dropdown = db_session.query(SectionPeriod).options(
-        joinedload(SectionPeriod.section).joinedload(Section.grade_level),
-        joinedload(SectionPeriod.section).joinedload(Section.strand) # Load strand via section
-    ).filter_by(created_by_admin=admin_id).order_by(
-        SectionPeriod.school_year.desc(), 
-        SectionPeriod.period_name, 
-        # Corrected ordering: Directly use columns from joined tables
-        Section.name.asc(),  # Order by section name
-        Strand.name.asc().nulls_first() # Order by strand name, putting None (JHS) first
-    ).join(Section).outerjoin(Strand).all() # Ensure joins are explicit for ordering
+    # Fetch all section periods manageable by this admin or teacher for the dropdown
+    if user_type == 'admin':
+        section_periods_for_dropdown = db_session.query(SectionPeriod).options(
+            joinedload(SectionPeriod.section).joinedload(Section.grade_level),
+            joinedload(SectionPeriod.section).joinedload(Section.strand)
+        ).filter_by(created_by_admin=admin_id).order_by(
+            SectionPeriod.school_year.desc(),
+            SectionPeriod.period_name,
+            Section.name.asc(),
+            Strand.name.asc().nulls_first()
+        ).join(Section).outerjoin(Strand).all()
+    else:  # teacher
+        section_periods_for_dropdown = db_session.query(SectionPeriod).options(
+            joinedload(SectionPeriod.section).joinedload(Section.grade_level),
+            joinedload(SectionPeriod.section).joinedload(Section.strand)
+        ).filter_by(assigned_teacher_id=user_id).order_by(
+            SectionPeriod.school_year.desc(),
+            SectionPeriod.period_name,
+            Section.name.asc(),
+            Strand.name.asc().nulls_first()
+        ).join(Section).outerjoin(Strand).all()
 
     current_period_manageable = any(str(s.id) == str(student_to_edit.section_period_id) for s in section_periods_for_dropdown)
     if not current_period_manageable:
@@ -1635,10 +1698,11 @@ def edit_student(student_id):
     if request.method == 'POST':
         student_name = request.form['name'].strip()
         student_id_number = request.form['student_id_number'].strip()
+        gender = request.form.get('gender')
         new_section_period_id_str = request.form.get('section_period_id')
         password = request.form.get('password', '').strip()
 
-        if not student_name or not student_id_number or not new_section_period_id_str:
+        if not student_name or not student_id_number or not new_section_period_id_str or not gender:
             flash('All student fields are required.', 'error')
             return render_template('edit_student.html', student=student_to_edit, section_periods=section_periods_for_dropdown)
         
@@ -1662,6 +1726,7 @@ def edit_student(student_id):
             student_to_edit.name = student_name
             student_to_edit.student_id_number = student_id_number
             student_to_edit.section_period_id = new_section_period_id
+            student_to_edit.gender = gender
             
             # Update password if provided (store raw password for admin visibility)
             if password and password.strip():
@@ -1892,7 +1957,7 @@ def add_subject_to_section_period(section_period_id):
         if session.get('user_type') == 'admin':
             return redirect(url_for('admin_dashboard'))
         else:
-            return redirect(url_for('teacher_dashboard'))
+             return redirect(url_for('teacher_dashboard'))
 
     # Determine available teacher accounts for this section period
     section = section_period.section
@@ -1954,23 +2019,26 @@ def edit_section_subject(section_period_id, subject_id):
         new_teacher_name = request.form.get('assigned_teacher_name')
         password = request.form.get('password')
         subject_password = request.form.get('subject_password')
-        subject_password = request.form.get('subject_password')
 
-        # Verify password first
         user_id = uuid.UUID(session['user_id'])
-        if not password or not verify_current_user_password(user_id, password):
-            flash('Incorrect password. Subject was not updated.', 'error')
-        elif not new_subject_name or not new_teacher_name:
+        user_type = session.get('user_type')
+        # Only require password for teachers
+        if user_type == 'teacher':
+            if not password or not verify_current_user_password(user_id, password):
+                flash('Incorrect password. Subject was not updated.', 'error')
+                redirect_url = url_for('section_period_details', section_period_id=section_period_id) if user_type == 'admin' else url_for('teacher_section_period_view', section_period_id=section_period_id)
+                return redirect(redirect_url)
+        if not new_subject_name or not new_teacher_name:
             flash('Subject Name and Assigned Teacher Name cannot be empty.', 'error')
         else:
             subject.subject_name = new_subject_name
             subject.assigned_teacher_name = new_teacher_name
             # Only admin can update subject password
-            if session['user_type'] == 'admin' and subject_password:
+            if user_type == 'admin' and subject_password:
                 subject.subject_password = subject_password
             g.session.commit()
             flash('Subject updated successfully!', 'success')
-            
+        
     except NoResultFound:
         flash('Subject not found.', 'error')
     except Exception as e:
@@ -2069,18 +2137,18 @@ def delete_teacher_section(section_id):
     db_session = g.session
     user_id = uuid.UUID(session['user_id'])
     password = request.form.get('password')
-
+    
     section_to_delete = db_session.query(Section).options(joinedload(Section.grade_level), joinedload(Section.strand)).filter_by(id=section_id).first()
     if not section_to_delete:
         return jsonify({'success': False, 'message': 'Section not found.'})
-
+    
     # Check adviser password instead of account password
     if not password or password != (section_to_delete.adviser_password or ''):
         return jsonify({'success': False, 'message': 'Incorrect adviser password.'})
 
     teacher_specialization = session.get('specialization')
     teacher_grade_level = session.get('grade_level_assigned')
-    
+
     all_periods_in_section = db_session.query(SectionPeriod).filter_by(section_id=section_id).all() # No need to load strand here, it's on the section
     
     # 2, 3 & 4. Check assignment for all periods and strand match for SHS / NULL strand for JHS
@@ -2874,8 +2942,12 @@ def teacher_section_attendance_details(section_period_id, subject_id):
                 Attendance.section_subject_id == subject_id
             ).all()
 
+            # Set gender to 'Unknown' if missing or empty
+            gender = student.gender if student.gender else 'Unknown'
+
             stats = {
                 'name': student.name,
+                'gender': gender,  # Always set for template grouping
                 'present_count': sum(1 for a in attendance_records if a.status == 'present'),
                 'absent_count': sum(1 for a in attendance_records if a.status == 'absent'),
                 'late_count': sum(1 for a in attendance_records if a.status == 'late'),
@@ -2895,9 +2967,9 @@ def teacher_section_attendance_details(section_period_id, subject_id):
         ).group_by(Attendance.attendance_date).order_by(Attendance.attendance_date.desc()).all()
         attendance_days_count = len(dates_query)
         return render_template('attendance_history.html',
-                         section_period=section_period,
-                         subject=subject,
-                         summary=summary,
+                            section_period=section_period,
+                            subject=subject,
+                            summary=summary,
                          dates=dates_query,
                          attendance_days_count=attendance_days_count)
 
@@ -2999,6 +3071,7 @@ def view_attendance_history(section_period_id, subject_id):
 
         stats = {
             'name': student.name,
+            'gender': student.gender,  # Add gender for template grouping
             'present_count': sum(1 for a in attendance_records if a.status == 'present'),
             'absent_count': sum(1 for a in attendance_records if a.status == 'absent'),
             'late_count': sum(1 for a in attendance_records if a.status == 'late'),
@@ -3035,6 +3108,51 @@ def api_verify_adviser_password():
     db_session = g.session
     section = db_session.query(Section).filter_by(id=section_id).first()
     if section and section.adviser_password and password == section.adviser_password:
+        return jsonify({'success': True})
+    return jsonify({'success': False})
+
+@app.route('/api/verify_admin_password', methods=['POST'])
+@login_required
+def api_verify_admin_password():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    if not username or not password:
+        return jsonify({'success': False})
+    db_session = g.session
+    user = db_session.query(User).filter_by(username=username, user_type='admin').first()
+    if user and check_password_hash(user.password_hash, password):
+        return jsonify({'success': True})
+    return jsonify({'success': False})
+
+@app.route('/api/verify_section_password', methods=['POST'])
+@login_required
+@user_type_required('teacher')
+def api_verify_section_password():
+    data = request.get_json()
+    section_id = data.get('section_id')
+    password = data.get('password')
+    if not section_id or not password:
+        return jsonify({'success': False, 'message': 'Missing section_id or password.'})
+    section = g.session.query(Section).filter_by(id=section_id).first()
+    if not section:
+        return jsonify({'success': False, 'message': 'Section not found.'})
+    if section.section_password and password == section.section_password:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'message': 'Incorrect section password.'})
+
+@app.route('/api/verify_gradebook_password', methods=['POST'])
+@login_required
+@user_type_required('teacher')
+def api_verify_gradebook_password():
+    data = request.get_json()
+    subject_id = data.get('subject_id')
+    password = data.get('password')
+    if not subject_id or not password:
+        return jsonify({'success': False})
+    subject = g.session.query(SectionSubject).filter_by(id=subject_id).first()
+    if subject and subject.subject_password and password == subject.subject_password:
         return jsonify({'success': True})
     return jsonify({'success': False})
 

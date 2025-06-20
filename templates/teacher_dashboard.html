@@ -200,6 +200,10 @@ function handlePeriodSelect(selectElem, sectionId, sectionPassword) {
 }
 function closeSectionPasswordModal() {
     document.getElementById('sectionPasswordModal').style.display = 'none';
+    // Reset all period dropdowns to default after modal closes
+    document.querySelectorAll('select.btn-view').forEach(function(dropdown) {
+        dropdown.value = '';
+    });
 }
 function submitSectionPassword() {
     const input = document.getElementById('sectionPasswordInput').value;

@@ -129,7 +129,12 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for student in students %}
+                            {# Boys group #}
+                            {% set boys = students | selectattr('gender', 'equalto', 'Male') | list %}
+                            {% set girls = students | selectattr('gender', 'equalto', 'Female') | list %}
+                            {% if boys %}
+                            <tr class="table-group-divider"><td colspan="100" style="font-weight:bold; background:#f5f5f5;">Boys</td></tr>
+                            {% for student in boys %}
                             <tr data-student-id="{{ student.id }}">
                                 <td>{{ student.name }}</td>
                                 {% for component in components %}
@@ -159,6 +164,41 @@
                                 </td>
                             </tr>
                             {% endfor %}
+                            {% endif %}
+                            {# Girls group #}
+                            {% if girls %}
+                            <tr class="table-group-divider"><td colspan="100" style="font-weight:bold; background:#f5f5f5;">Girls</td></tr>
+                            {% for student in girls %}
+                            <tr data-student-id="{{ student.id }}">
+                                <td>{{ student.name }}</td>
+                                {% for component in components %}
+                                    {% for item in component.items %}
+                                    <td class="text-center">
+                                        <input type="number" 
+                                               class="form-control form-control-sm grade-input"
+                                               data-item-id="{{ item.id }}"
+                                               data-student-id="{{ student.id }}"
+                                               value="{{ scores.get(student.id, {}).get(item.id, '') }}"
+                                               max="{{ item.max_score }}"
+                                               min="0"
+                                               step="0.01">
+                                    </td>
+                                    {% endfor %}
+                                    <td class="text-center font-weight-bold component-average-{{ student.id }}-{{ component.id }}">
+                                        {{- component_averages.get(student.id, {}).get(component.id, 'N/A') -}}
+                                    </td>
+                                {% endfor %}
+                                <td class="text-center font-weight-bold total-grade-{{ student.id }}">
+                                    {{- total_grades.get(student.id, 'N/A') -}}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('grade_student_for_subject', subject_id=subject.id, student_id=student.id) }}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-edit"></i> Grade
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>
