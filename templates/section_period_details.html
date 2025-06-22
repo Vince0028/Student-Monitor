@@ -55,12 +55,15 @@
                         <tr>
                             <td>{{ student.name }}</td>
                             <td>{{ student.student_id_number }}</td>
-                            <td class="average-grade-cell"><span class="average-grade-value">{{ student.average_grade }}</span></td>
+                            <td class="average-grade-cell" data-grade="{{ student.average_grade | default('N/A', true) }}"><span class="average-grade-value">{{ student.average_grade }}</span></td>
                             <td>
                                 <div class="button-group">
-                                    <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-edit btn-icon-small" title="Edit Student Details">
+                                    <button type="button" class="btn btn-secondary btn-icon-small assign-parent-btn" title="Assign Parent" data-bs-toggle="modal" data-bs-target="#assignParentModal-{{ student.id }}">
+                                        <i class="fas fa-user-plus"></i> Assign Parent
+                                    </button>
+                                    <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editStudentModal-{{ student.id }}" title="Edit Student Details">
                                         <i class="fas fa-user-edit"></i> Edit
-                                    </a>
+                                    </button>
                                     <button type="button" class="btn btn-danger btn-icon-small delete-btn"
                                             data-delete-url="{{ url_for('delete_student_admin', student_id=student.id) }}"
                                             data-redirect-url="{{ url_for('section_period_details', section_period_id=section_period.id) }}"
@@ -80,16 +83,16 @@
                         <tr>
                             <td>{{ student.name }}</td>
                             <td>{{ student.student_id_number }}</td>
-                            <td class="average-grade-cell"><span class="average-grade-value">{{ student.average_grade }}</span></td>
+                            <td class="average-grade-cell" data-grade="{{ student.average_grade | default('N/A', true) }}"><span class="average-grade-value">{{ student.average_grade }}</span></td>
                             <td>
                                 <div class="button-group">
                                     <!-- Assign Parent Button -->
                                     <button type="button" class="btn btn-secondary btn-icon-small assign-parent-btn" title="Assign Parent" data-bs-toggle="modal" data-bs-target="#assignParentModal-{{ student.id }}">
                                         <i class="fas fa-user-plus"></i> Assign Parent
                                     </button>
-                                    <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-edit btn-icon-small" title="Edit Student Details">
+                                    <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editStudentModal-{{ student.id }}" title="Edit Student Details">
                                         <i class="fas fa-user-edit"></i> Edit
-                                    </a>
+                                    </button>
                                     <button type="button" class="btn btn-danger btn-icon-small delete-btn"
                                             data-delete-url="{{ url_for('delete_student_admin', student_id=student.id) }}"
                                             data-redirect-url="{{ url_for('section_period_details', section_period_id=section_period.id) }}"
@@ -110,37 +113,33 @@
     </div>
     <script>
     // Set the default state to hidden (eye on, grades masked)
-    let showGrades = false;
     document.addEventListener('DOMContentLoaded', function() {
-        setGradeVisibility(false);
+        setGradeVisibility(false); // Start with grades hidden
     });
 
     function toggleGradeVisibility() {
-        showGrades = !showGrades;
-        setGradeVisibility(showGrades);
+        const eyeIcon = document.getElementById('eyeIcon');
+        // Toggle based on the current state represented by the icon's class
+        const currentlyVisible = eyeIcon.classList.contains('fa-eye-slash');
+        setGradeVisibility(!currentlyVisible);
     }
 
     function setGradeVisibility(visible) {
         const gradeCells = document.querySelectorAll('.average-grade-cell');
         const eyeIcon = document.getElementById('eyeIcon');
+
         gradeCells.forEach(cell => {
-            // Store the original grade in a data attribute if not already set
-            if (!cell.hasAttribute('data-grade')) {
-                const gradeValueElem = cell.querySelector('.average-grade-value');
-                if (gradeValueElem) {
-                    cell.setAttribute('data-grade', gradeValueElem.textContent);
-                } else {
-                    cell.setAttribute('data-grade', cell.textContent);
-                }
-            }
-            if (!visible) {
-                cell.innerText = '***';
+            const gradeValue = cell.getAttribute('data-grade');
+            if (visible) {
+                // To prevent re-adding span, we just set the text content
+                cell.textContent = gradeValue;
             } else {
-                cell.innerText = cell.getAttribute('data-grade');
+                cell.textContent = '***';
             }
         });
+
         if (eyeIcon) {
-            eyeIcon.className = !visible ? 'fas fa-eye' : 'fas fa-eye-slash';
+            eyeIcon.className = visible ? 'fas fa-eye-slash' : 'fas fa-eye';
         }
     }
     </script>
@@ -300,8 +299,60 @@ function showAssignParentAlert(studentId, message, type) {
     alertDiv.className = 'alert alert-' + type;
     alertDiv.textContent = message;
     alertDiv.classList.remove('d-none');
+    setTimeout(() => { alertDiv.classList.add('d-none'); }, 3000);
 }
 </script>
+
+<!-- Edit Student Modals -->
+{% for student in students %}
+<div class="modal fade" id="editStudentModal-{{ student.id }}" tabindex="-1" aria-labelledby="editStudentModalLabel-{{ student.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editStudentModalLabel-{{ student.id }}">Edit Student: {{ student.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('edit_student', student_id=student.id) }}" method="POST">
+                    <div class="mb-3">
+                        <label for="name-{{ student.id }}" class="form-label">Student Full Name:</label>
+                        <input type="text" class="form-control" id="name-{{ student.id }}" name="name" value="{{ student.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="student_id_number-{{ student.id }}" class="form-label">Student ID Number:</label>
+                        <input type="text" class="form-control" id="student_id_number-{{ student.id }}" name="student_id_number" value="{{ student.student_id_number }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="gender-{{ student.id }}" class="form-label">Gender:</label>
+                        <select class="form-select" id="gender-{{ student.id }}" name="gender" required>
+                            <option value="Male" {% if student.gender == 'Male' %}selected{% endif %}>Male</option>
+                            <option value="Female" {% if student.gender == 'Female' %}selected{% endif %}>Female</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="section_period_id-{{ student.id }}" class="form-label">Assign to Section & Period:</label>
+                        <select class="form-select" id="section_period_id-{{ student.id }}" name="section_period_id" required>
+                            {% for period in section_periods_for_dropdown %}
+                                <option value="{{ period.id }}" {% if period.id == student.section_period_id %}selected{% endif %}>
+                                    {{ period.section.name }} ({{ period.period_name }} {{ period.school_year }}) - {{ period.section.grade_level.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password-{{ student.id }}" class="form-label">Student Password:</label>
+                        <input type="password" class="form-control" id="password-{{ student.id }}" name="password" placeholder="Leave blank to keep unchanged">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
 
 <!-- Assign Parent Modals -->
 {% for student in students %}
@@ -315,12 +366,13 @@ function showAssignParentAlert(studentId, message, type) {
       <div class="modal-body">
         <div class="mb-3">
           <label class="form-label">Current Parent:</label>
-          <div><em>{% if student.parent_id %}{{ parents_dict[student.parent_id].first_name }} {{ parents_dict[student.parent_id].last_name }}{% else %}(No parent assigned){% endif %}</em></div>
+          <div><em>{% if student.parent %}{{ student.parent.first_name }} {{ student.parent.last_name }}{% else %}(No parent assigned){% endif %}</em></div>
         </div>
         <div class="mb-3">
           <input type="text" class="form-control parent-search-input" id="parentSearchInput-{{ student.id }}" placeholder="Search parent by name, email, or username..." onkeyup="filterParentList('{{ student.id }}')">
         </div>
         <div class="parent-list-container" style="max-height: 250px; overflow-y: auto;">
+          {% if parents %}
           <table class="table table-hover">
             <thead>
               <tr>
@@ -343,6 +395,9 @@ function showAssignParentAlert(studentId, message, type) {
               {% endfor %}
             </tbody>
           </table>
+          {% else %}
+            <p class="text-center text-muted">No parents found in the system. Please add parents through the Parent Portal first.</p>
+          {% endif %}
         </div>
         <div class="mt-3">
           <label>Selected Parent:</label>

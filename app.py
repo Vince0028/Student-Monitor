@@ -1515,7 +1515,7 @@ def section_period_details(section_period_id):
         # --- End Sync Logic ---
 
         # Fetch students from the correct (master) period
-        students = db_session.query(StudentInfo).filter(StudentInfo.section_period_id == student_display_period_id).order_by(StudentInfo.name).all()
+        students = db_session.query(StudentInfo).options(joinedload(StudentInfo.parent)).filter(StudentInfo.section_period_id == student_display_period_id).order_by(StudentInfo.name).all()
         for student in students:
             # Note: This is a simple average calculation. A more complex one might be needed later.
             grades = db_session.query(Grade.grade_value).filter(Grade.student_info_id == student.id).all()
@@ -1523,6 +1523,34 @@ def section_period_details(section_period_id):
                 student.average_grade = sum(g[0] for g in grades) / len(grades) if grades else "N/A"
             else:
                 student.average_grade = "N/A"
+
+        # --- FIX: Fetch parents for the "Assign Parent" modal ---
+        parents = db_session.query(Parent).order_by(Parent.first_name, Parent.last_name).all()
+        parents_dict = {p.id: p for p in parents}
+
+        # --- FIX: Fetch all manageable section periods for the "Edit Student" modal dropdown ---
+        section_periods_for_dropdown = []
+        if user_type == 'admin':
+            admin_id = uuid.UUID(session['user_id'])
+            section_periods_for_dropdown = db_session.query(SectionPeriod).options(
+                joinedload(SectionPeriod.section).joinedload(Section.grade_level),
+                joinedload(SectionPeriod.section).joinedload(Section.strand)
+            ).filter_by(created_by_admin=admin_id).join(Section).outerjoin(Strand).order_by(
+                SectionPeriod.school_year.desc(),
+                SectionPeriod.period_name,
+                Section.name.asc(),
+                Strand.name.asc().nulls_first()
+            ).all()
+        else:  # teacher
+            section_periods_for_dropdown = db_session.query(SectionPeriod).options(
+                joinedload(SectionPeriod.section).joinedload(Section.grade_level),
+                joinedload(SectionPeriod.section).joinedload(Section.strand)
+            ).filter_by(assigned_teacher_id=user_id).join(Section).outerjoin(Strand).order_by(
+                SectionPeriod.school_year.desc(),
+                SectionPeriod.period_name,
+                Section.name.asc(),
+                Strand.name.asc().nulls_first()
+            ).all()
 
         # Fetch subjects - show all subjects if teacher is assigned to this section period
         user_id = uuid.UUID(session['user_id'])
@@ -1548,10 +1576,41 @@ def section_period_details(section_period_id):
         return render_template(template,
                                section_period=section_period,
                                students=students,
-                               section_subjects=section_subjects)
+                               section_subjects=section_subjects,
+                               parents=parents,
+                               parents_dict=parents_dict,
+                               section_periods_for_dropdown=section_periods_for_dropdown)
     except NoResultFound:
         flash('Section period not found.', 'error')
         return redirect(url_for('teacher_dashboard') if session.get('user_type') == 'teacher' else url_for('admin_dashboard'))
+
+
+@app.route('/assign_parent', methods=['POST'])
+@login_required
+@user_type_required('admin')
+def assign_parent():
+    db_session = g.session
+    data = request.get_json()
+    student_id = data.get('student_id')
+    parent_id = data.get('parent_id')
+
+    if not student_id or not parent_id:
+        return jsonify({'success': False, 'message': 'Missing student or parent ID.'})
+
+    student = db_session.query(StudentInfo).filter_by(id=student_id).first()
+    parent = db_session.query(Parent).filter_by(id=parent_id).first()
+
+    if not student or not parent:
+        return jsonify({'success': False, 'message': 'Student or Parent not found.'})
+
+    try:
+        student.parent_id = uuid.UUID(parent_id)
+        db_session.commit()
+        return jsonify({'success': True, 'message': 'Parent assigned successfully!'})
+    except Exception as e:
+        db_session.rollback()
+        app.logger.error(f"Error assigning parent: {e}")
+        return jsonify({'success': False, 'message': 'An error occurred while assigning the parent.'})
 
 
 @app.route('/section_period/<uuid:section_period_id>/add_student', methods=['GET', 'POST'])
