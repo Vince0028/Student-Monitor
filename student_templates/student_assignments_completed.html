@@ -3,8 +3,20 @@
 {% block title %}Completed Assignments - Student Monitor{% endblock %}
 
 {% block content %}
-<div class="form-page-container">
-    <h2>Completed Assignments</h2>
-    <!-- List of completed assignments would go here -->
+<h2 style="margin-top: 50px; margin-left: 100px; padding-top: 0px; margin-bottom: 1rem; text-align: left;"><i class="fas fa-check-circle"></i> Completed Assignments</h2>
+<div class="dashboard-container completed-assignments-dashboard">
+  <div class="dashboard-card-grid">
+    <!-- Subject Placeholder Card Example -->
+    <a href="{{ url_for('student_submit_assignment') }}" class="feature-card">
+      <div class="feature-card-icon"><i class="fas fa-book"></i></div>
+      <div class="feature-card-title">Subject Name</div>
+      <div class="feature-card-desc">Completed assignments for this subject will appear here.</div>
+    </a>
+    <a href="{{ url_for('student_submit_assignment') }}" class="feature-card">
+      <div class="feature-card-icon"><i class="fas fa-book"></i></div>
+      <div class="feature-card-title">Another Subject</div>
+      <div class="feature-card-desc">Completed assignments for this subject will appear here.</div>
+    </a>
+  </div>
 </div>
 {% endblock %} 

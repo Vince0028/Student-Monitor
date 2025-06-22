@@ -24,7 +24,6 @@
                         <th>Section Name</th>
                         <th>Strand</th>
                         <th>Adviser</th>
-                        <th>Overall Section Average Grade</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -32,29 +31,32 @@
                     {% for section in sections %}
                     <tr>
                         <td>{{ section.name }}</td>
-                        <td>{{ section.strand_name or 'N/A' }}</td>
+                        <td>{{ section.strand.name if section.strand else 'N/A' }}</td>
                         <td>{{ section.adviser_name or 'N/A' }}</td>
-                        <td>
-                            <span class="section-average-grade" id="section-average-{{ section.id }}">***</span>
-                            <button type="button" class="btn btn-link btn-sm" title="Show/Hide Average Grade" style="padding:0; margin-left:4px;" onclick="toggleSectionAverageGrade('{{ section.id }}')">
-                                <i id="section-eye-{{ section.id }}" class="fas fa-eye"></i>
-                            </button>
-                        </td>
                         <td>
                             <div class="button-group" style="display: flex; align-items: center; gap: 10px;">
                                 <select onchange="handlePeriodSelect(this, '{{ section.id }}', '{{ section.section_password|default('') }}')" class="btn btn-view btn-icon-small">
                                     <option value="">View Period...</option>
-                                    {% if section.periods %}
-                                        {% for period in section.periods | sort(attribute='school_year', reverse=True) %}
-                                            <option value="{{ url_for('teacher_section_period_view', section_period_id=period.id) }}">
-                                                {{ period.period_name }} {{ period.school_year }}
-                                            </option>
+                                    {% set teacher_id = uuid.UUID(session.user_id) %}
+                                    {% if section.section_periods %}
+                                        {% for period in section.section_periods | sort(attribute='school_year', reverse=True) %}
+                                            {# Show period if teacher is the main section adviser OR assigned to the specific period #}
+                                            {% if section.assigned_user_id == teacher_id or period.assigned_teacher_id == teacher_id %}
+                                                <option value="{{ url_for('section_period_details', section_period_id=period.id) }}">
+                                                    {{ period.period_name }} {{ period.school_year }}
+                                                </option>
+                                            {% endif %}
                                         {% endfor %}
                                     {% else %}
-                                        <option value="" disabled>No periods assigned to you</option>
+                                        <option value="" disabled>No periods exist for this section</option>
                                     {% endif %}
                                 </select>
-                        
+                                <button type="button" class="btn btn-primary btn-icon-small edit-btn"
+                                        title="Edit Section Settings"
+                                        data-edit-url="{{ url_for('edit_section', section_id=section.id) }}"
+                                        data-section-id="{{ section.id }}">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
                                 <button type="button" class="btn btn-danger btn-icon-small delete-btn"
                                         data-delete-url="{{ url_for('delete_teacher_section', section_id=section.id) }}"
                                         data-redirect-url="{{ url_for('teacher_dashboard') }}"
@@ -89,12 +91,7 @@
           <input type="hidden" id="targetPeriodUrl" name="targetPeriodUrl" value="">
           <div class="form-group" style="position: relative;">
             <label for="sectionPasswordInput">Section Password:</label>
-            <div style="display: flex; align-items: center;">
-              <input type="password" class="form-control" id="sectionPasswordInput" name="sectionPassword" required style="flex: 1;">
-              <button type="button" id="togglePasswordBtn" style="margin-left: 8px; background: none; border: none; cursor: pointer;" tabindex="-1" onclick="toggleSectionPasswordVisibility()">
-                <span id="eyeIcon" class="fas fa-eye"></span>
-              </button>
-            </div>
+            <input type="password" class="form-control" id="sectionPasswordInput" name="sectionPassword" required autocomplete="off">
           </div>
           <div id="sectionPasswordError" class="text-danger" style="display:none;"></div>
         </form>
@@ -146,7 +143,7 @@
             <label for="adviserPasswordInput">Adviser Password:</label>
             <div style="display: flex; align-items: center;">
               <input type="password" class="form-control" id="adviserPasswordInput" name="adviserPassword" required style="flex: 1;">
-              <button type="button" id="toggleAdviserPasswordBtn" style="margin-left: 8px; background: none; border: none; cursor: pointer;" tabindex="-1" onclick="toggleAdviserPasswordVisibility()">
+              <button type="button" id="adviserDashboardToggleBtn" style="margin-left: 8px; background: none; border: none; cursor: pointer;" tabindex="-1" onclick="toggleAdviserPasswordVisibility()">
                 <span id="adviserEyeIcon" class="fas fa-eye"></span>
               </button>
             </div>
@@ -162,12 +159,67 @@
   </div>
 </div>
 
+<!-- Adviser Password Modal for Section Delete -->
+<div id="adviserDeletePasswordModal" class="modal" tabindex="-1" role="dialog" style="display:none;">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Enter Adviser Password to Delete Section</h5>
+      </div>
+      <div class="modal-body">
+        <form id="adviserDeletePasswordForm" onsubmit="event.preventDefault(); submitAdviserDeletePassword();">
+          <input type="hidden" id="adviserDeleteSectionId" name="adviserDeleteSectionId" value="">
+          <div class="form-group" style="position: relative;">
+            <label for="adviserDeletePasswordInput">Adviser Password:</label>
+            <input type="password" class="form-control" id="adviserDeletePasswordInput" name="adviserDeletePassword" required autocomplete="off">
+          </div>
+          <div id="adviserDeletePasswordError" class="text-danger" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="submitAdviserDeletePassword()">Delete</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeAdviserDeletePasswordModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Section Adviser Password Modal -->
+<div id="editSectionPasswordModal" class="modal fade" tabindex="-1" aria-labelledby="editSectionPasswordModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editSectionPasswordModalLabel">Enter Adviser Password to Edit</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>You must enter the adviser password for this section to make changes.</p>
+        <form id="editSectionPasswordForm" onsubmit="event.preventDefault(); submitEditSectionPassword();">
+          <input type="hidden" id="editTargetUrl" value="">
+          <input type="hidden" id="editTargetSectionId" value="">
+          <div class="form-group">
+            <label for="editAdviserPasswordInput">Adviser Password:</label>
+            <input type="password" class="form-control" id="editAdviserPasswordInput" required autocomplete="off">
+          </div>
+          <div id="editAdviserPasswordError" class="text-danger mt-2" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="submitEditSectionPassword()">Submit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 let selectedSectionPassword = '';
 let selectedPeriodUrl = '';
 let sectionAverages = {};
 let sectionGradeRevealed = {};
 let studentListRevealed = {};
+let targetEditUrl = '';
+let targetEditSectionId = '';
 // Store the real average grades in a JS object for quick access
 {% for section in sections %}
     sectionAverages['{{ section.id }}'] = '{{ section.average_grade if section.average_grade != 'N/A' else '' }}';
@@ -188,6 +240,10 @@ function handlePeriodSelect(selectElem, sectionId, sectionPassword) {
 }
 function closeSectionPasswordModal() {
     document.getElementById('sectionPasswordModal').style.display = 'none';
+    // Reset all period dropdowns to default after modal closes
+    document.querySelectorAll('select.btn-view').forEach(function(dropdown) {
+        dropdown.value = '';
+    });
 }
 function submitSectionPassword() {
     const input = document.getElementById('sectionPasswordInput').value;
@@ -310,6 +366,124 @@ function toggleAdviserPasswordVisibility() {
         input.type = 'password';
         eyeIcon.className = 'fas fa-eye';
     }
+}
+
+function showAdviserDeletePasswordModal(sectionId, deleteUrl, redirectUrl, itemName) {
+    document.getElementById('adviserDeletePasswordModal').style.display = 'block';
+    document.getElementById('adviserDeleteSectionId').value = sectionId;
+    document.getElementById('adviserDeletePasswordInput').value = '';
+    document.getElementById('adviserDeletePasswordError').style.display = 'none';
+    document.getElementById('adviserDeletePasswordModal').setAttribute('data-delete-url', deleteUrl);
+    document.getElementById('adviserDeletePasswordModal').setAttribute('data-redirect-url', redirectUrl);
+    document.getElementById('adviserDeletePasswordModal').setAttribute('data-item-name', itemName);
+}
+function closeAdviserDeletePasswordModal() {
+    document.getElementById('adviserDeletePasswordModal').style.display = 'none';
+}
+function submitAdviserDeletePassword() {
+    const password = document.getElementById('adviserDeletePasswordInput').value;
+    const sectionId = document.getElementById('adviserDeleteSectionId').value;
+    const deleteUrl = document.getElementById('adviserDeletePasswordModal').getAttribute('data-delete-url');
+    const redirectUrl = document.getElementById('adviserDeletePasswordModal').getAttribute('data-redirect-url');
+    // Verify adviser password first
+    fetch('/api/verify_adviser_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section_id: sectionId, password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Proceed with section deletion
+            fetch(deleteUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'password=' + encodeURIComponent(password)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    window.location.href = redirectUrl;
+                } else {
+                    document.getElementById('adviserDeletePasswordError').innerText = result.message || 'Failed to delete section.';
+                    document.getElementById('adviserDeletePasswordError').style.display = 'block';
+                }
+            });
+        } else {
+            document.getElementById('adviserDeletePasswordError').innerText = 'Incorrect adviser password.';
+            document.getElementById('adviserDeletePasswordError').style.display = 'block';
+        }
+    });
+}
+// Attach to delete buttons
+window.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const sectionId = this.closest('tr').querySelector('td').innerText.trim();
+            const deleteUrl = this.getAttribute('data-delete-url');
+            const redirectUrl = this.getAttribute('data-redirect-url');
+            const itemName = this.getAttribute('data-item-name');
+            showAdviserDeletePasswordModal(sectionId, deleteUrl, redirectUrl, itemName);
+        });
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Listener for all "Edit" buttons
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', function(event) {
+            // Get data from the button
+            targetEditUrl = this.dataset.editUrl;
+            targetEditSectionId = this.dataset.sectionId;
+            
+            // Get the modal instance
+            const modalElement = document.getElementById('editSectionPasswordModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+            
+            // Reset form fields from previous uses
+            const passwordInput = document.getElementById('editAdviserPasswordInput');
+            const errorDiv = document.getElementById('editAdviserPasswordError');
+            passwordInput.value = '';
+            errorDiv.textContent = '';
+            errorDiv.style.display = 'none';
+
+            // Show the modal
+            modal.show();
+        });
+    });
+
+    // Other existing listeners can go here...
+});
+
+function submitEditSectionPassword() {
+    const password = document.getElementById('editAdviserPasswordInput').value;
+    const errorDiv = document.getElementById('editAdviserPasswordError');
+
+    fetch("{{ url_for('api_verify_adviser_password') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            password: password,
+            section_id: targetEditSectionId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = targetEditUrl; // Redirect on success
+        } else {
+            errorDiv.textContent = data.message || 'Incorrect password.';
+            errorDiv.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        console.error('Error verifying adviser password:', error);
+        errorDiv.textContent = 'An error occurred. Please try again.';
+        errorDiv.style.display = 'block';
+    });
 }
 </script>
 {% endblock %}

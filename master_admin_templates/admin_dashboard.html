@@ -1,0 +1,38 @@
+{% extends 'admin_base.html' %}
+{% block content %}
+<div class="welcome-section">
+    <div class="welcome-content">
+        <h1>Welcome, Master Admin!</h1>
+        <p class="welcome-subtitle">Manage all aspects of the student monitoring system from this portal.</p>
+    </div>
+</div>
+<div class="features-grid">
+    <div class="feature-card">
+        <i class="fas fa-layer-group"></i>
+        <h3>Strands</h3>
+        <p>View, add, or edit strands.</p>
+        <a href="{{ url_for('manage_strands') }}" class="btn btn-primary">Manage Strands</a>
+    </div>
+    <div class="feature-card">
+        <i class="fas fa-users"></i>
+        <h3>Sections</h3>
+        <p>Manage all sections and assignments.</p>
+        <a href="{{ url_for('manage_sections') }}" class="btn btn-primary">Manage Sections</a>
+    </div>
+    <div class="feature-card">
+        <i class="fas fa-user-cog"></i>
+        <h3>Admin Users</h3>
+        <p>Administer user accounts and permissions.</p>
+        <a href="{{ url_for('manage_users') }}" class="btn btn-primary">Manage Users</a>
+    </div>
+    <div class="feature-card">
+        <i class="fas fa-clipboard-list"></i>
+        <h3>Admin Logs</h3>
+        <p>View all admin actions and changes.</p>
+        <a href="{{ url_for('admin_logs') }}" class="btn btn-info">View Logs</a>
+    </div>
+</div>
+{% endblock %}
+
+<!-- Font Awesome CDN for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> 

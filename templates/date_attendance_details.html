@@ -36,8 +36,8 @@
                 <div class="card-header">
                     <h5 class="mb-0">Student Attendance Status</h5>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-bordered mb-0">
+                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                    <table class="table table-bordered mb-0 student-attendance-table">
                         <thead>
                             <tr>
                                 <th>Student Name</th>
@@ -45,7 +45,12 @@
                             </tr>
                         </thead>
                         <tbody id="studentTableBody">
-                            {% for student, attendance in attendance_records %}
+                            {% set boys = attendance_records | selectattr('0.gender', 'equalto', 'Male') | list %}
+                            {% set girls = attendance_records | selectattr('0.gender', 'equalto', 'Female') | list %}
+                            {% set unknowns = attendance_records | rejectattr('0.gender', 'equalto', 'Male') | rejectattr('0.gender', 'equalto', 'Female') | list %}
+                            {% if boys %}
+                            <tr class="table-group-divider"><td colspan="2" style="font-weight:bold; background:#f5f5f5;">Boys</td></tr>
+                            {% for student, attendance in boys %}
                             <tr class="student-row">
                                 <td class="student-name">{{ student.name }}</td>
                                 <td class="text-center">
@@ -63,8 +68,98 @@
                                 </td>
                             </tr>
                             {% endfor %}
+                            {% endif %}
+                            {% if girls %}
+                            <tr class="table-group-divider"><td colspan="2" style="font-weight:bold; background:#f5f5f5;">Girls</td></tr>
+                            {% for student, attendance in girls %}
+                            <tr class="student-row">
+                                <td class="student-name">{{ student.name }}</td>
+                                <td class="text-center">
+                                    {% if attendance %}
+                                        <span class="badge rounded-pill 
+                                            {% if attendance.status == 'present' %}bg-success
+                                            {% elif attendance.status == 'absent' %}bg-danger
+                                            {% elif attendance.status == 'late' %}bg-warning
+                                            {% else %}bg-info{% endif %}">
+                                            {{ attendance.status|title }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge rounded-pill bg-secondary">Not Recorded</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% endif %}
+                            {% if unknowns %}
+                            <tr class="table-group-divider"><td colspan="2" style="font-weight:bold; background:#f5f5f5;">Unknown/Other</td></tr>
+                            {% for student, attendance in unknowns %}
+                            <tr class="student-row">
+                                <td class="student-name">{{ student.name }}</td>
+                                <td class="text-center">
+                                    {% if attendance %}
+                                        <span class="badge rounded-pill 
+                                            {% if attendance.status == 'present' %}bg-success
+                                            {% elif attendance.status == 'absent' %}bg-danger
+                                            {% elif attendance.status == 'late' %}bg-warning
+                                            {% else %}bg-info{% endif %}">
+                                            {{ attendance.status|title }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge rounded-pill bg-secondary">Not Recorded</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% endif %}
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Summary for the Day -->
+    <div class="row mt-3">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Attendance Summary for This Date</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Total Present</span>
+                                    <span class="badge bg-success">{{ total_present }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Total Absent</span>
+                                    <span class="badge bg-danger">{{ total_absent }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Total Late</span>
+                                    <span class="badge bg-warning text-dark">{{ total_late }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Total Excused</span>
+                                    <span class="badge bg-info text-dark">{{ total_excused }}</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Total Boys</span>
+                                    <span class="badge bg-primary">{{ total_boys }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Total Girls</span>
+                                    <span class="badge bg-pink" style="background-color:#e83e8c;">{{ total_girls }}</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -100,6 +195,14 @@
 .badge {
     font-size: 0.9em;
     padding: 8px 12px;
+}
+
+/* Scrollable Student Attendance Table */
+.student-attendance-table thead th {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 2;
 }
 </style>
 

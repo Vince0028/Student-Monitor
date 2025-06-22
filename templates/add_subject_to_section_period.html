@@ -12,9 +12,14 @@
             <input type="text" id="subject_name" name="subject_name" required placeholder="e.g., General Math">
         </div>
         <div class="form-group">
-            <label for="assigned_teacher_name">Assigned Teacher's Name:</label>
-            <input type="text" id="assigned_teacher_name" name="assigned_teacher_name" required placeholder="e.g., Mr. John Smith">
-            <small class="form-hint">Enter the full name of the teacher responsible for this subject.</small>
+            <label for="assigned_teacher_name">Assigned Teacher Account:</label>
+            <select id="assigned_teacher_name" name="assigned_teacher_name" required>
+                <option value="">-- Select Teacher Account --</option>
+                {% for teacher in available_teachers %}
+                    <option value="{{ teacher.username }}">{{ teacher.username }}{% if teacher.specialization %} ({{ teacher.specialization }}){% endif %}</option>
+                {% endfor %}
+            </select>
+            <small class="form-hint">Select the teacher account for this grade level and strand. All teachers for this account will see this subject.</small>
         </div>
         <div class="button-group-right">
             <button type="submit" class="btn btn-primary"><i class="fas fa-book-medical"></i> Add Subject</button>

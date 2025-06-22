@@ -1,50 +1,35 @@
 {% extends 'student_base.html' %}
 
-<<<<<<< HEAD
 {% block title %}Summary of Grades - Student Monitor{% endblock %}
 
 {% block content %}
 <div class="form-page-container">
     <h2>Summary of Grades</h2>
-    <!-- Grades summary table would go here -->
+    {% if grades_by_period %}
+        {% for period, data in grades_by_period.items() %}
+            <h3>{{ data.period_name }} {{ data.school_year }}</h3>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for grade in data.grades %}
+                    <tr>
+                        <td>{{ grade.section_subject.subject_name if grade.section_subject else 'N/A' }}</td>
+                        <td>{{ '%.2f'|format(grade.grade_value) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-chart-line"></i>
+            <p>No grades available yet.</p>
+        </div>
+    {% endif %}
 </div>
-=======
-{% block title %}Grades - Student Portal{% endblock %}
-
-{% block content %}
-<h2><i class="fas fa-chart-line"></i> Grades Summary</h2>
-{% if grades %}
-    <div class="grades-summary" style="margin-bottom: 1.5rem;">
-        <strong>Average Grade:</strong>
-        <span style="color: #1976d2; font-weight: bold;">
-            {{ '%.2f'|format(grades|map(attribute='value')|sum / grades|length) }}
-        </span>
-    </div>
-    <div class="data-table">
-        <table>
-            <thead>
-                <tr>
-                    <th>Subject</th>
-                    <th>Grade</th>
-                    <th>Period</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for grade in grades %}
-                <tr>
-                    <td>{{ grade.subject }}</td>
-                    <td>{{ '%.2f'|format(grade.value) }}</td>
-                    <td>{{ grade.period }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-{% else %}
-    <div class="empty-state">
-        <i class="fas fa-chart-line"></i>
-        <p>No grades available yet.</p>
-    </div>
-{% endif %}
->>>>>>> e3c8666a7cdacd4ae5ed11fc7b5b6628c7d6deef
 {% endblock %} 

@@ -1,0 +1,37 @@
+{% extends 'admin_base.html' %}
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Manage Sections</h2>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+    </div>
+    <a href="{{ url_for('add_section_admin') }}" class="btn btn-primary" style="margin-bottom: 1.5em;"><i class="fas fa-plus-circle"></i> Add New Section</a>
+    <div class="table-responsive">
+        <table class="data-table" style="margin: 0 auto; min-width: 500px;">
+            <thead>
+                <tr>
+                    <th style="text-align: left;">Name</th>
+                    <th style="text-align: left;">Grade Level</th>
+                    <th style="text-align: left;">Strand</th>
+                    <th style="text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for section in sections %}
+                <tr>
+                    <td style="text-align: left;">{{ section.name }}</td>
+                    <td style="text-align: left;">{{ section.grade_level.name if section.grade_level else 'N/A' }}</td>
+                    <td style="text-align: left;">{{ section.strand.name if section.strand else 'N/A' }}</td>
+                    <td style="text-align: center;">
+                        <a href="{{ url_for('edit_section_admin', section_id=section.id) }}" class="btn btn-outline btn-sm" style="margin-right: 0.5em;"><i class="fas fa-edit"></i> Edit</a>
+                        <form action="{{ url_for('delete_section_admin', section_id=section.id) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this section?');"><i class="fas fa-trash-alt"></i> Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

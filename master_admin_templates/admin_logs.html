@@ -1,0 +1,29 @@
+{% extends 'admin_base.html' %}
+{% block content %}
+<div class="dashboard-container">
+    <h2>Admin Action Logs</h2>
+    <div class="table-responsive">
+        <table class="data-table" style="width:100%; margin-top: 1em;">
+            <thead>
+                <tr>
+                    <th>Action</th>
+                    <th>Target Admin</th>
+                    <th>Acting Admin</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.action|capitalize }}</td>
+                    <td>{{ log.target_username }}</td>
+                    <td>{{ log.acting_admin }}</td>
+                    <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <a href="{{ url_for('manage_users') }}" class="admin-card-link" style="background: #666; margin-top: 2em;">&larr; Back to Manage Admin Users</a>
+</div>
+{% endblock %} 

@@ -20,6 +20,14 @@
             <button type="button" class="password-toggle" onclick="togglePassword('password')" style="display: none;">Show</button>
             <input type="hidden" id="password_stored" value="{{ request.form.get('password', student.password_hash or '') }}">
         </div>
+        <div class="form-group">
+            <label for="gender">Gender:</label>
+            <select id="gender" name="gender" required>
+                <option value="">Select Gender</option>
+                <option value="Male" {% if student.gender == 'Male' %}selected{% endif %}>Boy</option>
+                <option value="Female" {% if student.gender == 'Female' %}selected{% endif %}>Girl</option>
+            </select>
+        </div>
         {# Updated dropdown to select SectionPeriod #}
         <div class="form-group">
             <label for="section_period_id">Assign to Section & {{ student.section_period.period_type }}:</label>

@@ -89,14 +89,6 @@
         font-size: 1rem;
         padding: 0.5rem 0.75rem;
     }
-    #adviserPasswordModal .show-btn {
-        background: none;
-        border: none;
-        color: #007bff;
-        font-weight: 500;
-        cursor: pointer;
-        margin-right: 0.5rem;
-    }
     #adviserPasswordModal .fa-eye, #adviserPasswordModal .fa-eye-slash {
         font-size: 1.1rem;
         color: #333;
@@ -117,6 +109,12 @@
         margin-top: 0.5rem;
         text-align: center;
     }
+    .student-list-scrollable {
+        max-height: 350px;
+        overflow-y: auto;
+        display: block;
+        width: 100%;
+    }
 </style>
 
 <div class="dashboard-container">
@@ -132,14 +130,14 @@
         <div class="card dashboard-option-card">
             <h3>Students in This {{ section_period.period_type | capitalize }}</h3>
             <p>View and manage individual student profiles for this specific {{ section_period.period_type | lower }}.</p>
-            <a href="{{ url_for('add_student_to_section_period', section_period_id=section_period.id) }}" class="btn btn-primary btn-icon">
+            <button class="btn btn-primary btn-icon" id="addStudentBtn" type="button">
                 <i class="fas fa-user-plus"></i> Add New Student
-            </a>
+            </button>
         </div>
         <div class="card dashboard-option-card">
             <h3>Subjects in This {{ section_period.period_type | capitalize }}</h3>
             <p>Add new subjects and assign actual teacher names for this {{ section_period.period_type | lower }}.</p>
-            <a href="{{ url_for('add_subject_to_section_period', section_period_id=section_period.id) }}" class="btn btn-primary btn-icon"><i class="fas fa-book-medical"></i> Add New Subject</a>
+            <button class="btn btn-primary btn-icon" id="addSubjectBtn" type="button"><i class="fas fa-book-medical"></i> Add New Subject</button>
         </div>
     </div>
 
@@ -148,38 +146,65 @@
         Show/View Student List
     </button>
     <div id="studentListContainer" style="display:none;">
-            <div class="table-responsive">
+        <div class="mb-3">
+            <input type="text" id="studentSearchInput" class="form-control" placeholder="Search students by name or ID...">
+        </div>
+        <div class="student-list-scrollable">
             <table class="table table-hover" id="studentTable">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Student ID</th>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Student ID</th>
                         <th>AVERAGE GRADE
                             <button type="button" id="toggleGradesBtn" onclick="toggleGradesVisibility()" style="background: none; border: none; cursor: pointer; margin-left: 6px;">
                                 <span id="gradesEyeIcon" class="fas fa-eye"></span>
                             </button>
                         </th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for student in students %}
-                            <tr>
-                                <td>{{ student.name }}</td>
-                                <td>{{ student.student_id_number }}</td>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {# Boys group #}
+                    {% set boys = students | selectattr('gender', 'equalto', 'Male') | list %}
+                    {% set girls = students | selectattr('gender', 'equalto', 'Female') | list %}
+                    {% if boys %}
+                    <tr class="table-group-divider"><td colspan="4" style="font-weight:bold; background:#f5f5f5;">Boys</td></tr>
+                    {% for student in boys %}
+                    <tr>
+                        <td>{{ student.name }}</td>
+                        <td>{{ student.student_id_number }}</td>
                         <td class="average-grade-cell">
                             <span class="masked-grade">***</span>
                             <span class="real-grade" style="display:none;">{{ '%.3f'|format(student.average_grade) if student.average_grade != 'N/A' else 'N/A' }}</span>
-                                </td>
-                                <td>
+                        </td>
+                        <td>
                             <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
-                            <button class="btn btn-danger btn-sm" onclick="confirmDeleteStudent('{{ student.id }}')">Delete</button>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                            <button class="btn btn-danger btn-sm" onclick="showAdviserDeleteStudentModal('{{ student.id }}', '{{ url_for('delete_student_admin', student_id=student.id) }}', '{{ url_for('teacher_dashboard') }}')">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                    {# Girls group #}
+                    {% if girls %}
+                    <tr class="table-group-divider"><td colspan="4" style="font-weight:bold; background:#f5f5f5;">Girls</td></tr>
+                    {% for student in girls %}
+                    <tr>
+                        <td>{{ student.name }}</td>
+                        <td>{{ student.student_id_number }}</td>
+                        <td class="average-grade-cell">
+                            <span class="masked-grade">***</span>
+                            <span class="real-grade" style="display:none;">{{ '%.3f'|format(student.average_grade) if student.average_grade != 'N/A' else 'N/A' }}</span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
+                            <button class="btn btn-danger btn-sm" onclick="showAdviserDeleteStudentModal('{{ student.id }}', '{{ url_for('delete_student_admin', student_id=student.id) }}', '{{ url_for('teacher_dashboard') }}')">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
     <div id="adviserPasswordModal" class="modal" tabindex="-1" role="dialog">
       <div class="modal-dialog" role="document">
@@ -189,14 +214,9 @@
           </div>
           <div class="modal-body">
             <form id="adviserPasswordForm" autocomplete="off">
-              <div class="form-group">
+              <div class="form-group" style="position: relative;">
                 <label for="adviserPasswordInput" style="font-weight: 500;">Adviser Password:</label>
-                <div class="password-input-group">
-                  <input type="password" class="form-control" id="adviserPasswordInput" name="adviserPassword" required>
-                  <button type="button" id="toggleAdviserPasswordBtn" tabindex="-1" onclick="toggleAdviserPasswordVisibility()" style="background: none; border: none; padding: 0 0.5rem; display: flex; align-items: center;">
-                    <span id="adviserEyeIcon" class="fas fa-eye"></span>
-                  </button>
-                </div>
+                <input type="password" class="form-control" id="adviserPasswordInput" name="adviserPassword" required autocomplete="off">
               </div>
               <div id="adviserPasswordError">Incorrect password. Please try again.</div>
               <div class="modal-footer">
@@ -205,8 +225,8 @@
               </div>
             </form>
           </div>
+            </div>
         </div>
-      </div>
     </div>
     <script>
     let gradesVisible = false;
@@ -235,24 +255,14 @@
                 studentListVisible = true;
                 gradesVisible = false;
                 sessionStorage.setItem('studentListVisible_{{ section_period.id }}', 'true');
+                sessionStorage.setItem('adviserPasswordVerified_{{ section_period.id }}', 'true');
                 updateStudentListVisibility();
                 updateGradesVisibility();
                 hideAdviserPasswordModal();
-                } else {
+            } else {
                 document.getElementById('adviserPasswordError').style.display = 'block';
             }
         });
-    }
-    function toggleAdviserPasswordVisibility() {
-        const input = document.getElementById('adviserPasswordInput');
-        const eyeIcon = document.getElementById('adviserEyeIcon');
-        if (input.type === 'password') {
-            input.type = 'text';
-            eyeIcon.className = 'fas fa-eye-slash';
-        } else {
-            input.type = 'password';
-            eyeIcon.className = 'fas fa-eye';
-        }
     }
     function toggleGradesVisibility() {
         if (!adviserPasswordVerified || !studentListVisible) {
@@ -278,6 +288,7 @@
         if (studentListVisible) {
             container.style.display = 'block';
             if (btn) btn.textContent = 'Hide Student List';
+            attachStudentSearchListener();
         } else {
             container.style.display = 'none';
             if (btn) btn.textContent = 'Show/View Student List';
@@ -287,6 +298,9 @@
     }
     function hideStudentList() {
         studentListVisible = false;
+        adviserPasswordVerified = false;
+        sessionStorage.setItem('studentListVisible_{{ section_period.id }}', 'false');
+        sessionStorage.setItem('adviserPasswordVerified_{{ section_period.id }}', 'false');
         updateStudentListVisibility();
     }
     function toggleStudentListVisibility() {
@@ -304,17 +318,38 @@
             studentListVisible = false;
             adviserPasswordVerified = false;
             sessionStorage.setItem('studentListVisible_{{ section_period.id }}', 'false');
+            sessionStorage.setItem('adviserPasswordVerified_{{ section_period.id }}', 'false');
             updateStudentListVisibility();
+        }
+    }
+    function attachStudentSearchListener() {
+        const searchInput = document.getElementById('studentSearchInput');
+        if (searchInput) {
+            // Remove any previous listeners by replacing the node
+            const newInput = searchInput.cloneNode(true);
+            searchInput.parentNode.replaceChild(newInput, searchInput);
+            newInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                document.querySelectorAll('#studentTable tbody tr').forEach(row => {
+                    // Only filter actual student rows (skip group dividers)
+                    if (row.children.length < 4) return;
+                    const name = row.children[0].textContent.toLowerCase();
+                    const id = row.children[1].textContent.toLowerCase();
+                    row.style.display = (name.includes(searchTerm) || id.includes(searchTerm)) ? '' : 'none';
+                });
+            });
         }
     }
     document.addEventListener('DOMContentLoaded', function() {
         gradesVisible = false;
-        adviserPasswordVerified = false;
-        // Restore student list visibility from sessionStorage
+        // Restore student list and adviser password state from sessionStorage
         const persisted = sessionStorage.getItem('studentListVisible_{{ section_period.id }}');
         studentListVisible = persisted === 'true';
+        const persistedAdviser = sessionStorage.getItem('adviserPasswordVerified_{{ section_period.id }}');
+        adviserPasswordVerified = persistedAdviser === 'true';
         updateStudentListVisibility();
         updateGradesVisibility();
+        attachStudentSearchListener();
         // Fix: Attach submit handler to adviserPasswordForm
         const adviserPasswordForm = document.getElementById('adviserPasswordForm');
         if (adviserPasswordForm) {
@@ -342,15 +377,10 @@
                     <button type="button" class="btn btn-view btn-icon-small" data-bs-toggle="modal" data-bs-target="#gradebookPasswordModal-{{ subject.id }}" title="Manage Gradebook">
                         <i class="fas fa-book-open"></i> Gradebook
                     </button>
-                    <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editSubjectModal-{{ subject.id }}" title="Edit Subject">
+                    <button type="button" class="btn btn-edit btn-icon-small" onclick="showSubjectPasswordModal('{{ subject.id }}')" title="Edit Subject">
                         <i class="fas fa-edit"></i> Edit
                     </button>
-                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
-                            data-delete-url="{{ url_for('delete_section_subject', section_period_id=section_period.id, subject_id=subject.id) }}"
-                            data-redirect-url="{{ url_for('teacher_section_period_view', section_period_id=section_period.id) }}"
-                            data-confirmation-message="Are you sure you want to delete subject {{ subject.subject_name }}? This will also delete all grades associated with it that you entered for this {{ section_period.period_type | lower }}."
-                            data-item-name="Subject {{ subject.subject_name }}"
-                            title="Delete Subject">
+                    <button type="button" class="btn btn-danger btn-icon-small subject-delete-btn-{{ subject.id }}" onclick="showSubjectDeletePasswordModal('{{ subject.id }}')" title="Delete Subject">
                         <i class="fas fa-trash-alt"></i> Delete
                     </button>
                 </div>
@@ -426,57 +456,153 @@
         </div>
     </div>
 </div>
+
+<!-- Subject Password Modal for Edit -->
+<div class="modal fade" id="subjectPasswordModal-{{ subject.id }}" tabindex="-1" aria-labelledby="subjectPasswordModalLabel-{{ subject.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="subjectPasswordModalLabel-{{ subject.id }}">Enter Subject Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="subjectPasswordForm-{{ subject.id }}" onsubmit="event.preventDefault(); submitSubjectPassword('{{ subject.id }}');">
+                    <div class="mb-3">
+                        <label for="subject_password_input-{{ subject.id }}" class="form-label">Subject Password</label>
+                        <input type="password" class="form-control" id="subject_password_input-{{ subject.id }}" name="subject_password" required>
+                        <div class="form-text">Please enter the subject password to access the edit modal.</div>
+                        <div id="subjectPasswordError-{{ subject.id }}" class="text-danger" style="display:none;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Access Edit Modal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Subject Password Modal for Delete -->
+<div class="modal fade" id="subjectDeletePasswordModal-{{ subject.id }}" tabindex="-1" aria-labelledby="subjectDeletePasswordModalLabel-{{ subject.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="subjectDeletePasswordModalLabel-{{ subject.id }}">Enter Subject Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="subjectDeletePasswordForm-{{ subject.id }}" autocomplete="off" onsubmit="event.preventDefault(); submitSubjectDeletePassword('{{ subject.id }}');">
+                    <div class="mb-3">
+                        <label for="subject_delete_password_input-{{ subject.id }}" class="form-label">Subject Password</label>
+                        <input type="password" class="form-control" id="subject_delete_password_input-{{ subject.id }}" required>
+                        <div class="form-text">Please enter the subject password to continue.</div>
+                        <div id="subjectDeletePasswordError-{{ subject.id }}" class="text-danger" style="display:none;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Continue</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endfor %}
 {% endif %}
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Add form validation for edit subject forms
-    {% if section_subjects %}
-    {% for subject in section_subjects %}
-    const form{{ subject.id }} = document.getElementById('editSubjectForm-{{ subject.id }}');
-    if (form{{ subject.id }}) {
-        form{{ subject.id }}.addEventListener('submit', function(e) {
-            const password = document.getElementById('password-{{ subject.id }}').value;
-            const subjectName = document.getElementById('subject_name-{{ subject.id }}').value;
-            const teacherName = document.getElementById('assigned_teacher_name-{{ subject.id }}').value;
-            
+    document.querySelectorAll('[id^="editSubjectForm-"]').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            const subjectId = this.id.replace('editSubjectForm-', '');
+            const password = document.getElementById('password-' + subjectId).value;
+            const subjectName = document.getElementById('subject_name-' + subjectId).value;
+            const teacherName = document.getElementById('assigned_teacher_name-' + subjectId).value;
             if (!password.trim()) {
                 e.preventDefault();
                 alert('Password is required to save changes.');
-                document.getElementById('password-{{ subject.id }}').focus();
+                document.getElementById('password-' + subjectId).focus();
                 return false;
             }
-            
             if (!subjectName.trim() || !teacherName.trim()) {
                 e.preventDefault();
                 alert('Subject name and assigned teacher name are required.');
                 return false;
             }
         });
-    }
-    {% endfor %}
-    {% endif %}
-
+    });
     // Add form validation for gradebook password forms
-    {% if section_subjects %}
-    {% for subject in section_subjects %}
-    const gradebookForm{{ subject.id }} = document.getElementById('gradebookPasswordForm-{{ subject.id }}');
-    if (gradebookForm{{ subject.id }}) {
-        gradebookForm{{ subject.id }}.addEventListener('submit', function(e) {
-            const password = document.getElementById('subject_password-{{ subject.id }}').value;
-            
+    document.querySelectorAll('[id^="gradebookPasswordForm-"]').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            const subjectId = this.id.replace('gradebookPasswordForm-', '');
+            const password = document.getElementById('subject_password-' + subjectId).value;
             if (!password.trim()) {
                 e.preventDefault();
                 alert('Subject password is required to access the gradebook.');
-                document.getElementById('subject_password-{{ subject.id }}').focus();
+                document.getElementById('subject_password-' + subjectId).focus();
                 return false;
             }
         });
-    }
-    {% endfor %}
-    {% endif %}
+    });
 });
+function showSubjectPasswordModal(subjectId) {
+    document.getElementById('subject_password_input-' + subjectId).value = '';
+    document.getElementById('subjectPasswordError-' + subjectId).style.display = 'none';
+    var modal = new bootstrap.Modal(document.getElementById('subjectPasswordModal-' + subjectId));
+    modal.show();
+}
+function submitSubjectPassword(subjectId) {
+    const password = document.getElementById('subject_password_input-' + subjectId).value;
+    fetch('/api/verify_gradebook_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject_id: subjectId, password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            var modal = bootstrap.Modal.getInstance(document.getElementById('subjectPasswordModal-' + subjectId));
+            modal.hide();
+            // Open the actual edit modal
+            setTimeout(function() {
+                var editModal = new bootstrap.Modal(document.getElementById('editSubjectModal-' + subjectId));
+                editModal.show();
+            }, 300);
+        } else {
+            document.getElementById('subjectPasswordError-' + subjectId).innerText = 'Incorrect subject password.';
+            document.getElementById('subjectPasswordError-' + subjectId).style.display = 'block';
+        }
+    });
+}
+function showSubjectDeletePasswordModal(subjectId) {
+    document.getElementById('subject_delete_password_input-' + subjectId).value = '';
+    document.getElementById('subjectDeletePasswordError-' + subjectId).style.display = 'none';
+    var modal = new bootstrap.Modal(document.getElementById('subjectDeletePasswordModal-' + subjectId));
+    modal.show();
+}
+function submitSubjectDeletePassword(subjectId) {
+    const password = document.getElementById('subject_delete_password_input-' + subjectId).value;
+    fetch('/api/verify_gradebook_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject_id: subjectId, password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            var modal = bootstrap.Modal.getInstance(document.getElementById('subjectDeletePasswordModal-' + subjectId));
+            modal.hide();
+            setTimeout(function() {
+                document.querySelector('.subject-delete-btn-' + subjectId).closest('.list-item').querySelector('button[data-delete-url]').click();
+            }, 300);
+        } else {
+            document.getElementById('subjectDeletePasswordError-' + subjectId).innerText = 'Incorrect subject password.';
+            document.getElementById('subjectDeletePasswordError-' + subjectId).style.display = 'block';
+        }
+    });
+}
 </script>
 
 <!-- Modals for Editing Students -->
@@ -511,5 +637,179 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 {% endfor %}
 {% endif %}
+
+<!-- Adviser Password Modal for Add Actions -->
+<div id="adviserAddPasswordModal" class="modal" tabindex="-1" role="dialog" style="display:none;">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Enter Adviser Password</h5>
+      </div>
+      <div class="modal-body">
+        <form id="adviserAddPasswordForm" onsubmit="event.preventDefault(); submitAdviserAddPassword();">
+          <input type="hidden" id="adviserAddTargetUrl" name="adviserAddTargetUrl" value="">
+          <input type="hidden" id="adviserAddSectionId" name="adviserAddSectionId" value="{{ section_period.section.id }}">
+          <div class="form-group" style="position: relative;">
+            <label for="adviserAddPasswordInput">Adviser Password:</label>
+            <input type="password" class="form-control" id="adviserAddPasswordInput" name="adviserAddPassword" required autocomplete="off">
+          </div>
+          <div id="adviserAddPasswordError" class="text-danger" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="submitAdviserAddPassword()">Submit</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeAdviserAddPasswordModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('addStudentBtn').addEventListener('click', function() {
+    showAdviserAddPasswordModal("{{ url_for('add_student_to_section_period', section_period_id=section_period.id) }}");
+});
+document.getElementById('addSubjectBtn').addEventListener('click', function() {
+    showAdviserAddPasswordModal("{{ url_for('add_subject_to_section_period', section_period_id=section_period.id) }}");
+});
+function showAdviserAddPasswordModal(targetUrl) {
+    document.getElementById('adviserAddTargetUrl').value = targetUrl;
+    document.getElementById('adviserAddPasswordInput').value = '';
+    document.getElementById('adviserAddPasswordError').style.display = 'none';
+    document.getElementById('adviserAddPasswordModal').style.display = 'block';
+}
+function closeAdviserAddPasswordModal() {
+    document.getElementById('adviserAddPasswordModal').style.display = 'none';
+}
+function submitAdviserAddPassword() {
+    const password = document.getElementById('adviserAddPasswordInput').value;
+    const sectionId = document.getElementById('adviserAddSectionId').value;
+    const targetUrl = document.getElementById('adviserAddTargetUrl').value;
+    if (!password) {
+        document.getElementById('adviserAddPasswordError').innerText = 'Password is required.';
+        document.getElementById('adviserAddPasswordError').style.display = 'block';
+        return;
+    }
+    fetch('/api/verify_adviser_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section_id: sectionId, password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = targetUrl;
+        } else {
+            document.getElementById('adviserAddPasswordError').innerText = 'Incorrect adviser password.';
+            document.getElementById('adviserAddPasswordError').style.display = 'block';
+        }
+    });
+}
+</script>
+
+<!-- Adviser Password Modal for Student Delete -->
+<div id="adviserDeleteStudentModal" class="modal" tabindex="-1" role="dialog" style="display:none;">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Enter Adviser Password to Delete Student</h5>
+      </div>
+      <div class="modal-body">
+        <form id="adviserDeleteStudentForm" onsubmit="event.preventDefault(); submitAdviserDeleteStudent();">
+          <input type="hidden" id="adviserDeleteStudentId" name="adviserDeleteStudentId" value="">
+          <input type="hidden" id="adviserDeleteStudentUrl" name="adviserDeleteStudentUrl" value="">
+          <input type="hidden" id="adviserDeleteStudentRedirectUrl" name="adviserDeleteStudentRedirectUrl" value="">
+          <div class="form-group" style="position: relative;">
+            <label for="adviserDeleteStudentPasswordInput">Adviser Password:</label>
+            <input type="password" class="form-control" id="adviserDeleteStudentPasswordInput" name="adviserDeleteStudentPassword" required autocomplete="off">
+          </div>
+          <div id="adviserDeleteStudentPasswordError" class="text-danger" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="submitAdviserDeleteStudent()">Delete</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeAdviserDeleteStudentModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showAdviserDeleteStudentModal(studentId, deleteUrl, redirectUrl) {
+    document.getElementById('adviserDeleteStudentId').value = studentId;
+    document.getElementById('adviserDeleteStudentUrl').value = deleteUrl;
+    document.getElementById('adviserDeleteStudentRedirectUrl').value = redirectUrl;
+    document.getElementById('adviserDeleteStudentPasswordInput').value = '';
+    document.getElementById('adviserDeleteStudentPasswordError').style.display = 'none';
+    document.getElementById('adviserDeleteStudentModal').style.display = 'block';
+}
+function closeAdviserDeleteStudentModal() {
+    document.getElementById('adviserDeleteStudentModal').style.display = 'none';
+}
+function submitAdviserDeleteStudent() {
+    const password = document.getElementById('adviserDeleteStudentPasswordInput').value;
+    const studentId = document.getElementById('adviserDeleteStudentId').value;
+    const deleteUrl = document.getElementById('adviserDeleteStudentUrl').value;
+    const redirectUrl = document.getElementById('adviserDeleteStudentRedirectUrl').value;
+    const sectionId = '{{ section_period.section.id }}';
+    if (!password) {
+        document.getElementById('adviserDeleteStudentPasswordError').innerText = 'Password is required.';
+        document.getElementById('adviserDeleteStudentPasswordError').style.display = 'block';
+        return;
+    }
+    fetch('/api/verify_adviser_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section_id: sectionId, password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Proceed with student deletion
+            fetch(deleteUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'password=' + encodeURIComponent(password)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showSuccessToast(result.message || "Student deleted successfully!");
+                    setTimeout(function() {
+                        window.location.href = redirectUrl;
+                    }, 1500); // Show toast for 1.5 seconds before redirect
+                } else {
+                    document.getElementById('adviserDeleteStudentPasswordError').innerText = result.message || 'Failed to delete student.';
+                    document.getElementById('adviserDeleteStudentPasswordError').style.display = 'block';
+                }
+            });
+        } else {
+            document.getElementById('adviserDeleteStudentPasswordError').innerText = 'Incorrect adviser password.';
+            document.getElementById('adviserDeleteStudentPasswordError').style.display = 'block';
+        }
+    });
+}
+</script>
+
+<!-- Move the toast container to the top right, just below the header -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
+  <div id="successToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="successToastBody">
+        <!-- Message will be inserted here -->
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+function showSuccessToast(message) {
+    var toastBody = document.getElementById('successToastBody');
+    toastBody.textContent = message;
+    var toastEl = document.getElementById('successToast');
+    var toast = new bootstrap.Toast(toastEl);
+    toast.show();
+}
+</script>
 
 {% endblock %}

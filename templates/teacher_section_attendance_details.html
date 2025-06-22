@@ -38,8 +38,8 @@
                             </div>
                         </div>
 
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
+                        <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                            <table class="table table-bordered attendance-table">
                                 <thead>
                                     <tr>
                                         <th>Student Name</th>
@@ -47,7 +47,11 @@
                                     </tr>
                                 </thead>
                                 <tbody id="studentTableBody">
-                                    {% for student in students %}
+                                    {% set boys = students | selectattr('gender', 'equalto', 'Male') | list %}
+                                    {% set girls = students | selectattr('gender', 'equalto', 'Female') | list %}
+                                    {% if boys %}
+                                    <tr class="table-group-divider"><td colspan="2" style="font-weight:bold; background:#f5f5f5;">Boys</td></tr>
+                                    {% for student in boys %}
                                         <tr class="student-row">
                                             <td class="student-name">{{ student.name }}</td>
                                             <td>
@@ -67,13 +71,37 @@
                                             </td>
                                         </tr>
                                     {% endfor %}
+                                    {% endif %}
+                                    {% if girls %}
+                                    <tr class="table-group-divider"><td colspan="2" style="font-weight:bold; background:#f5f5f5;">Girls</td></tr>
+                                    {% for student in girls %}
+                                        <tr class="student-row">
+                                            <td class="student-name">{{ student.name }}</td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <input type="radio" class="btn-check" name="status_{{ student.id }}" id="present_{{ student.id }}" value="present" required>
+                                                    <label class="btn btn-outline-success" for="present_{{ student.id }}">Present</label>
+
+                                                    <input type="radio" class="btn-check" name="status_{{ student.id }}" id="absent_{{ student.id }}" value="absent">
+                                                    <label class="btn btn-outline-danger" for="absent_{{ student.id }}">Absent</label>
+
+                                                    <input type="radio" class="btn-check" name="status_{{ student.id }}" id="late_{{ student.id }}" value="late">
+                                                    <label class="btn btn-outline-warning" for="late_{{ student.id }}">Late</label>
+
+                                                    <input type="radio" class="btn-check" name="status_{{ student.id }}" id="excused_{{ student.id }}" value="excused">
+                                                    <label class="btn btn-outline-info" for="excused_{{ student.id }}">Excused</label>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    {% endif %}
                                 </tbody>
                             </table>
                         </div>
 
                         <div class="d-flex justify-content-between mt-3">
-                            <a href="{{ url_for('teacher_section_period_view', section_period_id=section_period.id) }}" 
-                               class="btn btn-secondary">Back to Section</a>
+                            <a href="{{ url_for('manage_subject_grades', section_period_id=section_period.id, subject_id=subject.id) }}" 
+                               class="btn btn-secondary">Back to Gradebook</a>
                             <div>
                                 <a href="{{ url_for('teacher_section_attendance_history', section_period_id=section_period.id, subject_id=subject.id) }}" 
                                    class="btn btn-info me-2">
@@ -138,6 +166,14 @@
 /* Hide rows that don't match search */
 .student-row.hidden {
     display: none;
+}
+
+/* Scrollable Attendance Table */
+.attendance-table thead th {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 2;
 }
 </style>
 
