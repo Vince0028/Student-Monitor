@@ -45,6 +45,8 @@
         {% block content %}{% endblock %}
     </main>
 
+    {% include 'profile_password_modal.html' %}
+
     <footer class="app-footer">
         <div class="container">
             <p>&copy; 2025 Student Monitor. All rights reserved.</p>
@@ -128,6 +130,15 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            const profileLink = document.querySelector('a[href="{{ url_for('profile') }}"]');
+            if (profileLink && "{{ session.user_type }}" === "teacher") {
+                profileLink.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const passwordModal = new bootstrap.Modal(document.getElementById('passwordConfirmModal'));
+                    passwordModal.show();
+                });
+            }
+
             // Event listener for all delete buttons using 'delete-btn' class
             document.querySelectorAll('.delete-btn').forEach(button => {
                 button.addEventListener('click', function(event) {
@@ -163,6 +174,31 @@
                 });
             }
         });
+
+        function submitPassword() {
+            const password = document.getElementById('adminPassword').value;
+            const errorDiv = document.getElementById('passwordError');
+            
+            fetch("{{ url_for('verify_password_for_profile') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ password: password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = "{{ url_for('profile') }}";
+                } else {
+                    errorDiv.textContent = data.message || 'Incorrect password.';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                errorDiv.textContent = 'An error occurred. Please try again.';
+            });
+        }
     </script>
     {% block scripts %}{% endblock %}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -245,6 +281,12 @@
                 subtree: true
             });
         });
+    </script>
+    <script>
+        // Auto-dismiss flash messages after 5 seconds
+        setTimeout(function() {
+            $('.alert').fadeOut('slow');
+        }, 5000); // 5000 milliseconds = 5 seconds
     </script>
 </body>
 </html>

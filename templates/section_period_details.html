@@ -47,58 +47,27 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {# Boys group #}
-                    {% set boys = students | selectattr('gender', 'equalto', 'Male') | list %}
-                    {% set girls = students | selectattr('gender', 'equalto', 'Female') | list %}
-                    {% if boys %}
-                    <tr class="table-group-divider"><td colspan="4" style="font-weight:bold; background:#f5f5f5;">Boys</td></tr>
-                    {% for student in boys %}
-                    <tr>
-                        <td>{{ student.name }}</td>
-                        <td>{{ student.student_id_number }}</td>
-                        <td class="average-grade-cell"><span class="average-grade-value">{{ student.average_grade }}</span></td>
-                        <td>
-                            <div class="button-group">
-                                <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-edit btn-icon-small" title="Edit Student Details">
-                                    <i class="fas fa-user-edit"></i> Edit
-                                </a>
-                                <button type="button" class="btn btn-danger btn-icon-small delete-btn"
-                                        data-delete-url="{{ url_for('delete_student_admin', student_id=student.id) }}"
-                                        data-redirect-url="{{ url_for('section_period_details', section_period_id=section_period.id) }}"
-                                        data-confirmation-message="Are you sure you want to delete student {{ student.name }}? This will also delete ALL their attendance and grades."
-                                        data-item-name="Student {{ student.name }}"
-                                        title="Delete Student">
-                                    <i class="fas fa-user-slash"></i> Delete
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    {% endif %}
-                    {# Girls group #}
-                    {% if girls %}
-                    <tr class="table-group-divider"><td colspan="4" style="font-weight:bold; background:#f5f5f5;">Girls</td></tr>
-                    {% for student in girls %}
-                    <tr>
-                        <td>{{ student.name }}</td>
-                        <td>{{ student.student_id_number }}</td>
-                        <td class="average-grade-cell"><span class="average-grade-value">{{ student.average_grade }}</span></td>
-                        <td>
-                            <div class="button-group">
-                                <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-edit btn-icon-small" title="Edit Student Details">
-                                    <i class="fas fa-user-edit"></i> Edit
-                                </a>
-                                <button type="button" class="btn btn-danger btn-icon-small delete-btn"
-                                        data-delete-url="{{ url_for('delete_student_admin', student_id=student.id) }}"
-                                        data-redirect-url="{{ url_for('section_period_details', section_period_id=section_period.id) }}"
-                                        data-confirmation-message="Are you sure you want to delete student {{ student.name }}? This will also delete ALL their attendance and grades."
-                                        data-item-name="Student {{ student.name }}"
-                                        title="Delete Student">
-                                    <i class="fas fa-user-slash"></i> Delete
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
+                    {% for student in students %}
+                        <tr>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.student_id_number }}</td>
+                            <td class="average-grade-cell"><span class="average-grade-value">{{ student.average_grade }}</span></td>
+                            <td>
+                                <div class="button-group">
+                                    <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-edit btn-icon-small" title="Edit Student Details">
+                                        <i class="fas fa-user-edit"></i> Edit
+                                    </a>
+                                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
+                                            data-delete-url="{{ url_for('delete_student_admin', student_id=student.id) }}"
+                                            data-redirect-url="{{ url_for('section_period_details', section_period_id=section_period.id) }}"
+                                            data-confirmation-message="Are you sure you want to delete student {{ student.name }}? This will also delete ALL their attendance and grades."
+                                            data-item-name="Student {{ student.name }}"
+                                            title="Delete Student">
+                                        <i class="fas fa-user-slash"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
                     {% endfor %}
                     {% endif %}
                 </tbody>
@@ -141,21 +110,6 @@
             eyeIcon.className = !visible ? 'fas fa-eye' : 'fas fa-eye-slash';
         }
     }
-    </script>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const searchInput = document.getElementById('studentSearchInput');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase();
-                document.querySelectorAll('#studentTable tbody tr').forEach(row => {
-                    const name = row.children[0].textContent.toLowerCase();
-                    const id = row.children[1].textContent.toLowerCase();
-                    row.style.display = (name.includes(searchTerm) || id.includes(searchTerm)) ? '' : 'none';
-                });
-            });
-        }
-    });
     </script>
     {% else %}
     <p class="no-data-message mt-40">No students added to this period yet. Start by adding one!</p>
@@ -232,25 +186,21 @@
 {% endif %}
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Add form validation for edit subject forms
-    {% if section_subjects %}
-    {% for subject in section_subjects %}
-    const form{{ subject.id }} = document.getElementById('editSubjectForm-{{ subject.id }}');
-    if (form{{ subject.id }}) {
-        form{{ subject.id }}.addEventListener('submit', function(e) {
-            const password = document.getElementById('password-{{ subject.id }}').value;
-            const subjectName = document.getElementById('subject_name-{{ subject.id }}').value;
-            const teacherName = document.getElementById('assigned_teacher_name-{{ subject.id }}').value;
-            const subjectPassword = document.getElementById('subject_password-{{ subject.id }}').value;
-            
+// Form validation for edit subject forms
+function setupEditSubjectFormValidation() {
+    document.querySelectorAll('[id^="editSubjectForm-"]').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            const subjectId = form.id.replace('editSubjectForm-', '');
+            const password = document.getElementById('password-' + subjectId).value;
+            const subjectName = document.getElementById('subject_name-' + subjectId).value;
+            const teacherName = document.getElementById('assigned_teacher_name-' + subjectId).value;
+            const subjectPassword = document.getElementById('subject_password-' + subjectId).value;
             if (!password.trim()) {
                 e.preventDefault();
                 alert('Your admin password is required to save changes.');
-                document.getElementById('password-{{ subject.id }}').focus();
+                document.getElementById('password-' + subjectId).focus();
                 return false;
             }
-            
             if (!subjectName.trim() || !teacherName.trim() || !subjectPassword.trim()) {
                 e.preventDefault();
                 alert('Subject name, assigned teacher name, and subject password are required.');
@@ -261,112 +211,5 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endfor %}
     {% endif %}
 });
-</script>
-
-<style>
-    /* ...existing styles... */
-    .student-list-scrollable {
-        max-height: 350px;
-        overflow-y: auto;
-        display: block;
-        width: 100%;
-    }
-</style>
-
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Deletion</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p id="deleteConfirmMessage">Are you sure you want to delete this item?</p>
-        <div class="mb-3">
-          <label for="deletePasswordInput" class="form-label">Enter your password to confirm:</label>
-          <input type="password" class="form-control" id="deletePasswordInput" autocomplete="off">
-          <div class="invalid-feedback" id="deletePasswordError"></div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-// Delete confirmation modal logic
-let deleteUrl = '';
-let redirectUrl = '';
-document.querySelectorAll('.delete-btn').forEach(btn => {
-  btn.addEventListener('click', function() {
-    deleteUrl = this.getAttribute('data-delete-url');
-    redirectUrl = this.getAttribute('data-redirect-url');
-    const itemName = this.getAttribute('data-item-name') || 'this item';
-    const message = this.getAttribute('data-confirmation-message') || `Are you sure you want to delete ${itemName}?`;
-    document.getElementById('deleteConfirmMessage').textContent = message;
-    document.getElementById('deletePasswordInput').value = '';
-    document.getElementById('deletePasswordError').textContent = '';
-    document.getElementById('deletePasswordInput').classList.remove('is-invalid');
-    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
-    modal.show();
-  });
-});
-
-document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-  const password = document.getElementById('deletePasswordInput').value;
-  if (!password) {
-    document.getElementById('deletePasswordError').textContent = 'Password is required.';
-    document.getElementById('deletePasswordInput').classList.add('is-invalid');
-    return;
-  }
-  fetch(deleteUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `password=${encodeURIComponent(password)}`
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      window.location.href = data.redirect_url || redirectUrl;
-    } else {
-      document.getElementById('deletePasswordError').textContent = data.message || 'Incorrect password.';
-      document.getElementById('deletePasswordInput').classList.add('is-invalid');
-    }
-  })
-  .catch(() => {
-    document.getElementById('deletePasswordError').textContent = 'An error occurred.';
-    document.getElementById('deletePasswordInput').classList.add('is-invalid');
-  });
-});
-
-// Add this after the delete confirmation modal logic
-function showFlashMessage(message, category = 'success') {
-  const flashContainer = document.createElement('div');
-  flashContainer.className = `alert alert-${category}`;
-  flashContainer.textContent = message;
-  document.querySelector('.dashboard-container').prepend(flashContainer);
-  setTimeout(() => flashContainer.remove(), 4000);
-}
-
-// Patch the delete button AJAX logic to show a flash message
-const originalConfirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-if (originalConfirmDeleteBtn) {
-  const handler = originalConfirmDeleteBtn.onclick;
-  originalConfirmDeleteBtn.onclick = function(...args) {
-    const prevLocation = window.location.href;
-    const result = handler.apply(this, args);
-    // Listen for location change (redirect) and show message if still on page
-    setTimeout(() => {
-      if (window.location.href === prevLocation) {
-        showFlashMessage('Student deleted successfully!', 'success');
-      }
-    }, 500);
-    return result;
-  };
-}
 </script>
 {% endblock %}
