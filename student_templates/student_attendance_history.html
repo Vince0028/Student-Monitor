@@ -1,0 +1,303 @@
+{% extends 'student_base.html' %}
+
+{% block title %}My Attendance - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 1100px;">
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+        <h2 class="attendance-title"><i class="fas fa-calendar-check"></i> My Attendance</h2>
+        <div class="attendance-subtitle">Track your attendance record and stay informed</div>
+    </div>
+    <!-- Summary Cards -->
+    <div class="attendance-summary-cards">
+        <div class="summary-card">
+            <div class="summary-value">{{ total_classes }}</div>
+            <div class="summary-label">Total Classes</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value present">{{ present_count }}</div>
+            <div class="summary-label">Present <span class="summary-percent">{{ (present_count / total_classes * 100) | round(0) if total_classes else 0 }}% of total</span></div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value absent">{{ absent_count }}</div>
+            <div class="summary-label">Absent <span class="summary-percent">{{ (absent_count / total_classes * 100) | round(0) if total_classes else 0 }}% of total</span></div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value late">{{ late_count }}</div>
+            <div class="summary-label">Late <span class="summary-percent">{{ (late_count / total_classes * 100) | round(0) if total_classes else 0 }}% of total</span></div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value excused">{{ excused_count }}</div>
+            <div class="summary-label">Excused <span class="summary-percent">{{ (excused_count / total_classes * 100) | round(0) if total_classes else 0 }}% of total</span></div>
+        </div>
+    </div>
+    <!-- Filters & Search -->
+    <div class="attendance-filter-card">
+        <div class="attendance-filter-title"><i class="fas fa-filter"></i> Filters & Search</div>
+        <div class="attendance-filter-row">
+            <input type="text" class="form-control attendance-search" id="attendanceSearch" placeholder="Search by subject or notes...">
+            <select class="form-select attendance-status-filter" id="statusFilter">
+                <option value="">All Status</option>
+                <option value="present">Present</option>
+                <option value="absent">Absent</option>
+                <option value="late">Late</option>
+                <option value="excused">Excused</option>
+            </select>
+            <select class="form-select attendance-subject-filter" id="subjectFilter">
+                <option value="">All Subjects</option>
+                {% for subject in records_by_subject.keys() %}
+                <option value="{{ subject }}">{{ subject }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-outline-secondary attendance-clear-btn" id="clearFilters" type="button">Clear</button>
+        </div>
+    </div>
+    <!-- Attendance Table -->
+    <div class="attendance-table-card">
+        <div class="attendance-table-title">Attendance Records</div>
+        <div class="attendance-table-subtitle">Showing {{ attendance_records|length }} of {{ attendance_records|length }} records</div>
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0" id="attendanceTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in attendance_records %}
+                    <tr data-status="{{ record.status }}" data-subject="{{ subject_map.get(record.section_subject_id, 'No Subject') }}" data-notes="{{ record.notes or '' }}">
+                        <td>{{ record.attendance_date.strftime('%a, %b %d, %Y') }}</td>
+                        <td>{{ subject_map.get(record.section_subject_id, 'No Subject') }}</td>
+                        <td>
+                            {% if record.status == 'present' %}
+                                <span class="badge badge-present"><i class="fas fa-check-circle"></i> Present</span>
+                            {% elif record.status == 'absent' %}
+                                <span class="badge badge-absent"><i class="fas fa-times-circle"></i> Absent</span>
+                            {% elif record.status == 'late' %}
+                                <span class="badge badge-late"><i class="fas fa-clock"></i> Late</span>
+                            {% elif record.status == 'excused' %}
+                                <span class="badge badge-excused"><i class="fas fa-info-circle"></i> Excused</span>
+                            {% else %}
+                                <span class="badge badge-unknown">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ record.notes or '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('attendanceSearch');
+    const statusFilter = document.getElementById('statusFilter');
+    const subjectFilter = document.getElementById('subjectFilter');
+    const clearBtn = document.getElementById('clearFilters');
+    const tableRows = document.querySelectorAll('#attendanceTable tbody tr');
+
+    function filterTable() {
+        const search = searchInput.value.toLowerCase();
+        const status = statusFilter.value;
+        const subject = subjectFilter.value;
+        tableRows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const rowSubject = row.getAttribute('data-subject');
+            const rowNotes = row.getAttribute('data-notes').toLowerCase();
+            let show = true;
+            if (status && rowStatus !== status) show = false;
+            if (subject && rowSubject !== subject) show = false;
+            if (search && !(rowSubject.toLowerCase().includes(search) || rowNotes.includes(search))) show = false;
+            row.style.display = show ? '' : 'none';
+        });
+    }
+    searchInput.addEventListener('input', filterTable);
+    statusFilter.addEventListener('change', filterTable);
+    subjectFilter.addEventListener('change', filterTable);
+    clearBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        statusFilter.value = '';
+        subjectFilter.value = '';
+        filterTable();
+    });
+});
+</script>
+
+<style>
+.attendance-title {
+  font-size: 2.1rem;
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.attendance-subtitle {
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+.attendance-summary-cards {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.summary-card {
+  flex: 1;
+  min-width: 160px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1.5px solid #e3eafc;
+  box-shadow: 0 2px 8px rgba(25,118,210,0.04);
+  text-align: center;
+  padding: 1.2rem 0.5rem 1rem 0.5rem;
+}
+.summary-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #222;
+}
+.summary-value.present { color: #38a169; }
+.summary-value.absent { color: #e53e3e; }
+.summary-value.late { color: #ed8936; }
+.summary-value.excused { color: #3182ce; }
+.summary-label {
+  color: #6b7280;
+  font-size: 1.05rem;
+}
+.summary-percent {
+  font-size: 0.95em;
+  color: #b5b5b5;
+}
+.attendance-filter-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1.5px solid #e3eafc;
+  margin-bottom: 2rem;
+  padding: 1.2rem 1.5rem;
+}
+.attendance-filter-title {
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+.attendance-filter-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.attendance-search, .attendance-status-filter, .attendance-subject-filter {
+  border-radius: 8px;
+  border: 1.5px solid #e3eafc;
+  min-width: 200px;
+  font-size: 1.15rem;
+  height: 48px;
+  padding: 0 1.2em;
+}
+.attendance-search {
+  width: 320px;
+  max-width: 100%;
+}
+.attendance-clear-btn {
+  border-radius: 8px;
+  min-width: 100px;
+  font-size: 1.1rem;
+  height: 48px;
+  padding: 0 1.2em;
+}
+.attendance-table-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1.5px solid #e3eafc;
+  margin-bottom: 2rem;
+  padding: 1.2rem 1.5rem;
+  width: 100%;
+}
+.attendance-table-card .table-responsive {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+#attendanceTable {
+  width: 100%;
+  table-layout: auto;
+}
+#attendanceTable th:nth-child(1), #attendanceTable td:nth-child(1) { /* Date */
+  width: 150px;
+  min-width: 120px;
+  max-width: 180px;
+}
+#attendanceTable th:nth-child(2), #attendanceTable td:nth-child(2) { /* Subject */
+  width: 200px;
+  min-width: 120px;
+  max-width: 240px;
+}
+#attendanceTable th:nth-child(3), #attendanceTable td:nth-child(3) { /* Status */
+  width: 120px;
+  min-width: 100px;
+  max-width: 140px;
+}
+#attendanceTable th:nth-child(4), #attendanceTable td:nth-child(4) { /* Notes */
+  width: 100%;
+  min-width: 220px;
+  max-width: 600px;
+}
+.attendance-table-title {
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+.attendance-table-subtitle {
+  color: #888;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+.badge {
+  border-radius: 8px;
+  padding: 0.45em 1.1em;
+  font-size: 1em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-weight: 600;
+}
+.badge-present {
+  background: #e6f9ed;
+  color: #38a169;
+  border: 1px solid #b7f7d8;
+}
+.badge-absent {
+  background: #ffeaea;
+  color: #e53e3e;
+  border: 1px solid #f7b7b7;
+}
+.badge-late {
+  background: #fff7e6;
+  color: #ed8936;
+  border: 1px solid #ffe0b7;
+}
+.badge-excused {
+  background: #e6f4fa;
+  color: #3182ce;
+  border: 1px solid #b7e6f7;
+}
+.badge-unknown {
+  background: #f3f4f6;
+  color: #888;
+  border: 1px solid #e3eafc;
+}
+.table { font-size: 1.05em; }
+.table th, .table td { vertical-align: middle; }
+.table thead th { position: sticky; top: 0; background: #f8f9fa; z-index: 2; }
+</style>
+{% endblock %} 

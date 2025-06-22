@@ -9,7 +9,7 @@
     </div>
     <div class="dashboard-card-grid">
         <!-- Assignments Card -->
-        <a href="{{ url_for('student_assignments') }}" class="feature-card">
+        <a href="{{ url_for('student_assignments') }}" class="feature-card card-assignments">
             <div class="feature-card-icon"><i class="fas fa-book-open"></i></div>
             <div class="feature-card-title">Assignments</div>
             <div class="feature-card-desc">View, filter, and submit your assignments</div>
@@ -20,9 +20,9 @@
             </div>
         </a>
         <!-- Grades Card -->
-        <a href="{{ url_for('student_grades') }}" class="feature-card">
+        <a href="{{ url_for('student_grades') }}" class="feature-card card-grades">
             <div class="feature-card-icon"><i class="fas fa-graduation-cap"></i></div>
-            <div class="feature-card-title">Grades Summary</div>
+            <div class="feature-card-title">Grades Summary</div>    
             <div class="feature-card-desc">Check your academic performance</div>
             <div class="feature-card-stats">
                 <div><span>Overall GPA:</span> <span class="gpa">3.7</span></div>
@@ -31,7 +31,7 @@
             </div>
         </a>
         <!-- Attendance Card -->
-        <a href="{{ url_for('student_attendance') }}" class="feature-card">
+        <a href="{{ url_for('student_attendance') }}" class="feature-card card-attendance">
             <div class="feature-card-icon"><i class="fas fa-calendar-alt"></i></div>
             <div class="feature-card-title">Attendance</div>
             <div class="feature-card-desc">Track your class attendance</div>
@@ -39,6 +39,16 @@
                 <div><span>This Week:</span> <span class="attendance-week">95%</span></div>
                 <div><span>This Month:</span> <span class="attendance-month">92%</span></div>
                 <div><span>Overall:</span> <span class="attendance-overall">94%</span></div>
+            </div>
+        </a>
+        <!-- Quiz Card -->
+        <a href="{{ url_for('student_quiz') }}" class="feature-card card-quiz">
+            <div class="feature-card-icon"><i class="fas fa-question-circle"></i></div>
+            <div class="feature-card-title">Quiz</div>
+            <div class="feature-card-desc">Take and review your quizzes</div>
+            <div class="feature-card-stats">
+                <div><span>Available:</span> <span class="pending">2</span></div>
+                <div><span>Completed:</span> <span class="completed">5</span></div>
             </div>
         </a>
     </div>

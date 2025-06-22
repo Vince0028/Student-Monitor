@@ -1,0 +1,13 @@
+{% extends 'layout.html' %}
+{% block title %}Quiz Result{% endblock %}
+{% block content %}
+<div class="result-container">
+    <h1>Quiz Complete!</h1>
+    <p class="lead">Well done, {{ result.student_name }}.</p>
+    <p class="lead">You answered the quiz: <strong>{{ result.quiz.title }}</strong></p>
+    <hr>
+    <p class="lead">Your final score is:</p>
+    <h2 class="score">{{ result.score }} / {{ result.total_questions }}</h2>
+    <a href="{{ url_for('student_index') }}" class="btn btn-primary mt-3">Take Another Quiz</a>
+</div>
+{% endblock %} 

@@ -7,9 +7,10 @@ from datetime import date, timedelta, datetime
 import re # For school year validation
 import decimal
 import bcrypt
+import json
 
 # Import SQLAlchemy components
-from sqlalchemy import create_engine, Column, Integer, String, Date, Numeric, ForeignKey, DateTime, UniqueConstraint, and_, or_, case, func, text
+from sqlalchemy import create_engine, Column, Integer, String, Date, Numeric, ForeignKey, DateTime, UniqueConstraint, and_, or_, case, func, text, Text
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base, aliased, joinedload
 from sqlalchemy.sql import func
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
@@ -3155,6 +3156,70 @@ def api_verify_gradebook_password():
     if subject and subject.subject_password and password == subject.subject_password:
         return jsonify({'success': True})
     return jsonify({'success': False})
+
+@app.route('/quiz/maker')
+@login_required
+@user_type_required('teacher')
+def quiz_maker():
+    return render_template('quiz/quiz_maker.html')
+
+# --- Quiz Models (if not present) ---
+class Quiz(Base):
+    __tablename__ = 'quizzes'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(String(255), nullable=False)
+    questions = relationship('QuizQuestion', back_populates='quiz', cascade='all, delete-orphan')
+
+class QuizQuestion(Base):
+    __tablename__ = 'quiz_questions'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    quiz_id = Column(PG_UUID(as_uuid=True), ForeignKey('quizzes.id'), nullable=False)
+    question_text = Column(Text, nullable=False)
+    question_type = Column(String(50), nullable=False)
+    options_json = Column(Text, nullable=True)  # Store options as JSON string
+    correct_answer = Column(Text, nullable=True)
+    points = Column(Integer, default=1)
+    quiz = relationship('Quiz', back_populates='questions')
+
+# --- API endpoint to save a published quiz ---
+@app.route('/api/quizzes', methods=['POST'])
+@login_required
+@user_type_required('teacher')
+def api_publish_quiz():
+    data = request.get_json()
+    title = data.get('title')
+    questions = data.get('questions', [])
+    if not title or not questions:
+        return jsonify({'success': False, 'message': 'Title and questions are required.'}), 400
+    try:
+        quiz = Quiz(title=title)
+        g.session.add(quiz)
+        g.session.flush()  # Get quiz.id
+        for q in questions:
+            question = QuizQuestion(
+                quiz_id=quiz.id,
+                question_text=q.get('text', ''),
+                question_type=q.get('type', ''),
+                options_json=json.dumps(q.get('options', [])),
+                correct_answer=q.get('correctAnswer', ''),
+                points=int(q.get('points', 1))
+            )
+            g.session.add(question)
+        g.session.commit()
+        return jsonify({'success': True, 'quiz_id': str(quiz.id)})
+    except Exception as e:
+        g.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/quiz/manage')
+@login_required
+@user_type_required('teacher')
+def manage_quiz():
+    quizzes = g.session.query(Quiz).all()
+    return render_template('quiz/manage_quiz.html', quizzes=quizzes)
+
+# Ensure all tables are created
+Base.metadata.create_all(engine)
 
 if __name__ == '__main__':
     app.run(debug=True)

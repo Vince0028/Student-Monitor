@@ -1,0 +1,39 @@
+{% extends 'layout.html' %}
+{% block title %}{{ subject.subject_name }} - Quizzes{% endblock %}
+{% block content %}
+<div class="teacher-subject-details">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ subject.subject_name }} - {{ subject.section_period.section.name }}</h1>
+        <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+
+    <!-- Create New Quiz -->
+    <div class="card mb-4">
+        <div class="card-header">Create a New Quiz</div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('teacher_create_quiz', subject_id=subject.id) }}" class="d-flex">
+                <input type="text" name="title" class="form-control me-2" placeholder="Enter new quiz title" required>
+                <button type="submit" class="btn btn-primary">Create</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- List of Existing Quizzes -->
+    <h2>Existing Quizzes</h2>
+    {% if quizzes %}
+        {% for quiz in quizzes %}
+            <div class="quiz-card d-flex justify-content-between align-items-center mb-3 p-3 border rounded">
+                <h5 class="mb-0">{{ quiz.title }}</h5>
+                <div>
+                    <a href="{{ url_for('quiz_maker') }}" class="btn btn-secondary btn-sm">Manage</a>
+                    <form method="POST" action="{{ url_for('delete_quiz', quiz_id=quiz.id) }}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this quiz?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>You haven't created any quizzes for this subject yet.</p>
+    {% endif %}
+</div>
+{% endblock %} 

@@ -1,0 +1,22 @@
+{% extends 'student_base.html' %}
+
+{% block title %}Upcoming Quizzes - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h3 style="font-size: 2rem; font-weight: bold; margin-bottom: 2rem;">Upcoming Quizzes</h3>
+    <div class="quiz-card-grid">
+        {% if upcoming_quizzes %}
+            {% for quiz in upcoming_quizzes %}
+            <div class="feature-card card-quiz-upcoming">
+                <div class="feature-card-icon"><i class="fas fa-hourglass-start"></i></div>
+                <div class="feature-card-title">{{ quiz.title }}</div>
+                <div class="feature-card-desc">{{ quiz.description or 'Take this quiz now.' }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="grid-column: 1 / -1; text-align: center; color: #888; font-size: 1.2rem;">No upcoming quizzes available.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
