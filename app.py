@@ -2827,6 +2827,16 @@ def teacher_section_attendance_details(section_period_id, subject_id):
                                 students=students)
 
         try:
+            # Parse attendance_date to a date object
+            try:
+                attendance_date_obj = datetime.strptime(attendance_date, '%Y-%m-%d').date()
+            except Exception as date_exc:
+                flash(f'Invalid date format: {attendance_date}. Please use YYYY-MM-DD.', 'error')
+                return render_template('teacher_section_attendance_details.html',
+                                    section_period=section_period,
+                                    subject=subject,
+                                    students=students)
+
             # Process attendance for each student
             for student in students:
                 status = request.form.get(f'status_{student.id}')
@@ -2835,7 +2845,7 @@ def teacher_section_attendance_details(section_period_id, subject_id):
                     existing_record = db_session.query(Attendance).filter(
                         Attendance.student_info_id == student.id,
                         Attendance.section_subject_id == subject_id,
-                        Attendance.attendance_date == attendance_date
+                        Attendance.attendance_date == attendance_date_obj
                     ).first()
 
                     if existing_record:
@@ -2845,7 +2855,7 @@ def teacher_section_attendance_details(section_period_id, subject_id):
                         new_attendance = Attendance(
                             student_info_id=student.id,
                             section_subject_id=subject_id,
-                            attendance_date=attendance_date,
+                            attendance_date=attendance_date_obj,
                             status=status,
                             recorded_by=teacher_id
                         )
@@ -2860,7 +2870,7 @@ def teacher_section_attendance_details(section_period_id, subject_id):
 
         except Exception as e:
             db_session.rollback()
-            flash('An error occurred while recording attendance.', 'error')
+            flash(f'An error occurred while recording attendance: {e}', 'error')
             app.logger.error(f"Error recording attendance: {e}")
 
     return render_template('teacher_section_attendance_details.html',
