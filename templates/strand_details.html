@@ -210,27 +210,29 @@
                     passwordInput.focus();
                     return;
                 }
-                fetch('{{ url_for("reassign_period_teachers") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `password=${encodeURIComponent(password)}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = data.redirect_url || '{{ url_for("index") }}';
-                    } else {
-                        alert(data.message);
-                    }
-                })
-                .catch(error => {
-                    alert('An unexpected error occurred during reassignment.');
-                })
-                .finally(() => {
-                    if (bootstrapModal) bootstrapModal.hide();
-                });
+                // TODO: Implement reassign_period_teachers route
+                alert('This feature is not yet implemented.');
+                // fetch('{{ url_for("reassign_period_teachers") }}', {
+                //     method: 'POST',
+                //     headers: {
+                //         'Content-Type': 'application/x-www-form-urlencoded',
+                //     },
+                //     body: `password=${encodeURIComponent(password)}`
+                // })
+                // .then(response => response.json())
+                // .then(data => {
+                //     if (data.success) {
+                //         window.location.href = data.redirect_url || '{{ url_for("index") }}';
+                //     } else {
+                //         alert(data.message);
+                //     }
+                // })
+                // .catch(error => {
+                //     alert('An unexpected error occurred during reassignment.');
+                // })
+                // .finally(() => {
+                //     if (bootstrapModal) bootstrapModal.hide();
+                // });
             });
         }
 
