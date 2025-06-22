@@ -11,7 +11,6 @@ from sqlalchemy import create_engine, Column, String, Date, Numeric, ForeignKey,
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base, joinedload
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from dotenv import load_dotenv
-from app import Quiz, QuizQuestion
 
 load_dotenv()
 
