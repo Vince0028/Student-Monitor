@@ -1,0 +1,1 @@
+ALTER TABLE students_info ADD COLUMN parent_id UUID REFERENCES parents(id) ON DELETE SET NULL; 
