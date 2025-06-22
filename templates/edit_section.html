@@ -12,7 +12,7 @@
         {% endif %}
     </p>
 
-    <form method="POST" action="{{ url_for('edit_section', section_id=section.id) }}">
+    <form method="POST" action="{{ url_for('edit_section_admin', section_id=section.id) }}">
         <div class="form-group">
             <label for="adviser_name">Adviser Name</label>
             <input type="text" id="adviser_name" name="adviser_name" class="form-control" value="{{ section.adviser_name or '' }}">

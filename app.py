@@ -843,12 +843,16 @@ def admin_dashboard():
     
     # Get all students in this admin's section periods
     students = db_session.query(StudentInfo).join(SectionPeriod).join(Section).join(GradeLevel).filter(GradeLevel.created_by == admin_id).all()
+    students_boys = [s for s in students if (s.gender or '').lower() == 'male']
+    students_girls = [s for s in students if (s.gender or '').lower() == 'female']
     
     return render_template('admin_dashboard.html',
                          grade_levels=grade_levels,
                          sections=sections,
                          section_periods=section_periods,
                          students=students,
+                         students_boys=students_boys,
+                         students_girls=students_girls,
                          all_grade_levels=ALL_GRADE_LEVELS)
 
 @app.route('/add_grade_level', methods=['GET', 'POST'])
@@ -1531,8 +1535,7 @@ def section_period_details(section_period_id):
         return render_template(template,
                                section_period=section_period,
                                students=students,
-                               section_subjects=section_subjects,
-                               parents=parents)
+                               section_subjects=section_subjects)
     except NoResultFound:
         flash('Section period not found.', 'error')
         return redirect(url_for('teacher_dashboard') if session.get('user_type') == 'teacher' else url_for('admin_dashboard'))
@@ -1659,6 +1662,7 @@ def edit_student(student_id):
 
     # Fetch all section periods manageable by this admin or teacher for the dropdown
     if user_type == 'admin':
+        admin_id = uuid.UUID(session['user_id'])
         section_periods_for_dropdown = db_session.query(SectionPeriod).options(
             joinedload(SectionPeriod.section).joinedload(Section.grade_level),
             joinedload(SectionPeriod.section).joinedload(Section.strand)
@@ -1847,44 +1851,45 @@ def add_subject_to_section_period(section_period_id):
 
     return render_template('add_section_subject.html', section_period=section_period)
 
-@app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/edit', methods=['POST'])
+@app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/edit', methods=['GET', 'POST'])
 @login_required
 @user_type_required('teacher', 'admin')
 def edit_section_subject(section_period_id, subject_id):
     try:
         subject = g.session.query(SectionSubject).filter_by(id=subject_id, section_period_id=section_period_id).one()
-        
-        new_subject_name = request.form.get('subject_name')
-        new_teacher_name = request.form.get('assigned_teacher_name')
-        password = request.form.get('password')
-        subject_password = request.form.get('subject_password')
-
         user_id = uuid.UUID(session['user_id'])
         user_type = session.get('user_type')
-        # Only require password for teachers
-        if user_type == 'teacher':
-            if not password or not verify_current_user_password(user_id, password):
-                flash('Incorrect password. Subject was not updated.', 'error')
-                redirect_url = url_for('section_period_details', section_period_id=section_period_id) if user_type == 'admin' else url_for('teacher_section_period_view', section_period_id=section_period_id)
-                return redirect(redirect_url)
-        if not new_subject_name or not new_teacher_name:
-            flash('Subject Name and Assigned Teacher Name cannot be empty.', 'error')
-        else:
-            subject.subject_name = new_subject_name
-            subject.assigned_teacher_name = new_teacher_name
-            # Only admin can update subject password
-            if user_type == 'admin' and subject_password:
-                subject.subject_password = subject_password
-            g.session.commit()
-            flash('Subject updated successfully!', 'success')
-        
+        if request.method == 'POST':
+            new_subject_name = request.form.get('subject_name')
+            new_teacher_name = request.form.get('assigned_teacher_name')
+            password = request.form.get('password')
+            subject_password = request.form.get('subject_password')
+            # Only require password for teachers
+            if user_type == 'teacher':
+                if not password or not verify_current_user_password(user_id, password):
+                    flash('Incorrect password. Subject was not updated.', 'error')
+                    redirect_url = url_for('section_period_details', section_period_id=section_period_id) if user_type == 'admin' else url_for('teacher_section_period_view', section_period_id=section_period_id)
+                    return redirect(redirect_url)
+            if not new_subject_name or not new_teacher_name:
+                flash('Subject Name and Assigned Teacher Name cannot be empty.', 'error')
+            else:
+                subject.subject_name = new_subject_name
+                subject.assigned_teacher_name = new_teacher_name
+                # Only admin can update subject password
+                if user_type == 'admin' and subject_password:
+                    subject.subject_password = subject_password
+                g.session.commit()
+                flash('Subject updated successfully!', 'success')
+            # Correct redirect logic
+            redirect_url = url_for('section_period_details', section_period_id=section_period_id) if session['user_type'] == 'admin' else url_for('teacher_section_period_view', section_period_id=section_period_id)
+            return redirect(redirect_url)
+        # GET request: render the edit form
+        return render_template('edit_section_subject.html', subject=subject, section_period_id=section_period_id)
     except NoResultFound:
         flash('Subject not found.', 'error')
     except Exception as e:
         g.session.rollback()
         flash(f'An error occurred: {e}', 'error')
-
-    # Correct redirect logic
     redirect_url = url_for('section_period_details', section_period_id=section_period_id) if session['user_type'] == 'admin' else url_for('teacher_section_period_view', section_period_id=section_period_id)
     return redirect(redirect_url)
 
@@ -2243,38 +2248,52 @@ def add_grades_for_student(section_period_id, student_id):
                            initial_average_grade=initial_average_grade)
 
 
-@app.route('/section/<uuid:section_id>/edit_admin', methods=['POST'])
+@app.route('/section/<uuid:section_id>/edit_admin', methods=['GET', 'POST'])
 @login_required
-@user_type_required('admin')
+@user_type_required('admin', 'teacher')
 def edit_section_admin(section_id):
     try:
         section = g.session.query(Section).filter(Section.id == section_id).one()
-        new_name = request.form.get('section_name')
-        new_adviser = request.form.get('adviser_name')
-        new_password = request.form.get('section_password')
-        new_assigned_user_id = request.form.get('assigned_user_id')
-        new_adviser_password = request.form.get('adviser_password')  # NEW
+        user_type = session.get('user_type')
+        user_id = session.get('user_id')
+        # Adviser password check for teachers
+        if user_type == 'teacher':
+            flag = f'adviser_password_verified_{section_id}'
+            if not session.get(flag):
+                flash('You do not have permission to access this page. Adviser password required.', 'error')
+                return redirect(url_for('teacher_dashboard'))
+        if request.method == 'POST':
+            new_name = request.form.get('section_name')
+            new_adviser = request.form.get('adviser_name')
+            new_password = request.form.get('section_password')
+            new_assigned_user_id = request.form.get('assigned_user_id')
+            new_adviser_password = request.form.get('adviser_password')  # NEW
 
-        if not new_name:
-            flash('Section name cannot be empty.', 'error')
+            if not new_name:
+                flash('Section name cannot be empty.', 'error')
+                return redirect(request.referrer or url_for('admin_dashboard'))
+
+            section.name = new_name
+            section.adviser_name = new_adviser
+            section.section_password = new_password
+            section.assigned_user_id = new_assigned_user_id if new_assigned_user_id else None
+            if new_adviser_password:
+                section.adviser_password = new_adviser_password
+            g.session.commit()
+            flash('Section updated successfully!', 'success')
+            # Reset adviser password flag for this section after edit
+            if user_type == 'teacher':
+                session.pop(flag, None)
             return redirect(request.referrer or url_for('admin_dashboard'))
-
-        section.name = new_name
-        section.adviser_name = new_adviser
-        section.section_password = new_password
-        section.assigned_user_id = new_assigned_user_id if new_assigned_user_id else None
-        if new_adviser_password:
-            section.adviser_password = new_adviser_password
-        g.session.commit()
-        flash('Section updated successfully!', 'success')
-
+        else:
+            return render_template('edit_section.html', section=section)
     except NoResultFound:
         flash('Section not found.', 'error')
+        return redirect(request.referrer or url_for('admin_dashboard'))
     except Exception as e:
         g.session.rollback()
         flash(f'An error occurred: {e}', 'error')
-
-    return redirect(request.referrer or url_for('admin_dashboard'))
+        return redirect(request.referrer or url_for('admin_dashboard'))
 
 
 @app.route('/section_period/<uuid:section_period_id>/edit', methods=['POST'])
@@ -2957,6 +2976,8 @@ def api_verify_adviser_password():
     db_session = g.session
     section = db_session.query(Section).filter_by(id=section_id).first()
     if section and section.adviser_password and password == section.adviser_password:
+        # Set session flag for this section
+        session[f'adviser_password_verified_{section_id}'] = True
         return jsonify({'success': True})
     return jsonify({'success': False})
 
