@@ -1360,30 +1360,28 @@ def section_period_details(section_period_id):
         # Fetch subjects - show all subjects if teacher is assigned to this section period
         user_id = uuid.UUID(session['user_id'])
         user_type = session['user_type']
-        
-        # Check if teacher is assigned to this section period
         is_assigned_teacher = str(section_period.assigned_teacher_id) == str(user_id)
-        
         if is_assigned_teacher or user_type == 'admin':
-            # If teacher is assigned to this period or user is admin, show all subjects
             section_subjects = g.session.query(SectionSubject).filter(
                 SectionSubject.section_period_id == section_period_id
             ).order_by(SectionSubject.subject_name).all()
         else:
-            # If not assigned, only show subjects created by this teacher
             section_subjects = g.session.query(SectionSubject).filter(
                 SectionSubject.section_period_id == section_period_id,
                 SectionSubject.created_by_teacher_id == user_id
             ).order_by(SectionSubject.subject_name).all()
-    
-        # Use different templates based on user type
+
+        # --- Parent List for Assign Parent Modal ---
+        parent_db_session = ParentSession()
+        parents = parent_db_session.query(Parent).all()
+        parent_db_session.close()
+
         template = 'section_period_details.html' if user_type == 'admin' else 'teacher_section_period_details.html'
-        
         return render_template(template,
                                section_period=section_period,
                                students=students,
-                               section_subjects=section_subjects)
-
+                               section_subjects=section_subjects,
+                               parents=parents)
     except NoResultFound:
         flash('Section period not found.', 'error')
         return redirect(url_for('teacher_dashboard') if session['user_type'] == 'teacher' else url_for('admin_dashboard'))
@@ -1581,6 +1579,7 @@ def edit_student(student_id):
     db_session = g.session
     user_id = uuid.UUID(session['user_id'])
     user_type = session['user_type']
+    admin_id = uuid.UUID(session['user_id']) if session['user_type'] == 'admin' else None
     
     student_to_edit = db_session.query(StudentInfo).options(
         joinedload(StudentInfo.section_period).joinedload(SectionPeriod.section).joinedload(Section.grade_level),
@@ -3007,6 +3006,50 @@ def api_verify_adviser_password():
     if section and section.adviser_password and password == section.adviser_password:
         return jsonify({'success': True})
     return jsonify({'success': False})
+
+# --- Import Parent model from parent_app.py for parent assignment modal ---
+from sqlalchemy import create_engine as parent_create_engine
+from sqlalchemy.orm import sessionmaker as parent_sessionmaker
+from sqlalchemy.ext.declarative import declarative_base as parent_declarative_base
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+
+# Parent DB setup (reuse DATABASE_URL)
+ParentBase = parent_declarative_base()
+parent_engine = parent_create_engine(DATABASE_URL, pool_pre_ping=True)
+ParentSession = parent_sessionmaker(bind=parent_engine)
+
+class Parent(ParentBase):
+    __tablename__ = 'parents'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    username = Column(String(255), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    email = Column(String(255), unique=True, nullable=False)
+    first_name = Column(String(255), nullable=False)
+    last_name = Column(String(255), nullable=False)
+    phone_number = Column(String(50), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def __repr__(self):
+        return f"<Parent(id={self.id}, username='{self.username}', email='{self.email}')>"
+
+@app.route('/assign_parent', methods=['POST'])
+@login_required
+@user_type_required('admin')
+def assign_parent():
+    data = request.get_json()
+    student_id = data.get('student_id')
+    parent_id = data.get('parent_id')
+    if not student_id or not parent_id:
+        return jsonify({'success': False, 'message': 'Missing student or parent ID.'}), 400
+
+    db_session = g.session
+    student = db_session.query(StudentInfo).filter_by(id=student_id).first()
+    if not student:
+        return jsonify({'success': False, 'message': 'Student not found.'}), 404
+
+    student.parent_id = parent_id
+    db_session.commit()
+    return jsonify({'success': True, 'message': 'Parent assigned successfully.'})
 
 if __name__ == '__main__':
     app.run(debug=True)
