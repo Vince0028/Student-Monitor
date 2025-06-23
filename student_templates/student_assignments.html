@@ -4,10 +4,10 @@
 
 {% block content %}
 <div class="dashboard-container">
-    <div style="margin-bottom: 2.5rem;">
-        <h3 style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem; margin-left: 200px;"><i class="fas fa-tasks"></i> Assignments</h3>
+    <div style="margin-bottom: 2.5rem; text-align: left; margin-left: 0;">
+        <h3 style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem; margin-left: 60px;"><i class="fas fa-tasks"></i> Assignments</h3>
     </div>
-    <div class="dashboard-card-grid">
+    <div class="assignment-dashboard-grid">
         <!-- Upcoming Assignments Card -->
         <a href="{{ url_for('student_assignments_upcoming') }}" class="feature-card">
             <div class="feature-card-icon"><i class="fas fa-hourglass-start"></i></div>
@@ -18,7 +18,7 @@
         <a href="{{ url_for('student_assignments_completed') }}" class="feature-card">
             <div class="feature-card-icon"><i class="fas fa-check-circle"></i></div>
             <div class="feature-card-title">Completed Assignments</div>
-            <div class="feature-card-desc">Review assignments you have already submitted.</div>
+            <div class="feature-card-desc">Review assignments you have already submitted.</div> 
         </a>
         <!-- Past Due Assignments Card -->
         <a href="{{ url_for('student_assignments_past_due') }}" class="feature-card">

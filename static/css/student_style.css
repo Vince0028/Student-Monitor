@@ -81,12 +81,6 @@ body {
   font-size: 1.2em;
 }
 
-.student-main,
-.student-main.assignments-main {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-}
-
 .flash-messages {
   margin-bottom: 2rem;
 }
@@ -116,9 +110,9 @@ body {
   background: #1565c0;
   color: #fff;
   text-align: center;
-  padding: 1rem 0;
+  padding: 0.1rem 0;
   margin-top: 2rem;
-  font-size: 1rem;
+  font-size: 0.92rem;
   flex-shrink: 0;
   width: 100%;
   position: relative;
@@ -325,56 +319,50 @@ border-radius: 8px;
 /* --- Dashboard Card Grid and Feature Cards --- */
 .dashboard-card-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 3rem; /* Adjust this value to control gaps between cards */
-  margin: 2rem auto 0 auto;
+  grid-template-columns: repeat(2, 600px);
+  gap: 1.5rem;
   width: 100%;
   max-width: 1400px;
+  margin: 2rem auto 0 auto;
   padding: 0 2rem;
   justify-content: center;
-  place-items: center;
-  transform: translateX(-30px);
-}
-
-.dashboard-card-grid .feature-card {
-  width: 100%;
-  max-width: 500px;
-  margin: 0 1.5rem;
-}
-
-/* Assignments pages only: use .assignments-grid for their card layout */
-.assignments-grid {
-display: grid;
-grid-template-columns: repeat(3, minmax(280px, 1fr));
-gap: 2.5rem;
-margin-top: 2.5rem; 
-width: 100%;
-max-width: 1400px;
-margin-left: auto;
-margin-right: auto;
-justify-items: stretch;
-justify-content: stretch;
 }
 
 .feature-card {
-display: flex;
-flex-direction: column;
-background: #fff;
-border-radius: 16px;
-box-shadow: 0 4px 16px rgba(25, 118, 210, 0.08);
-padding: 2rem 1.5rem 1.5rem 1.5rem;
-text-decoration: none;
-color: #222;
-transition: box-shadow 0.2s, transform 0.2s;
-cursor: pointer;
-border: 1.5px solid #e3eafc;
+  min-height: 240px;
+  height: 160px;
+  width: 500px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(25, 118, 210, 0.08);
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  text-decoration: none;
+  color: #222;
+  transition: box-shadow 0.2s, transform 0.2s;
+  cursor: pointer;
+  border: 1.5px solid #e3eafc;
 }
 .feature-card:hover, .feature-card:focus {
-box-shadow: 0 8px 32px rgba(25, 118, 210, 0.16);
-transform: translateY(-4px) scale(1.02);
-border-color: #1976d2;
-text-decoration: none;
+  box-shadow: 0 8px 32px rgba(25, 118, 210, 0.16);
+  transform: var(--card-transform, none) translateY(-4px) scale(1.02);
+  border-color: #1976d2;
+  text-decoration: none;
 }
+
+/* Set the base transform for each card using a CSS variable */
+.card-assignments { --card-transform: translateX(50px); }
+.card-grades { --card-transform: translateX(-50px); }
+.card-attendance { --card-transform: translateX(50px) translateY(-50px); }
+.card-quiz { --card-transform: translateX(-50px) translateY(-50px); }
+
+/* On non-hover, apply the base transform */
+.card-assignments, .card-grades, .card-attendance, .card-quiz {
+  transform: var(--card-transform, none);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
 .feature-card-icon {
 font-size: 2.2rem;
 margin-bottom: 1rem;
@@ -500,34 +488,6 @@ justify-content: center;
 margin-top: 0;
 }
 
-.no-scroll-page .student-main.assignments-main {
-margin-top: 0.5rem !important;
-padding-top: 0 !important;
-}
-.no-scroll-page .student-main.assignments-main .dashboard-container {
-max-width: 1000px;
-margin-left: auto !important;
-margin-right: auto !important;
-padding-left: 2.5rem;
-padding-right: 2.5rem;
-margin-top: 0 !important;
-margin-bottom: 2.5rem !important;
-}
-
-.dashboard-container h2 {
-text-align: left !important;
-margin-left: 0 !important;
-}
-
-.student-main.assignments-main, .student-main.assignments-main .container {
-margin: 0 !important;
-padding: 0 !important;
-width: 100% !important;
-}
-.student-main.assignments-main .container > *:first-child {
-margin-top: 0 !important;
-}
-
 .dashboard-card-grid {
 gap: 4rem 4rem !important;
 }
@@ -573,4 +533,42 @@ gap: 4rem 4rem !important;
   justify-content: center !important;
   place-items: center !important;
   transform: translateX(400px) translateY(25px) !important;
+}
+
+/* Quiz Card Grid for Upcoming and Completed Quizzes */
+.quiz-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 1100px;
+  margin: 2rem auto 0 auto;
+  padding: 0 2rem;
+}
+
+/* Quiz Dashboard Grid for the main quiz dashboard page */
+.quiz-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 900px;
+  margin: 2rem auto 0 auto;
+  padding: 0 2rem;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Assignment Dashboard Grid for the main assignment dashboard page */
+.assignment-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 2rem auto 0 auto;
+  padding: 0 2rem;
+  align-items: center;
+  justify-content: center;
+  place-items: center;
 }

@@ -237,7 +237,7 @@ def parent_dashboard():
         if grades:
             student.average_grade = sum(float(g[0]) for g in grades) / len(grades)
         else:
-            student.average_grade = "N/A"
+            student.average_grade = None
         
         # Get recent attendance
         recent_attendance = g.session.query(StudentAttendance).filter_by(student_id=student.id).order_by(StudentAttendance.attendance_date.desc()).limit(10).all()

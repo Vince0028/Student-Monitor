@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Section - {{ section.name }}{% endblock %}
+
+{% block content %}
+<div class="form-container card">
+    <h2>Edit Section: <span class="highlight">{{ section.name }}</span></h2>
+    <p style="margin-bottom: 20px;">
+        <strong>Grade Level:</strong> {{ section.grade_level.name }}
+        {% if section.strand %}
+            <br><strong>Strand:</strong> {{ section.strand.name }}
+        {% endif %}
+    </p>
+
+    <form method="POST" action="{{ url_for('edit_section_admin', section_id=section.id) }}">
+        <div class="form-group">
+            <label for="adviser_name">Adviser Name</label>
+            <input type="text" id="adviser_name" name="adviser_name" class="form-control" value="{{ section.adviser_name or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="section_password">Section Password</label>
+            <p class="form-hint">This password is used by teachers to access a section's period from the dropdown menu.</p>
+            <input type="text" id="section_password" name="section_password" class="form-control" value="{{ section.section_password or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="adviser_password">Adviser Password</label>
+            <p class="form-hint">This password is used by the section adviser for management tasks like editing this section.</p>
+            <input type="text" id="adviser_password" name="adviser_password" class="form-control" value="{{ section.adviser_password or '' }}">
+        </div>
+
+        <div class="button-group">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %} 

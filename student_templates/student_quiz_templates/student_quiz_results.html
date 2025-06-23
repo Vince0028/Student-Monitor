@@ -1,0 +1,20 @@
+{% extends 'student_base.html' %}
+
+{% block title %}Quiz Results{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card text-center">
+        <div class="card-header">
+            <h3>Results for: {{ quiz_title }}</h3>
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">You have completed the quiz!</h5>
+            <p class="display-4">Your Score: <strong>{{ score }} / {{ total_questions }}</strong></p>
+        </div>
+        <div class="card-footer text-muted">
+            <a href="{{ url_for('student_quiz') }}" class="btn btn-primary">Back to Quizzes</a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

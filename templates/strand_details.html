@@ -39,7 +39,7 @@
                         <tr>
                             <td>{{ section.name }}</td>
                             <td>{{ section.adviser_name or 'N/A' }}</td>
-                            <td>{% if section.average_grade != 'N/A' and section.average_grade is not none %}{{ '%.2f'|format(section.average_grade) }}{% else %}N/A{% endif %}</td>
+                            <td>{% if section.average_grade is not none %}{{ '%.2f'|format(section.average_grade) }}{% else %}N/A{% endif %}</td>
                             <td>
                                 <div class="button-group">
                                     <a href="{{ url_for('section_details', section_id=section.id) }}" class="btn btn-view btn-icon-small" title="View Section Details">
@@ -210,27 +210,10 @@
                     passwordInput.focus();
                     return;
                 }
-                fetch('{{ url_for("reassign_period_teachers") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `password=${encodeURIComponent(password)}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = data.redirect_url || '{{ url_for("index") }}';
-                    } else {
-                        alert(data.message);
-                    }
-                })
-                .catch(error => {
-                    alert('An unexpected error occurred during reassignment.');
-                })
-                .finally(() => {
-                    if (bootstrapModal) bootstrapModal.hide();
-                });
+                // Reassign functionality not implemented yet
+                console.log('Reassign functionality not implemented yet');
+                alert('This feature is not yet implemented.');
+                if (bootstrapModal) bootstrapModal.hide();
             });
         }
 

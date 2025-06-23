@@ -5,9 +5,20 @@
 {% block content %}
 <div class="form-page-container">
     <h2>Summary of Grades</h2>
+    {% if overall_average is not none %}
+        <div class="average-grade-summary" style="margin-bottom: 1em;">
+            <strong>Overall Average Grade:</strong> {{ '%.2f'|format(overall_average) }}
+        </div>
+    {% endif %}
     {% if grades_by_period %}
         {% for period, data in grades_by_period.items() %}
             <h3>{{ data.period_name }} {{ data.school_year }}</h3>
+            {% set period_avg = (data.grades | map(attribute='grade_value') | sum / (data.grades | length)) if data.grades|length > 0 else None %}
+            {% if period_avg is not none %}
+                <div class="period-average-grade" style="margin-bottom: 0.5em;">
+                    <strong>Average for this period:</strong> {{ '%.2f'|format(period_avg) }}
+                </div>
+            {% endif %}
             <table class="table table-bordered">
                 <thead>
                     <tr>

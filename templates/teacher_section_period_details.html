@@ -146,8 +146,11 @@
         Show/View Student List
     </button>
     <div id="studentListContainer" style="display:none;">
-        <div class="mb-3">
-            <input type="text" id="studentSearchInput" class="form-control" placeholder="Search students by name or ID...">
+        <div class="mb-3 d-flex justify-content-between align-items-center">
+            <input type="text" id="studentSearchInput" class="form-control w-50" placeholder="Search students by name or ID...">
+            <button type="button" class="btn btn-info ms-2" id="syncAverageGradesBtn" title="Sync Average Grades">
+                <i class="fas fa-sync-alt"></i> Sync Average Grades
+            </button>
         </div>
         <div class="student-list-scrollable">
             <table class="table table-hover" id="studentTable">
@@ -175,7 +178,7 @@
                         <td>{{ student.student_id_number }}</td>
                         <td class="average-grade-cell">
                             <span class="masked-grade">***</span>
-                            <span class="real-grade" style="display:none;">{{ '%.3f'|format(student.average_grade) if student.average_grade != 'N/A' else 'N/A' }}</span>
+                            <span class="real-grade" style="display:none;">{{ '%.3f'|format(student.average_grade) if student.average_grade is not none else 'N/A' }}</span>
                         </td>
                         <td>
                             <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
@@ -193,7 +196,7 @@
                         <td>{{ student.student_id_number }}</td>
                         <td class="average-grade-cell">
                             <span class="masked-grade">***</span>
-                            <span class="real-grade" style="display:none;">{{ '%.3f'|format(student.average_grade) if student.average_grade != 'N/A' else 'N/A' }}</span>
+                            <span class="real-grade" style="display:none;">{{ '%.3f'|format(student.average_grade) if student.average_grade is not none else 'N/A' }}</span>
                         </td>
                         <td>
                             <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
@@ -358,6 +361,29 @@
                 submitAdviserPassword();
             });
         }
+        const syncBtn = document.getElementById('syncAverageGradesBtn');
+        if (syncBtn) {
+            syncBtn.addEventListener('click', function() {
+                if (confirm('This will sync the average grades for all students in this period. Continue?')) {
+                    fetch(`/section_period/{{ section_period.id }}/sync-average-grades`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert(data.message);
+                            location.reload();
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('An error occurred while syncing average grades.');
+                    });
+                }
+            });
+        }
     });
     </script>
     {% else %}
@@ -462,15 +488,15 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="subjectPasswordModalLabel-{{ subject.id }}">Enter Subject Password</h5>
+                <h5 class="modal-title" id="subjectPasswordModalLabel-{{ subject.id }}">Enter Adviser Password</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="subjectPasswordForm-{{ subject.id }}" onsubmit="event.preventDefault(); submitSubjectPassword('{{ subject.id }}');">
                     <div class="mb-3">
-                        <label for="subject_password_input-{{ subject.id }}" class="form-label">Subject Password</label>
+                        <label for="subject_password_input-{{ subject.id }}" class="form-label">Adviser Password</label>
                         <input type="password" class="form-control" id="subject_password_input-{{ subject.id }}" name="subject_password" required>
-                        <div class="form-text">Please enter the subject password to access the edit modal.</div>
+                        <div class="form-text">Please enter the adviser password to access the edit modal.</div>
                         <div id="subjectPasswordError-{{ subject.id }}" class="text-danger" style="display:none;"></div>
                     </div>
                     <div class="modal-footer">
@@ -510,100 +536,6 @@
 </div>
 {% endfor %}
 {% endif %}
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Add form validation for edit subject forms
-    document.querySelectorAll('[id^="editSubjectForm-"]').forEach(function(form) {
-        form.addEventListener('submit', function(e) {
-            const subjectId = this.id.replace('editSubjectForm-', '');
-            const password = document.getElementById('password-' + subjectId).value;
-            const subjectName = document.getElementById('subject_name-' + subjectId).value;
-            const teacherName = document.getElementById('assigned_teacher_name-' + subjectId).value;
-            if (!password.trim()) {
-                e.preventDefault();
-                alert('Password is required to save changes.');
-                document.getElementById('password-' + subjectId).focus();
-                return false;
-            }
-            if (!subjectName.trim() || !teacherName.trim()) {
-                e.preventDefault();
-                alert('Subject name and assigned teacher name are required.');
-                return false;
-            }
-        });
-    });
-    // Add form validation for gradebook password forms
-    document.querySelectorAll('[id^="gradebookPasswordForm-"]').forEach(function(form) {
-        form.addEventListener('submit', function(e) {
-            const subjectId = this.id.replace('gradebookPasswordForm-', '');
-            const password = document.getElementById('subject_password-' + subjectId).value;
-            if (!password.trim()) {
-                e.preventDefault();
-                alert('Subject password is required to access the gradebook.');
-                document.getElementById('subject_password-' + subjectId).focus();
-                return false;
-            }
-        });
-    });
-});
-function showSubjectPasswordModal(subjectId) {
-    document.getElementById('subject_password_input-' + subjectId).value = '';
-    document.getElementById('subjectPasswordError-' + subjectId).style.display = 'none';
-    var modal = new bootstrap.Modal(document.getElementById('subjectPasswordModal-' + subjectId));
-    modal.show();
-}
-function submitSubjectPassword(subjectId) {
-    const password = document.getElementById('subject_password_input-' + subjectId).value;
-    fetch('/api/verify_gradebook_password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject_id: subjectId, password: password })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            var modal = bootstrap.Modal.getInstance(document.getElementById('subjectPasswordModal-' + subjectId));
-            modal.hide();
-            // Open the actual edit modal
-            setTimeout(function() {
-                var editModal = new bootstrap.Modal(document.getElementById('editSubjectModal-' + subjectId));
-                editModal.show();
-            }, 300);
-        } else {
-            document.getElementById('subjectPasswordError-' + subjectId).innerText = 'Incorrect subject password.';
-            document.getElementById('subjectPasswordError-' + subjectId).style.display = 'block';
-        }
-    });
-}
-function showSubjectDeletePasswordModal(subjectId) {
-    document.getElementById('subject_delete_password_input-' + subjectId).value = '';
-    document.getElementById('subjectDeletePasswordError-' + subjectId).style.display = 'none';
-    var modal = new bootstrap.Modal(document.getElementById('subjectDeletePasswordModal-' + subjectId));
-    modal.show();
-}
-function submitSubjectDeletePassword(subjectId) {
-    const password = document.getElementById('subject_delete_password_input-' + subjectId).value;
-    fetch('/api/verify_gradebook_password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject_id: subjectId, password: password })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            var modal = bootstrap.Modal.getInstance(document.getElementById('subjectDeletePasswordModal-' + subjectId));
-            modal.hide();
-            setTimeout(function() {
-                document.querySelector('.subject-delete-btn-' + subjectId).closest('.list-item').querySelector('button[data-delete-url]').click();
-            }, 300);
-        } else {
-            document.getElementById('subjectDeletePasswordError-' + subjectId).innerText = 'Incorrect subject password.';
-            document.getElementById('subjectDeletePasswordError-' + subjectId).style.display = 'block';
-        }
-    });
-}
-</script>
 
 <!-- Modals for Editing Students -->
 {% if students %}

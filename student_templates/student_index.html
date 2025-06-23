@@ -1,0 +1,24 @@
+{% extends 'layout.html' %}
+{% block title %}Take a Quiz{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h1>Welcome, Student!</h1>
+    <p class="text-center mb-4">Enter your name and choose a quiz to begin.</p>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="student_name" class="form-label">Your Name</label>
+            <input type="text" class="form-control" id="student_name" name="student_name" required>
+        </div>
+        <div class="mb-3">
+            <label for="quiz_id" class="form-label">Select a Quiz</label>
+            <select class="form-select" id="quiz_id" name="quiz_id" required>
+                <option value="" disabled selected>-- Choose a quiz --</option>
+                {% for quiz in quizzes %}
+                    <option value="{{ quiz.id }}">{{ quiz.title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Start Quiz</button>
+    </form>
+</div>
+{% endblock %} 
