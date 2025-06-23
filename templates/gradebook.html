@@ -90,8 +90,13 @@
     </div>
 
     <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Grade Sheet</h5>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3>Gradebook for {{ subject.subject_name }}</h3>
+            <div>
+                <button type="button" class="btn btn-info btn-sm me-2" onclick="syncTotalGrades()">
+                    <i class="fas fa-sync-alt"></i> Sync Total Grades
+                </button>
+            </div>
         </div>
         <div class="card-body">
             <!-- Student Search Bar -->
@@ -398,9 +403,33 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     } catch (error) {
-        console.error('Error:', error);
-        alert('An unexpected error occurred.');
+        console.error("Error in gradebook script:", error);
     }
 });
+
+function syncTotalGrades() {
+    if (confirm('This will sync all calculated total grades to the database. Continue?')) {
+        fetch(`/subject/{{ subject.id }}/sync-total-grades`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                // Optionally reload the page to show updated data
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while syncing grades.');
+        });
+    }
+}
 </script>
 {% endblock %}

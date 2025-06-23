@@ -312,6 +312,80 @@ class StudentScore(Base):
 
 Session = sessionmaker(bind=engine)
 
+# Helper function to sync calculated total grades to the grades table
+def sync_total_grade_to_database(db_session, student_id, subject_id, teacher_id, section_period):
+    """
+    Calculate the total grade from the new grading system and save it to the grades table.
+    This ensures the total grade is available in the database for other parts of the system.
+    """
+    try:
+        # Get the grading system for this subject
+        grading_system = db_session.query(GradingSystem).filter_by(section_subject_id=subject_id).first()
+        if not grading_system:
+            return  # No grading system set up yet
+        
+        # Get all scores for this student in this subject
+        scores_query = db_session.query(StudentScore).join(GradableItem).join(GradingComponent).filter(
+            GradingComponent.system_id == grading_system.id,
+            StudentScore.student_info_id == student_id
+        ).all()
+        
+        if not scores_query:
+            return  # No scores yet
+        
+        # Create a map of scores
+        student_scores_map = {s.item_id: s.score for s in scores_query}
+        
+        # Calculate total grade using the same logic as in the gradebook
+        student_total_grade = decimal.Decimal('0.0')
+        for component in grading_system.components:
+            component_items = component.items
+            if not component_items:
+                continue
+            
+            comp_student_sum = sum((decimal.Decimal(student_scores_map.get(i.id, 0)) for i in component_items), decimal.Decimal(0))
+            comp_max_sum = sum((i.max_score for i in component_items), decimal.Decimal(0))
+
+            if comp_max_sum > 0:
+                average = comp_student_sum / comp_max_sum
+                weight = decimal.Decimal(component.weight) / decimal.Decimal('100.0')
+                student_total_grade += average * weight
+        
+        # Convert to percentage and round to 2 decimal places
+        total_grade_value = float(student_total_grade * 100)
+        
+        # Check if a grade record already exists for this student, subject, and period
+        existing_grade = db_session.query(Grade).filter(
+            Grade.student_info_id == student_id,
+            Grade.section_subject_id == subject_id,
+            Grade.semester == section_period.period_name,
+            Grade.school_year == section_period.school_year
+        ).first()
+        
+        if existing_grade:
+            # Update existing grade
+            existing_grade.grade_value = total_grade_value
+            existing_grade.teacher_id = teacher_id
+        else:
+            # Create new grade record
+            new_grade = Grade(
+                student_info_id=student_id,
+                section_subject_id=subject_id,
+                teacher_id=teacher_id,
+                grade_value=total_grade_value,
+                semester=section_period.period_name,
+                school_year=section_period.school_year
+            )
+            db_session.add(new_grade)
+        
+        # Commit the changes
+        db_session.commit()
+        
+    except Exception as e:
+        db_session.rollback()
+        app.logger.error(f"Error syncing total grade to database: {e}")
+        # Don't raise the exception - we don't want to break the main functionality
+
 TEACHER_SPECIALIZATIONS_SHS = ['ICT', 'STEM', 'ABM', 'HUMSS', 'GAS', 'HE'] # Strands as specializations for SHS
 
 GRADE_LEVELS_JHS = ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10']
@@ -2567,6 +2641,15 @@ def setup_grading_system(subject_id):
             g.session.rollback() # Undo the changes
         else:
             g.session.commit()
+            
+            # Sync all existing total grades for this subject to the grades table
+            students = g.session.query(StudentInfo).join(SectionPeriod).filter(
+                SectionPeriod.id == subject.section_period_id
+            ).all()
+            
+            for student in students:
+                sync_total_grade_to_database(g.session, student.id, subject.id, uuid.UUID(session['user_id']), subject.section_period)
+            
             flash('Grading system updated successfully!', 'success')
         
         return redirect(url_for('manage_subject_grades', section_period_id=subject.section_period_id, subject_id=subject.id))
@@ -2647,6 +2730,10 @@ def grade_student_for_subject(subject_id, student_id):
 
         g.session.commit()
         flash(f'Grades for {student.name} updated successfully!', 'success')
+        
+        # Sync the calculated total grade to the grades table
+        sync_total_grade_to_database(g.session, student.id, subject.id, uuid.UUID(session['user_id']), subject.section_period)
+        
         # Redirect back to the main gradebook to see the updated overview
         return redirect(url_for('manage_subject_grades', section_period_id=subject.section_period_id, subject_id=subject.id))
 
@@ -2758,6 +2845,9 @@ def update_student_score(item_id, student_id):
             g.session.add(score)
         
         g.session.commit()
+        
+        # Sync the calculated total grade to the grades table
+        sync_total_grade_to_database(g.session, student_id, item.component.system.section_subject_id, uuid.UUID(session['user_id']), item.component.system.section_subject.section_period)
         
         # --- Recalculate averages for the response ---
         # This part could be abstracted into a helper function if it gets more complex
@@ -3048,6 +3138,44 @@ def api_verify_adviser_password():
         session[f'adviser_password_verified_{section_id}'] = True
         return jsonify({'success': True})
     return jsonify({'success': False})
+
+@app.route('/subject/<uuid:subject_id>/sync-total-grades', methods=['POST'])
+@login_required
+@user_type_required('teacher')
+def sync_total_grades_for_subject(subject_id):
+    """Manually sync all total grades for a subject to the grades table."""
+    try:
+        subject = g.session.query(SectionSubject).get(subject_id)
+        if not subject:
+            return jsonify({'success': False, 'message': 'Subject not found.'}), 404
+        
+        # Check if teacher has permission
+        if str(subject.section_period.assigned_teacher_id) != str(session['user_id']):
+            return jsonify({'success': False, 'message': 'You do not have permission to sync grades for this subject.'}), 403
+        
+        # Get all students in this subject's section period
+        students = g.session.query(StudentInfo).filter(
+            StudentInfo.section_period_id == subject.section_period_id
+        ).all()
+        
+        synced_count = 0
+        for student in students:
+            try:
+                sync_total_grade_to_database(g.session, student.id, subject.id, uuid.UUID(session['user_id']), subject.section_period)
+                synced_count += 1
+            except Exception as e:
+                app.logger.error(f"Error syncing grade for student {student.id}: {e}")
+                continue
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Successfully synced total grades for {synced_count} students.'
+        })
+        
+    except Exception as e:
+        g.session.rollback()
+        app.logger.error(f"Error syncing total grades: {e}")
+        return jsonify({'success': False, 'message': 'An error occurred while syncing grades.'}), 500
 
 if __name__ == '__main__':
     Base.metadata.create_all(engine)

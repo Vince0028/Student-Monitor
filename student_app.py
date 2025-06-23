@@ -12,6 +12,11 @@ from sqlalchemy.orm import sessionmaker, relationship, declarative_base, joinedl
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from dotenv import load_dotenv
 
+# Assuming your models are in app.py, you need to import them
+# This is a circular dependency, so it's better to move models to a separate file
+# For now, we will import them here
+from app import SectionSubject, Grade, SectionPeriod
+
 load_dotenv()
 
 # --- Flask App Configuration ---
@@ -101,22 +106,6 @@ class Attendance(Base):
     # Relationships omitted for brevity
     def __repr__(self):
         return f"<Attendance(id={self.id}, student_info_id={self.student_info_id}, date={self.attendance_date}, status='{self.status}')>"
-
-class Grade(Base):
-    __tablename__ = 'grades'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    student_info_id = Column(PG_UUID(as_uuid=True), ForeignKey('students_info.id'), nullable=False)
-    section_subject_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_subjects.id'), nullable=False)
-    teacher_id = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
-    grade_value = Column(Numeric(5, 2), nullable=False)
-    semester = Column(String(50), nullable=True)
-    school_year = Column(String(50), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    __table_args__ = (UniqueConstraint('student_info_id', 'section_subject_id', 'semester', 'school_year'),)
-    # Relationships omitted for brevity
-    def __repr__(self):
-        return f"<Grade(id={self.id}, student_info_id={self.student_info_id}, grade={self.grade_value})>"
 
 class Quiz(Base):
     __tablename__ = 'quizzes'
@@ -243,23 +232,35 @@ def student_dashboard():
 @app.route('/student/grades')
 @login_required
 def student_grades():
-    student_id = uuid.UUID(session['student_id'])
-    student = g.session.query(StudentInfo).filter_by(id=student_id).first()
-    if not student:
-        flash('Student not found.', 'error')
-        return redirect(url_for('student_login'))
-    grades = g.session.query(Grade).filter_by(student_info_id=student_id).order_by(Grade.school_year.desc(), Grade.semester).all()
+    db_session = g.session
+    student_id = session.get('student_id')
+
+    # Fetch grades and eagerly load subject and section period details
+    grades = db_session.query(Grade).join(
+        Grade.section_subject
+    ).join(
+        SectionSubject.section_period
+    ).filter(
+        Grade.student_info_id == student_id
+    ).options(
+        joinedload(Grade.section_subject).joinedload(SectionSubject.section_period)
+    ).order_by(
+        SectionPeriod.school_year.desc(),
+        SectionPeriod.period_name
+    ).all()
+
     grades_by_period = {}
     for grade in grades:
-        key = f"{grade.school_year}_{grade.semester}"
-        if key not in grades_by_period:
-            grades_by_period[key] = {
-                'school_year': grade.school_year,
-                'period_name': grade.semester,
+        period_key = f"{grade.section_subject.section_period.period_name} {grade.section_subject.section_period.school_year}"
+        if period_key not in grades_by_period:
+            grades_by_period[period_key] = {
+                'period_name': grade.section_subject.section_period.period_name,
+                'school_year': grade.section_subject.section_period.school_year,
                 'grades': []
             }
-        grades_by_period[key]['grades'].append(grade)
-    return render_template('student_grades.html', student=student, grades_by_period=grades_by_period)
+        grades_by_period[period_key]['grades'].append(grade)
+
+    return render_template('student_grades.html', grades_by_period=grades_by_period)
 
 @app.route('/student/attendance')
 @login_required
