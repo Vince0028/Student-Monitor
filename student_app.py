@@ -224,7 +224,7 @@ def student_dashboard():
     latest_grades = g.session.query(Grade).filter_by(student_info_id=student.id).order_by(Grade.created_at.desc()).limit(5).all()
     # Calculate average grade
     grades = g.session.query(Grade.grade_value).filter_by(student_info_id=student.id).all()
-    average_grade = sum(float(g[0]) for g in grades) / len(grades) if grades else "N/A"
+    average_grade = sum(float(g[0]) for g in grades) / len(grades) if grades else None
     # Get recent attendance
     recent_attendance = g.session.query(Attendance).filter_by(student_info_id=student.id).order_by(Attendance.attendance_date.desc()).limit(10).all()
     return render_template('student_dashboard.html', student=student, latest_grades=latest_grades, average_grade=average_grade, recent_attendance=recent_attendance)
@@ -249,6 +249,9 @@ def student_grades():
         SectionPeriod.period_name
     ).all()
 
+    # Calculate overall average grade
+    overall_average = sum(float(g.grade_value) for g in grades) / len(grades) if grades else None
+
     grades_by_period = {}
     for grade in grades:
         period_key = f"{grade.section_subject.section_period.period_name} {grade.section_subject.section_period.school_year}"
@@ -260,7 +263,7 @@ def student_grades():
             }
         grades_by_period[period_key]['grades'].append(grade)
 
-    return render_template('student_grades.html', grades_by_period=grades_by_period)
+    return render_template('student_grades.html', grades_by_period=grades_by_period, overall_average=overall_average)
 
 @app.route('/student/attendance')
 @login_required

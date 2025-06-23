@@ -50,8 +50,8 @@
                             <td>{{ student.name }}</td>
                             <td>{{ student.student_id_number }}</td>
                             <td>
-                                {% if student.average_grade is not none and student.average_grade != 'N/A' %}
-                                    <span class="average-grade-value">{{ "%.2f" | format(student.average_grade | float) }}%</span>
+                                {% if student.average_grade is not none %}
+                                    <span class="average-grade-value">{{ '%.2f' | format(student.average_grade | float) }}%</span>
                                 {% else %}
                                     N/A
                                 {% endif %}

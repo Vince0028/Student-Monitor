@@ -402,6 +402,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 deleteItemModal.hide();
             });
         });
+
+        const searchInput = document.getElementById('studentSearch');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                const filter = searchInput.value.toLowerCase();
+                const rows = document.querySelectorAll('#gradeSheetTable tbody tr[data-student-id]');
+                rows.forEach(row => {
+                    const studentName = row.cells[0].textContent.toLowerCase();
+                    if (studentName.includes(filter)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
     } catch (error) {
         console.error("Error in gradebook script:", error);
     }

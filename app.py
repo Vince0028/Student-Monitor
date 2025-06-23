@@ -178,6 +178,7 @@ class StudentInfo(Base):
     attendance_records = relationship('Attendance', back_populates='student_info', cascade='all, delete-orphan')
     grades = relationship('Grade', back_populates='student_info', cascade='all, delete-orphan')
     scores = relationship('StudentScore', back_populates='student', cascade='all, delete-orphan')
+    average_grade = Column(Numeric(5, 2), nullable=True)
 
     def __repr__(self):
         return f"<StudentInfo(id={self.id}, name='{self.name}', student_id_number='{self.student_id_number}', gender='{self.gender}')>"
@@ -1096,7 +1097,7 @@ def grade_level_details(grade_level_id):
             if all_grades_summary and all_grades_summary[0] is not None and all_grades_summary[1] > 0:
                 total_grades_sum = float(all_grades_summary[0])
                 total_grades_count = all_grades_summary[1]
-        section.average_grade = round(total_grades_sum / total_grades_count, 2) if total_grades_count > 0 else 'N/A'
+        section.average_grade = round(total_grades_sum / total_grades_count, 2) if total_grades_count > 0 else None
 
     strands = []
     if grade_level.level_type == 'SHS':
@@ -1250,7 +1251,7 @@ def strand_details(strand_id):
             if all_grades_summary and all_grades_summary[0] is not None and all_grades_summary[1] > 0:
                 total_grades_sum = float(all_grades_summary[0])
                 total_grades_count = all_grades_summary[1]
-        section.average_grade = round(total_grades_sum / total_grades_count, 2) if total_grades_count > 0 else 'N/A'
+        section.average_grade = round(total_grades_sum / total_grades_count, 2) if total_grades_count > 0 else None
 
     return render_template('strand_details.html',
                            strand=strand,
@@ -1594,9 +1595,9 @@ def section_period_details(section_period_id):
             # Note: This is a simple average calculation. A more complex one might be needed later.
             grades = db_session.query(Grade.grade_value).filter(Grade.student_info_id == student.id).all()
             if grades:
-                student.average_grade = sum(g[0] for g in grades) / len(grades) if grades else "N/A"
+                student.average_grade = sum(g[0] for g in grades) / len(grades)
             else:
-                student.average_grade = "N/A"
+                student.average_grade = None
 
         # --- FIX: Fetch parents for the "Assign Parent" modal ---
         parents = db_session.query(Parent).order_by(Parent.first_name, Parent.last_name).all()
@@ -3176,6 +3177,29 @@ def sync_total_grades_for_subject(subject_id):
         g.session.rollback()
         app.logger.error(f"Error syncing total grades: {e}")
         return jsonify({'success': False, 'message': 'An error occurred while syncing grades.'}), 500
+
+@app.route('/section_period/<uuid:section_period_id>/sync-average-grades', methods=['POST'])
+@login_required
+@user_type_required('admin', 'teacher')
+def sync_average_grades(section_period_id):
+    db_session = g.session
+    # Get all students in this section period
+    students = db_session.query(StudentInfo).filter_by(section_period_id=section_period_id).all()
+    updated = 0
+    for student in students:
+        # Get all grades for this student in this period
+        grades = db_session.query(Grade).join(SectionSubject).filter(
+            Grade.student_info_id == student.id,
+            SectionSubject.section_period_id == section_period_id
+        ).all()
+        if grades:
+            avg = round(sum(float(g.grade_value) for g in grades) / len(grades), 3)
+            student.average_grade = avg
+            updated += 1
+        else:
+            student.average_grade = None
+    db_session.commit()
+    return jsonify({'success': True, 'message': f'Synced average grades for {updated} students.'})
 
 if __name__ == '__main__':
     Base.metadata.create_all(engine)

@@ -33,7 +33,7 @@
                     <i class="fas fa-chart-line"></i>
                     <div class="stat-content">
                         <span class="stat-label">Average Grade</span>
-                        <span class="stat-value">{{ "%.2f"|format(student.average_grade) if student.average_grade != "N/A" else "N/A" }}</span>
+                        <span class="stat-value">{{ '%.2f'|format(student.average_grade) if student.average_grade is not none else 'N/A' }}</span>
                     </div>
                 </div>
             </div>

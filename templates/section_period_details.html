@@ -25,6 +25,9 @@
     <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#studentListCollapse" aria-expanded="false" aria-controls="studentListCollapse">
         Show/Hide Student List
     </button>
+    <button class="btn btn-info mb-3 ms-2" type="button" id="syncAverageGradesBtn">
+        <i class="fas fa-sync-alt"></i> Sync Average Grades
+    </button>
     <div class="collapse" id="studentListCollapse">
     <div class="card mt-40">
         <h3>Student List</h3>
@@ -115,6 +118,29 @@
     // Set the default state to hidden (eye on, grades masked)
     document.addEventListener('DOMContentLoaded', function() {
         setGradeVisibility(false); // Start with grades hidden
+        const syncBtn = document.getElementById('syncAverageGradesBtn');
+        if (syncBtn) {
+            syncBtn.addEventListener('click', function() {
+                if (confirm('This will sync the average grades for all students in this period. Continue?')) {
+                    fetch(`/section_period/{{ section_period.id }}/sync-average-grades`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert(data.message);
+                            location.reload();
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('An error occurred while syncing average grades.');
+                    });
+                }
+            });
+        }
     });
 
     function toggleGradeVisibility() {
