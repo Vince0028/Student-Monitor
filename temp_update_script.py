@@ -44,7 +44,6 @@ def admin_login():
         password = request.form['password']
 
         user = User.query.filter_by(username=username, user_type='admin').first()
-        print(f"Login attempt: {username}, found user: {user is not None}, user_type: {getattr(user, 'user_type', None)}")
 
         if user and check_password_hash(user.password_hash, password):
             session['admin_logged_in'] = True
@@ -524,6 +523,7 @@ def create_admin_command(username, password):
     db.session.add(new_admin)
     db.session.commit()
     print(f"Admin user '{username}' created successfully.")
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5005) 

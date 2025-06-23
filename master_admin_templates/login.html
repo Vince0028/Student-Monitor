@@ -3,40 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Master Admin Portal</title>
+    <title>Login - Master Admin</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
+    <style>
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .form-container {
+            max-width: 420px;
+            margin: 4rem auto;
+            padding: 3rem;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+    </style>
 </head>
 <body>
-    <div class="parent-main" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f8f9fa;">
-        <div class="dashboard-container" style="max-width: 400px; width: 100%;">
-            <h2 style="text-align: center; margin-bottom: 1.5em;"><i class="fas fa-user-shield"></i> Master Admin Login</h2>
-            {% with messages = get_flashed_messages(with_categories=true) %}
-              {% if messages %}
-                <div class="flash-messages">
-                  {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">
-                      <i class="fas fa-info-circle"></i> {{ message }}
-                      <button type="button" class="close-btn" onclick="this.parentElement.remove()">
-                        <i class="fas fa-times"></i>
-                      </button>
-                    </div>
-                  {% endfor %}
-                </div>
-              {% endif %}
-            {% endwith %}
-            <form method="POST">
-                <div class="form-group">
-                    <label for="username">Username:</label>
-                    <input type="text" id="username" name="username" class="form-control" required autofocus>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password:</label>
-                    <input type="password" id="password" name="password" class="form-control" required>
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1em;"><i class="fas fa-sign-in-alt"></i> Login</button>
-            </form>
+<div class="form-container">
+    <h2 class="form-title">
+        <i class="fas fa-user-shield"></i> Master Admin Login
+    </h2>
+    <p style="text-align: center; color: #666; margin-bottom: 2rem;">Manage the student monitoring system</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages" style="margin-bottom: 1.5rem; text-align: left;">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+              <i class="fas fa-info-circle"></i> {{ message }}
+            </div>
+          {% endfor %}
         </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <div class="form-group">
+            <label for="username">
+                <i class="fas fa-user"></i> Username
+            </label>
+            <input type="text" id="username" name="username" required autofocus>
+        </div>
+
+        <div class="form-group">
+            <label for="password">
+                <i class="fas fa-lock"></i> Password
+            </label>
+            <input type="password" id="password" name="password" required>
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn btn-primary form-submit">
+            <i class="fas fa-sign-in-alt"></i> Login
+        </button>
+    </form>
+
+    <div class="form-footer">
+         <p>Need an account? <a href="{{ url_for('register_admin') }}">Register here</a></p>
     </div>
+    <p id="email-error" style="color: #dc3545; text-align: center; margin-top: 1rem; display: none;">
+        Username must be a valid @masteradmin.pcshs.edu.ph email.
+    </p>
+</div>
+<script>
+    const usernameInput = document.getElementById('username');
+    const submitBtn = document.getElementById('submit-btn');
+    const emailError = document.getElementById('email-error');
+    const allowedDomain = '@masteradmin.pcshs.edu.ph';
+
+    function validateUsername() {
+        const username = usernameInput.value.trim();
+        if (username.length > 0 && !username.endsWith(allowedDomain)) {
+            submitBtn.disabled = true;
+            emailError.style.display = 'block';
+        } else {
+            submitBtn.disabled = false;
+            emailError.style.display = 'none';
+        }
+    }
+
+    usernameInput.addEventListener('input', validateUsername);
+    
+    // Initial validation in case the field is pre-filled
+    validateUsername();
+</script>
 </body>
-</html> 
+</html>
