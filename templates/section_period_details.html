@@ -83,6 +83,10 @@
                             <td class="average-grade-cell"><span class="average-grade-value">{{ student.average_grade }}</span></td>
                             <td>
                                 <div class="button-group">
+                                    <!-- Assign Parent Button -->
+                                    <button type="button" class="btn btn-secondary btn-icon-small assign-parent-btn" title="Assign Parent" data-bs-toggle="modal" data-bs-target="#assignParentModal-{{ student.id }}">
+                                        <i class="fas fa-user-plus"></i> Assign Parent
+                                    </button>
                                     <a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-edit btn-icon-small" title="Edit Student Details">
                                         <i class="fas fa-user-edit"></i> Edit
                                     </a>
@@ -98,7 +102,6 @@
                             </td>
                         </tr>
                     {% endfor %}
-                    {% endif %}
                 </tbody>
             </table>
         </div>
@@ -238,6 +241,7 @@ function setupEditSubjectFormValidation() {
         });
     });
 }
+<<<<<<< HEAD
 </script>
 
 <script>
@@ -328,5 +332,123 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+=======
+
+// Parent assignment functions
+function filterParentList(studentId) {
+    const input = document.getElementById('parentSearchInput-' + studentId);
+    const filter = input.value.toLowerCase();
+    const table = document.getElementById('parentList-' + studentId);
+    const tr = table.getElementsByTagName('tr');
+    for (let i = 0; i < tr.length; i++) {
+        let show = false;
+        const tds = tr[i].getElementsByTagName('td');
+        for (let j = 0; j < tds.length - 1; j++) { // skip the last td (button)
+            if (tds[j].textContent.toLowerCase().indexOf(filter) > -1) {
+                show = true;
+                break;
+            }
+        }
+        tr[i].style.display = show ? '' : 'none';
+    }
+}
+
+function selectParent(studentId, parentId, parentName) {
+    document.getElementById('selectedParentDisplay-' + studentId).textContent = parentName + ' (ID: ' + parentId + ')';
+    document.getElementById('selectedParentId-' + studentId).value = parentId;
+}
+
+function assignParent(studentId) {
+    const parentId = document.getElementById('selectedParentId-' + studentId).value;
+    if (!parentId) {
+        showAssignParentAlert(studentId, 'Please select a parent first.', 'danger');
+        return;
+    }
+    fetch('/assign_parent', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ student_id: studentId, parent_id: parentId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAssignParentAlert(studentId, 'Parent assigned successfully!', 'success');
+            setTimeout(() => { var modal = bootstrap.Modal.getInstance(document.getElementById('assignParentModal-' + studentId)); if(modal) modal.hide(); location.reload(); }, 1000);
+        } else {
+            showAssignParentAlert(studentId, data.message || 'Error assigning parent.', 'danger');
+        }
+    })
+    .catch(() => {
+        showAssignParentAlert(studentId, 'An error occurred. Please try again.', 'danger');
+    });
+}
+
+function showAssignParentAlert(studentId, message, type) {
+    const alertDiv = document.getElementById('assignParentAlert-' + studentId);
+    alertDiv.className = 'alert alert-' + type;
+    alertDiv.textContent = message;
+    alertDiv.classList.remove('d-none');
+}
+>>>>>>> cf248bfd64705effedd92c8a1305231a181d7c3f
 </script>
+
+<!-- Assign Parent Modals -->
+{% for student in students %}
+<div class="modal fade" id="assignParentModal-{{ student.id }}" tabindex="-1" aria-labelledby="assignParentModalLabel-{{ student.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="assignParentModalLabel-{{ student.id }}">Assign Parent for {{ student.name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Current Parent:</label>
+          <div><em>{% if student.parent_id %}{{ parents_dict[student.parent_id].first_name }} {{ parents_dict[student.parent_id].last_name }}{% else %}(No parent assigned){% endif %}</em></div>
+        </div>
+        <div class="mb-3">
+          <input type="text" class="form-control parent-search-input" id="parentSearchInput-{{ student.id }}" placeholder="Search parent by name, email, or username..." onkeyup="filterParentList('{{ student.id }}')">
+        </div>
+        <div class="parent-list-container" style="max-height: 250px; overflow-y: auto;">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Username</th>
+                <th>Select</th>
+              </tr>
+            </thead>
+            <tbody id="parentList-{{ student.id }}">
+              {% for parent in parents %}
+              <tr>
+                <td>{{ parent.first_name }} {{ parent.last_name }}</td>
+                <td>{{ parent.email }}</td>
+                <td>{{ parent.username }}</td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-primary" onclick="selectParent('{{ student.id }}', '{{ parent.id }}', '{{ parent.first_name }} {{ parent.last_name }}')">Select</button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-3">
+          <label>Selected Parent:</label>
+          <span id="selectedParentDisplay-{{ student.id }}"><em>None</em></span>
+          <input type="hidden" id="selectedParentId-{{ student.id }}">
+        </div>
+        <div class="alert mt-2 d-none" id="assignParentAlert-{{ student.id }}"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="assignParent('{{ student.id }}')">Assign Parent</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
 {% endblock %}
