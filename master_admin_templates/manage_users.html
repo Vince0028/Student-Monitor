@@ -1,4 +1,11 @@
 {% extends 'admin_base.html' %}
+{% block nav %}
+    <nav class="admin-nav-row" style="display: flex; align-items: center; gap: 0.5em;">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="{{ url_for('manage_strands') }}" class="btn btn-primary"><i class="fas fa-layer-group"></i> Strands</a>
+        <a href="{{ url_for('manage_users') }}" class="btn btn-primary"><i class="fas fa-user-cog"></i> Admin Users</a>
+    </nav>
+{% endblock %}
 {% block content %}
 <div class="dashboard-container">
     <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center;">
@@ -66,6 +73,5 @@
             </tbody>
         </table>
     </div>
-    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary" style="margin-top: 2em;"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
 </div>
 {% endblock %} 

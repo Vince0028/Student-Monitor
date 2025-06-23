@@ -59,7 +59,12 @@ def admin_login():
 def admin_dashboard():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-    return render_template('admin_dashboard.html')
+    admin_user = User.query.filter_by(username=session.get('admin_username')).first()
+    if admin_user:
+        admin_name = f"{admin_user.firstname} {admin_user.lastname}".strip()
+    else:
+        admin_name = session.get('admin_username', 'Admin')
+    return render_template('admin_dashboard.html', admin_name=admin_name)
 
 @app.route('/admin/strands')
 def manage_strands():

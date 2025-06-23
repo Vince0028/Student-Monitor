@@ -1,9 +1,15 @@
 {% extends 'admin_base.html' %}
+{% block nav %}
+    <nav class="admin-nav-row" style="display: flex; align-items: center; gap: 0.5em;">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="{{ url_for('manage_sections') }}" class="btn btn-primary"><i class="fas fa-users"></i> Sections</a>
+        <a href="{{ url_for('manage_users') }}" class="btn btn-primary"><i class="fas fa-user-cog"></i> Admin Users</a>
+    </nav>
+{% endblock %}
 {% block content %}
 <div class="dashboard-container">
     <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center;">
         <h2>Manage Strands</h2>
-        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
     </div>
     <a href="{{ url_for('add_strand_admin') }}" class="btn btn-primary" style="margin-bottom: 1.5em;"><i class="fas fa-plus-circle"></i> Add New Strand</a>
     <div class="table-responsive">
