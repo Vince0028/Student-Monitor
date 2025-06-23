@@ -1701,6 +1701,26 @@ def assign_parent():
         app.logger.error(f"Error assigning parent: {e}")
         return jsonify({'success': False, 'message': 'An error occurred while assigning the parent.'})
 
+@app.route('/unassign_parent', methods=['POST'])
+@login_required
+@user_type_required('admin')
+def unassign_parent():
+    db_session = g.session
+    data = request.get_json()
+    student_id = data.get('student_id')
+    if not student_id:
+        return jsonify({'success': False, 'message': 'Missing student ID.'})
+    student = db_session.query(StudentInfo).filter_by(id=student_id).first()
+    if not student:
+        return jsonify({'success': False, 'message': 'Student not found.'})
+    try:
+        student.parent_id = None
+        db_session.commit()
+        return jsonify({'success': True, 'message': 'Parent unassigned successfully!'})
+    except Exception as e:
+        db_session.rollback()
+        app.logger.error(f"Error unassigning parent: {e}")
+        return jsonify({'success': False, 'message': 'An error occurred while unassigning the parent.'})
 
 @app.route('/section_period/<uuid:section_period_id>/add_student', methods=['GET', 'POST'])
 @login_required
