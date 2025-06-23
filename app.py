@@ -38,7 +38,18 @@ if not DATABASE_URL:
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 Base = declarative_base()
 
-# Define SQLAlchemy Models
+# Define SQLAlchemy Models (including Parent for relationship)
+class Parent(Base):
+    __tablename__ = 'parents'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True)
+    username = Column(String)
+    first_name = Column(String)
+    last_name = Column(String)
+    email = Column(String)
+    # This model is only for relationship loading, so we don't need all fields.
+    # The parent_app.py manages the full Parent model.
+    students = relationship("StudentInfo", back_populates="parent")
+
 class User(Base):
     __tablename__ = 'users'
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -159,9 +170,11 @@ class StudentInfo(Base):
     student_id_number = Column(String(255), unique=True, nullable=False)
     gender = Column(String(10), nullable=True)  # NEW FIELD
     password_hash = Column(String(255), nullable=True)
+    parent_id = Column(PG_UUID(as_uuid=True), ForeignKey('parents.id'), nullable=True) # NEW FIELD
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     section_period = relationship('SectionPeriod', back_populates='students_in_period')
+    parent = relationship('Parent', back_populates='students') # NEW RELATIONSHIP
     attendance_records = relationship('Attendance', back_populates='student_info', cascade='all, delete-orphan')
     grades = relationship('Grade', back_populates='student_info', cascade='all, delete-orphan')
     scores = relationship('StudentScore', back_populates='student', cascade='all, delete-orphan')
