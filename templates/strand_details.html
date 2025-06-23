@@ -210,10 +210,36 @@
                     passwordInput.focus();
                     return;
                 }
+<<<<<<< HEAD
+                // TODO: Implement reassign_period_teachers route
+                alert('This feature is not yet implemented.');
+                // fetch('{{ url_for("reassign_period_teachers") }}', {
+                //     method: 'POST',
+                //     headers: {
+                //         'Content-Type': 'application/x-www-form-urlencoded',
+                //     },
+                //     body: `password=${encodeURIComponent(password)}`
+                // })
+                // .then(response => response.json())
+                // .then(data => {
+                //     if (data.success) {
+                //         window.location.href = data.redirect_url || '{{ url_for("index") }}';
+                //     } else {
+                //         alert(data.message);
+                //     }
+                // })
+                // .catch(error => {
+                //     alert('An unexpected error occurred during reassignment.');
+                // })
+                // .finally(() => {
+                //     if (bootstrapModal) bootstrapModal.hide();
+                // });
+=======
                 // The following fetch call was causing a BuildError because the endpoint 'reassign_period_teachers' does not exist.
                 // If you implement this endpoint in Flask, you can restore this code. For now, it is commented out to prevent errors.
                 // TODO: Implement reassign_period_teachers endpoint and restore the fetch functionality here
                 console.log('Reassign functionality not implemented yet');
+>>>>>>> a8af58cb4b06840ccc3cc0c2c4bc4efe04888639
             });
         }
 

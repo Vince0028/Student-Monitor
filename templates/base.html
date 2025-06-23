@@ -163,6 +163,20 @@
             const reassignTeachersBtn = document.getElementById('reassignTeachersBtn');
             if (reassignTeachersBtn) {
                 reassignTeachersBtn.addEventListener('click', function() {
+<<<<<<< HEAD
+                    // TODO: Implement reassign_period_teachers route
+                    alert('This feature is not yet implemented.');
+                    // const reassignUrl = '{{ url_for("reassign_period_teachers") }}';
+                    // const redirectUrl = '{{ url_for("admin_dashboard") }}'; // Updated to use admin_dashboard
+                    // const message = 'This action will attempt to assign registered teacher accounts to periods that are currently unassigned based on their grade level and specialization.';
+                    
+                    // showUniversalConfirmationModal(
+                    //     reassignUrl, 
+                    //     redirectUrl, 
+                    //     message, 
+                    //     'Reassign' // Button text
+                    // );
+=======
                     const redirectUrl = '{{ url_for("admin_dashboard") }}'; // Updated to use admin_dashboard
                     const message = 'This action will attempt to assign registered teacher accounts to periods that are currently unassigned based on their grade level and specialization.';
                     
@@ -172,6 +186,7 @@
                         message, 
                         'Reassign' // Button text
                     );
+>>>>>>> a8af58cb4b06840ccc3cc0c2c4bc4efe04888639
                 });
             }
         });
