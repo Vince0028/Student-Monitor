@@ -22,9 +22,22 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Import the Quiz model from models.py
+from models import Quiz
+
 # --- Flask App Configuration ---
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'supersecretkey_for_development_only')
+app.permanent_session_lifetime = timedelta(days=30)
+app.config['SESSION_COOKIE_NAME'] = 'sos_session'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True if using HTTPS
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
 
 # Database connection details
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -569,6 +582,7 @@ def login():
         user = db_session.query(User).filter_by(username=username).first()
 
         if user and check_password_hash(user.password_hash, password):
+            session.permanent = True
             session['user_id'] = str(user.id)
             session['username'] = user.username
             session['user_type'] = user.user_type
@@ -3200,6 +3214,67 @@ def sync_average_grades(section_period_id):
             student.average_grade = None
     db_session.commit()
     return jsonify({'success': True, 'message': f'Synced average grades for {updated} students.'})
+
+@app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/quiz/create', methods=['GET', 'POST'])
+@login_required
+@user_type_required('teacher')
+def teacher_create_quiz(section_period_id, subject_id):
+    db_session = g.session
+    # Fetch the subject and its grading components
+    subject = db_session.query(SectionSubject).filter_by(id=subject_id, section_period_id=section_period_id).first()
+    if not subject:
+        flash('Subject not found.', 'error')
+        return redirect(url_for('teacher_section_period_view', section_period_id=section_period_id))
+    grading_system = db_session.query(GradingSystem).filter_by(section_subject_id=subject_id).first()
+    components = grading_system.components if grading_system else []
+
+    if request.method == 'POST':
+        # Basic stub: just flash a message and redirect back for now
+        # (You can expand this to actually create a quiz object, etc.)
+        flash('Quiz/Exam creation is not fully implemented yet.', 'info')
+        return redirect(url_for('manage_subject_grades', section_period_id=section_period_id, subject_id=subject_id))
+
+    return render_template('quiz/create_quiz.html', subject=subject, components=components)
+
+@app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/quiz/maker')
+@login_required
+@user_type_required('teacher')
+def quiz_maker(section_period_id, subject_id):
+    db_session = g.session
+    subject = db_session.query(SectionSubject).filter_by(id=subject_id, section_period_id=section_period_id).first()
+    if not subject:
+        flash('Subject not found.', 'error')
+        return redirect(url_for('teacher_section_period_view', section_period_id=section_period_id))
+    return render_template('quiz/quiz_maker.html', subject=subject)
+
+@app.route('/api/quizzes', methods=['POST'])
+@login_required
+@user_type_required('teacher')
+def api_create_quiz():
+    try:
+        data = request.get_json()
+        db_session = g.session
+        title = data.get('title')
+        questions = data.get('questions')
+        section_period_id = data.get('section_period_id')
+        subject_id = data.get('subject_id')
+        if not (title and questions and section_period_id and subject_id):
+            return jsonify({'success': False, 'message': 'Missing required fields.'}), 400
+        import json
+        quiz = Quiz(
+            title=title,
+            description=None,
+            section_period_id=section_period_id,
+            subject_id=subject_id,
+            questions_json=json.dumps(questions)
+        )
+        db_session.add(quiz)
+        db_session.commit()
+        return jsonify({'success': True, 'message': 'Quiz created!', 'quiz_id': str(quiz.id)})
+    except Exception as e:
+        import traceback
+        app.logger.error(f"Error in /api/quizzes: {e}\n{traceback.format_exc()}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 if __name__ == '__main__':
     Base.metadata.create_all(engine)

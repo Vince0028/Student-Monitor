@@ -3,9 +3,135 @@
 {% block title %}Student Dashboard - Student Monitor{% endblock %}
 
 {% block content %}
+<style>
+body, html {
+    width: 100vw;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+.dashboard-container {
+    width: 100%;
+    max-width: 950px;
+    min-height: calc(100vh - 64px - 40px); /* header: 64px, footer: 40px (adjust as needed) */
+    margin: 0 auto;
+    padding: 2.5rem 1rem 2rem 1rem;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+}
+.dashboard-header {
+    margin-bottom: 0.7rem;
+    width: 100%;
+    min-height: 36px;
+    display: flex;
+    align-items: flex-end;
+}
+.dashboard-header h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0;
+    margin-left: 0;
+    width: 100%;
+}
+.dashboard-card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+    justify-items: stretch;
+    align-items: stretch;
+    max-width: 950px;
+    padding-left: 0;
+    padding-right: 0;
+}
+@media (min-width: 900px) {
+    .dashboard-card-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 1.2rem;
+        max-width: 950px;
+    }
+}
+.feature-card {
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    padding: 1.5rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    transition: box-shadow 0.2s;
+    margin: 0;
+    height: 100%;
+    width: 85%;
+}
+.feature-card:hover {
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+}
+.feature-card-icon {
+    font-size: 2.2rem;
+    margin-bottom: 0.7rem;
+    color: #2563eb;
+}
+.feature-card-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+    color: #3730a3;
+}
+.feature-card-desc {
+    font-size: 1rem;
+    color: #6b7280;
+    margin-bottom: 1.1rem;
+}
+.feature-card-stats {
+    font-size: 0.98rem;
+    color: #444;
+    margin-top: auto;
+    width: 100%;
+}
+.feature-card-stats span.pending { color: #eab308; font-weight: 600; }
+.feature-card-stats span.completed { color: #16a34a; font-weight: 600; }
+.feature-card-stats span.past-due { color: #dc2626; font-weight: 600; }
+.gpa, .semester, .credits { font-weight: 600; }
+@media (max-width: 1200px) {
+    .dashboard-card-grid { gap: 1.2rem; }
+    .dashboard-container { padding: 1.5rem 0.2rem 2rem 0.2rem; }
+}
+@media (max-width: 900px) {
+    .dashboard-card-grid { gap: 1rem; }
+    .dashboard-header h3 { font-size: 1.3rem; }
+}
+@media (max-width: 700px) {
+    .dashboard-card-grid {
+        grid-template-columns: 1fr;
+        gap: 0.7rem;
+        width: 100vw;
+    }
+    .feature-card {
+        padding: 1rem 0.5rem;
+        border-radius: 12px;
+    }
+    .dashboard-header h3, h2 {
+        font-size: 1.1rem !important;
+    }
+    .feature-card-title { font-size: 1.05rem; }
+    .feature-card-desc { font-size: 0.95rem; }
+    .feature-card-stats { font-size: 0.93rem; }
+}
+</style>
 <div class="dashboard-container">
-    <div style="margin-bottom: 2.5rem;">
-        <h3 style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem; margin-left: 0px;">Welcome back, {{ session.student_name }}!</h3>
+    <div class="dashboard-header">
+        <h3>Welcome back, {{ session.student_name }}!</h3>
     </div>
     <div class="dashboard-card-grid">
         <!-- Assignments Card -->
@@ -47,8 +173,8 @@
             <div class="feature-card-title">Quiz</div>
             <div class="feature-card-desc">Take and review your quizzes</div>
             <div class="feature-card-stats">
-                <div><span>Available:</span> <span class="pending">2</span></div>
-                <div><span>Completed:</span> <span class="completed">5</span></div>
+                <div><span>Available:</span> <span class="pending">{{ available_quiz_count }}</span></div>
+                <div><span>Completed:</span> <span class="completed">{{ completed_quiz_count }}</span></div>
             </div>
         </a>
     </div>

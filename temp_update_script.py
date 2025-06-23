@@ -8,6 +8,9 @@ from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 import click
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+from models import Quiz, StudentQuizResult
 
 # Load environment variables from .env
 load_dotenv()
@@ -20,6 +23,35 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+DATABASE_URL = os.environ.get('DATABASE_URL')
+print(f"Using DATABASE_URL: {DATABASE_URL}")
+if not DATABASE_URL:
+    raise RuntimeError('DATABASE_URL not set')
+
+engine = create_engine(DATABASE_URL)
+Session = sessionmaker(bind=engine)
+session = Session()
+
+# Print quiz count before deletion
+quiz_count = session.query(Quiz).count()
+print(f"Quizzes before deletion: {quiz_count}")
+
+try:
+    # Delete all student quiz results first (to avoid FK constraint errors)
+    deleted_results = session.query(StudentQuizResult).delete()
+    # Delete all quizzes
+    deleted_quizzes = session.query(Quiz).delete()
+    session.commit()
+    print(f"Deleted {deleted_quizzes} quizzes and {deleted_results} student quiz results.")
+except Exception as e:
+    session.rollback()
+    print(f"Error: {e}")
+
+# Print quiz count after deletion
+quiz_count_after = session.query(Quiz).count()
+print(f"Quizzes after deletion: {quiz_count_after}")
+session.close()
 
 # Minimal models for read-only display
 class GradeLevel(db.Model):

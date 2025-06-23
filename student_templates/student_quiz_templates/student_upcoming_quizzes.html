@@ -8,11 +8,13 @@
     <div class="quiz-card-grid">
         {% if upcoming_quizzes %}
             {% for quiz in upcoming_quizzes %}
-            <div class="feature-card card-quiz-upcoming">
-                <div class="feature-card-icon"><i class="fas fa-hourglass-start"></i></div>
-                <div class="feature-card-title">{{ quiz.title }}</div>
-                <div class="feature-card-desc">{{ quiz.description or 'Take this quiz now.' }}</div>
-            </div>
+            <a href="{{ url_for('take_quiz', quiz_id=quiz.id) }}" style="text-decoration: none; color: inherit;">
+                <div class="feature-card card-quiz-upcoming">
+                    <div class="feature-card-icon"><i class="fas fa-hourglass-start"></i></div>
+                    <div class="feature-card-title">{{ quiz.title }}</div>
+                    <div class="feature-card-desc">{{ quiz.description or 'Take this quiz now.' }}</div>
+                </div>
+            </a>
             {% endfor %}
         {% else %}
             <div style="grid-column: 1 / -1; text-align: center; color: #888; font-size: 1.2rem;">No upcoming quizzes available.</div>

@@ -572,3 +572,9 @@ gap: 4rem 4rem !important;
   justify-content: center;
   place-items: center;
 }
+
+header {
+    min-height: 36px;   /* or 40px for a slim bar */
+    padding: 0.2rem 0;
+    /* ...keep other styles as is... */
+}
