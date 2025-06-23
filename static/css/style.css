@@ -1049,3 +1049,16 @@ body {
     min-width: 1200px;
     border-collapse: collapse;
 }
+
+.student-list-scrollable {
+    max-height: 350px;
+    overflow-y: auto;
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    margin-bottom: 10px;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    scroll-behavior: smooth;
+}

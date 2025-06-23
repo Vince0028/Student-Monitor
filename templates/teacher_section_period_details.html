@@ -462,15 +462,15 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="subjectPasswordModalLabel-{{ subject.id }}">Enter Subject Password</h5>
+                <h5 class="modal-title" id="subjectPasswordModalLabel-{{ subject.id }}">Enter Adviser Password</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="subjectPasswordForm-{{ subject.id }}" onsubmit="event.preventDefault(); submitSubjectPassword('{{ subject.id }}');">
                     <div class="mb-3">
-                        <label for="subject_password_input-{{ subject.id }}" class="form-label">Subject Password</label>
+                        <label for="subject_password_input-{{ subject.id }}" class="form-label">Adviser Password</label>
                         <input type="password" class="form-control" id="subject_password_input-{{ subject.id }}" name="subject_password" required>
-                        <div class="form-text">Please enter the subject password to access the edit modal.</div>
+                        <div class="form-text">Please enter the adviser password to access the edit modal.</div>
                         <div id="subjectPasswordError-{{ subject.id }}" class="text-danger" style="display:none;"></div>
                     </div>
                     <div class="modal-footer">
@@ -571,7 +571,7 @@ function submitSubjectPassword(subjectId) {
                 editModal.show();
             }, 300);
         } else {
-            document.getElementById('subjectPasswordError-' + subjectId).innerText = 'Incorrect subject password.';
+            document.getElementById('subjectPasswordError-' + subjectId).innerText = 'Incorrect adviser password.';
             document.getElementById('subjectPasswordError-' + subjectId).style.display = 'block';
         }
     });

@@ -163,13 +163,12 @@
             const reassignTeachersBtn = document.getElementById('reassignTeachersBtn');
             if (reassignTeachersBtn) {
                 reassignTeachersBtn.addEventListener('click', function() {
-                    const reassignUrl = '{{ url_for("reassign_period_teachers") }}';
                     const redirectUrl = '{{ url_for("admin_dashboard") }}'; // Updated to use admin_dashboard
                     const message = 'This action will attempt to assign registered teacher accounts to periods that are currently unassigned based on their grade level and specialization.';
                     
                     showUniversalConfirmationModal(
-                        reassignUrl, 
-                        redirectUrl, 
+                        redirectUrl,
+                        redirectUrl,
                         message, 
                         'Reassign' // Button text
                     );
