@@ -20,8 +20,8 @@
                 {% for section in sections %}
                 <tr>
                     <td style="text-align: left;">{{ section.name }}</td>
-                    <td style="text-align: left;">{{ section.grade_level }}</td>
-                    <td style="text-align: left;">{{ section.strand }}</td>
+                    <td style="text-align: left;">{{ section.grade_level.name if section.grade_level else 'N/A' }}</td>
+                    <td style="text-align: left;">{{ section.strand.name if section.strand else 'N/A' }}</td>
                     <td style="text-align: center;">
                         <a href="{{ url_for('edit_section_admin', section_id=section.id) }}" class="btn btn-outline btn-sm" style="margin-right: 0.5em;"><i class="fas fa-edit"></i> Edit</a>
                         <form action="{{ url_for('delete_section_admin', section_id=section.id) }}" method="POST" style="display:inline;">

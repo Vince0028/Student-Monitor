@@ -149,6 +149,8 @@
             searchInput.addEventListener('input', function() {
                 const searchTerm = this.value.toLowerCase();
                 document.querySelectorAll('#studentTable tbody tr').forEach(row => {
+                    // Skip group divider rows (e.g., Boys/Girls headers)
+                    if (row.classList.contains('table-group-divider') || row.children.length < 4) return;
                     const name = row.children[0].textContent.toLowerCase();
                     const id = row.children[1].textContent.toLowerCase();
                     row.style.display = (name.includes(searchTerm) || id.includes(searchTerm)) ? '' : 'none';
