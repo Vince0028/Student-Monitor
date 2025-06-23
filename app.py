@@ -1620,11 +1620,7 @@ def delete_student_admin(student_id):
     if not student_to_delete:
         return jsonify({'success': False, 'message': 'Student not found.'})
 
-    section = student_to_delete.section_period.section if student_to_delete.section_period else None
-    adviser_password = section.adviser_password if section else None
-
-    # Allow either adviser's password or current user's password
-    if not password or (password != (adviser_password or '') and not verify_current_user_password(user_id, password)):
+    if not password or not verify_current_user_password(user_id, password):
         return jsonify({'success': False, 'message': 'Incorrect password.'})
 
     # Permission check REMOVED
