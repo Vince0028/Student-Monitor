@@ -56,6 +56,9 @@
             </p>
         </div>
         <div>
+            <a href="{{ url_for('quiz_maker') }}" class="btn btn-success me-2">
+                <i class="fas fa-pen"></i> Create a Quiz/Exam
+            </a>
             <a href="{{ url_for('teacher_section_attendance_details', section_period_id=subject.section_period_id, subject_id=subject.id) }}" class="btn btn-primary me-2">
                 <i class="fas fa-clipboard-check"></i> Attendance
             </a>
@@ -312,132 +315,62 @@ document.addEventListener('DOMContentLoaded', function() {
         const itemForms = document.querySelectorAll('form[id^="addItemForm-"]');
         console.log(`Found ${itemForms.length} 'add item' forms.`);
 
-        // Handle adding a new gradable item
         itemForms.forEach(form => {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                console.log("Add item form submitted.");
-                const modal = bootstrap.Modal.getInstance(this.closest('.modal'));
-                const data = Object.fromEntries(new FormData(this).entries());
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const componentId = this.dataset.componentId;
+                const title = this.querySelector(`#item_title-${componentId}`).value;
+                const maxScore = this.querySelector(`#max_score-${componentId}`).value;
 
-                fetch('/api/gradable-item/add', {
+                fetch(`/api/item/${componentId}/add`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ title: title, max_score: maxScore })
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        // Get error message from JSON response if possible
-                        return response.json().then(err => {
-                            throw new Error(err.message || `Server responded with status: ${response.status}`);
-                        });
-                    }
-                    return response.json();
-                })
-                .then(result => {
-                    if (result.success) {
-                        if (modal) modal.hide();
-                        // Use SweetAlert2 for a better notification
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: 'Item added successfully. The page will now reload.',
-                            timer: 1500, // Auto-close after 1.5 seconds
-                            showConfirmButton: false
-                        }).then(() => {
-                            location.reload();
-                        });
+                .then(response => response.json())
+                .then(data => {
+                    if(data.success) {
+                        console.log('Item added successfully!');
+                        // Optionally, provide visual feedback
+                        const newItemRow = document.createElement('tr');
+                        newItemRow.innerHTML = `
+                            <td>${title}</td>
+                            <td class="text-center">
+                                <input type="number" class="form-control form-control-sm grade-input" data-item-id="${data.item_id}" data-student-id="${data.student_id}" max="${maxScore}" min="0" step="0.01">
+                            </td>
+                            <td class="text-center">%</td>
+                        `;
+                        const gradeSheetTable = document.querySelector('#gradeSheetTable tbody');
+                        gradeSheetTable.appendChild(newItemRow);
+
+                        // Recalculate and update averages and total
+                        if(data.updates) {
+                            const studentRow = document.querySelector(`tr[data-student-id="${data.student_id}"]`);
+                            if(studentRow) {
+                                const compAvgCell = studentRow.querySelector(`.component-average-${data.student_id}-${data.updates.component_id}`);
+                                if(compAvgCell) compAvgCell.textContent = data.updates.component_average;
+
+                                const totalGradeCell = studentRow.querySelector(`.total-grade-${data.student_id}`);
+                                if(totalGradeCell) totalGradeCell.textContent = data.updates.total_grade;
+                            }
+                        }
                     } else {
-                        // This else block might be redundant now but kept for safety
-                        throw new Error(result.message || 'An unknown error occurred.');
+                        console.error('Failed to add item:', data.message);
+                        alert(`Error: ${data.message}`);
                     }
                 })
                 .catch(error => {
-                    console.error('Error adding item:', error);
-                    // Use SweetAlert2 for error messages too
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Oops...',
-                        text: 'Error adding item: ' + error.message
-                    });
+                    console.error('Error:', error);
+                    alert('An unexpected network error occurred.');
                 });
             });
         });
-
-        const deleteButtons = document.querySelectorAll('.delete-item-btn');
-        console.log(`Found ${deleteButtons.length} delete buttons.`);
-
-        // Handle deleting a gradable item
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                console.log("Delete item button clicked.");
-                const itemId = this.dataset.itemId;
-
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: "You won't be able to revert this!",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, delete it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        fetch(`/api/gradable-item/${itemId}/delete`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' }
-                        })
-                        .then(response => response.json())
-                        .then(result => {
-                            if (result.success) {
-                                Swal.fire(
-                                  'Deleted!',
-                                  'The item has been deleted.',
-                                  'success'
-                                ).then(() => location.reload());
-                            } else {
-                                Swal.fire(
-                                  'Failed!',
-                                  result.message || 'The item could not be deleted.',
-                                  'error'
-                                );
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error deleting item:', error);
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Deletion Failed',
-                                text: 'An error occurred while deleting the item. Please try again.'
-                            });
-                        });
-                    }
-                });
-            });
-        });
-
-        // Student search bar filtering
-        const searchInput = document.getElementById('studentSearch');
-        const table = document.getElementById('gradeSheetTable');
-        if (searchInput && table) {
-            searchInput.addEventListener('keyup', function() {
-                const filter = searchInput.value.toLowerCase();
-                const rows = table.querySelectorAll('tbody tr');
-                rows.forEach(row => {
-                    const studentNameCell = row.querySelector('td');
-                    if (studentNameCell) {
-                        const name = studentNameCell.textContent.toLowerCase();
-                        row.style.display = name.includes(filter) ? '' : 'none';
-                    }
-                });
-            });
-        }
-
-        console.log("Gradebook script finished setup.");
-    } catch (e) {
-        console.error("A critical error occurred in the gradebook script:", e);
-        alert("A critical error occurred on this page. Please check the developer console for details.");
+    } catch (error) {
+        console.error('Error:', error);
+        alert('An unexpected error occurred.');
     }
 });
 </script>
-{% endblock %} 
+{% endblock %}

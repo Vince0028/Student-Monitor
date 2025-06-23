@@ -11,6 +11,7 @@ from sqlalchemy import create_engine, Column, String, Date, Numeric, ForeignKey,
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base, joinedload
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from dotenv import load_dotenv
+from app import Quiz, QuizQuestion
 
 load_dotenv()
 
@@ -117,6 +118,27 @@ class Grade(Base):
     # Relationships omitted for brevity
     def __repr__(self):
         return f"<Grade(id={self.id}, student_info_id={self.student_info_id}, grade={self.grade_value})>"
+
+class Quiz(Base):
+    __tablename__ = 'quizzes'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(String(255), nullable=False)
+    description = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    def __repr__(self):
+        return f"<Quiz(id={self.id}, title='{self.title}')>"
+
+class StudentQuizResult(Base):
+    __tablename__ = 'student_quiz_results'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    student_info_id = Column(PG_UUID(as_uuid=True), ForeignKey('students_info.id'), nullable=False)
+    quiz_id = Column(PG_UUID(as_uuid=True), ForeignKey('quizzes.id'), nullable=False)
+    score = Column(Numeric(5, 2), nullable=False)
+    total_points = Column(Numeric(5, 2), nullable=False)
+    completed_at = Column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (UniqueConstraint('student_info_id', 'quiz_id'),)
 
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
@@ -248,23 +270,41 @@ def student_attendance():
     if not student:
         flash('Student not found.', 'error')
         return redirect(url_for('student_login'))
+    # Get all attendance records for this student
     attendance_records = g.session.query(Attendance).filter_by(student_info_id=student_id).order_by(Attendance.attendance_date.desc()).all()
-    attendance_by_subject = {}
+    # Build a mapping from section_subject_id to subject_name
+    section_subject_ids = {r.section_subject_id for r in attendance_records}
+    if section_subject_ids:
+        from app import SectionSubject
+        subjects = g.session.query(SectionSubject).filter(SectionSubject.id.in_(section_subject_ids)).all()
+        subject_map = {s.id: s.subject_name for s in subjects}
+    else:
+        subject_map = {}
+    # Calculate summary statistics
+    present_count = sum(1 for a in attendance_records if a.status == 'present')
+    absent_count = sum(1 for a in attendance_records if a.status == 'absent')
+    late_count = sum(1 for a in attendance_records if a.status == 'late')
+    excused_count = sum(1 for a in attendance_records if a.status == 'excused')
+    total_classes = len(attendance_records)
+    attendance_rate = round(((present_count + late_count) / total_classes * 100), 1) if total_classes > 0 else 0
+    # Group records by subject for display
+    records_by_subject = {}
     for record in attendance_records:
-        subject = record.section_subject.subject_name if record.section_subject else 'Unknown'
-        if subject not in attendance_by_subject:
-            attendance_by_subject[subject] = []
-        attendance_by_subject[subject].append(record)
-    subject_summaries = {}
-    for subject, records in attendance_by_subject.items():
-        subject_summaries[subject] = {
-            'present': sum(1 for r in records if r.status == 'present'),
-            'absent': sum(1 for r in records if r.status == 'absent'),
-            'late': sum(1 for r in records if r.status == 'late'),
-            'excused': sum(1 for r in records if r.status == 'excused'),
-            'total': len(records)
-        }
-    return render_template('student_attendance.html', student=student, attendance_by_subject=attendance_by_subject, subject_summaries=subject_summaries)
+        subject = subject_map.get(record.section_subject_id, 'Unknown')
+        if subject not in records_by_subject:
+            records_by_subject[subject] = []
+        records_by_subject[subject].append(record)
+    return render_template('student_attendance_history.html',
+        student=student,
+        attendance_records=attendance_records,
+        present_count=present_count,
+        absent_count=absent_count,
+        late_count=late_count,
+        excused_count=excused_count,
+        total_classes=total_classes,
+        attendance_rate=attendance_rate,
+        records_by_subject=records_by_subject,
+        subject_map=subject_map)
 
 @app.route('/student/profile', methods=['GET', 'POST'])
 @login_required
@@ -332,6 +372,118 @@ def student_submit_assignment():
         # Handle file upload and save assignment
         pass
     return render_template('student_submit_assignment.html', subjects=subjects)
+
+@app.route('/student/quiz')
+@login_required
+def student_quiz():
+    quizzes = g.session.query(Quiz).all()
+    return render_template('student_quiz_templates/student_quiz_dashboard.html', quizzes=quizzes)
+
+@app.route('/student/quiz/<uuid:quiz_id>', methods=['GET', 'POST'])
+@login_required
+def take_quiz(quiz_id):
+    student_id = uuid.UUID(session['student_id'])
+    # Check if already completed
+    existing_result = g.session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz_id).first()
+    if existing_result:
+        # Already completed, redirect to results
+        return redirect(url_for('view_quiz_score', quiz_id=quiz_id))
+    quiz = g.session.query(Quiz).filter_by(id=quiz_id).first()
+    if not quiz:
+        flash('Quiz not found.', 'error')
+        return redirect(url_for('student_quiz'))
+    questions = g.session.query(QuizQuestion).filter_by(quiz_id=quiz.id).all()
+    import json
+    for q in questions:
+        if q.question_type == 'multiple_choice':
+            try:
+                q.options = json.loads(q.options_json or '[]')
+            except Exception:
+                q.options = []
+        else:
+            q.options = []
+    if request.method == 'POST':
+        total_score = 0
+        total_points = 0
+        for question in questions:
+            qid = str(question.id)
+            answer = request.form.get(f'answer-{qid}')
+            correct = False
+            if question.question_type == 'multiple_choice':
+                for opt in question.options:
+                    if opt.get('isCorrect') and answer == opt.get('text'):
+                        correct = True
+                        break
+            elif question.question_type == 'short_answer':
+                if answer and answer.strip().lower() == (question.correct_answer or '').strip().lower():
+                    correct = True
+            elif question.question_type == 'true_false':
+                if answer == (question.correct_answer or '').lower():
+                    correct = True
+            pts = question.points or 1
+            total_points += pts
+            if correct:
+                total_score += pts
+        # Record completion in StudentQuizResult
+        result = StudentQuizResult(
+            student_info_id=student_id,
+            quiz_id=quiz_id,
+            score=total_score,
+            total_points=total_points
+        )
+        g.session.add(result)
+        g.session.commit()
+        return redirect(url_for('view_quiz_score', quiz_id=quiz_id))
+    return render_template('student_quiz_templates/student_take_quiz.html', quiz=quiz, questions=questions)
+
+@app.route('/student/quiz/upcoming')
+@login_required
+def student_upcoming_quizzes():
+    student_id = uuid.UUID(session['student_id'])
+    # Get all quizzes
+    all_quizzes = g.session.query(Quiz).all()
+    # Get quiz IDs the student has completed
+    completed_quiz_ids = set(
+        r.quiz_id for r in g.session.query(StudentQuizResult).filter_by(student_info_id=student_id)
+    )
+    # Filter quizzes the student has not taken
+    upcoming_quizzes = [q for q in all_quizzes if q.id not in completed_quiz_ids]
+    return render_template('student_quiz_templates/student_upcoming_quizzes.html', upcoming_quizzes=upcoming_quizzes)
+
+@app.route('/student/quiz/completed')
+@login_required
+def student_completed_quizzes():
+    student_id = uuid.UUID(session['student_id'])
+    # Get all completed quiz results for this student
+    completed_results = g.session.query(StudentQuizResult).filter_by(student_info_id=student_id).all()
+    completed_quizzes = []
+    def format_number(n):
+        return int(n) if n == int(n) else round(float(n), 1)
+    for result in completed_results:
+        quiz = g.session.query(Quiz).filter_by(id=result.quiz_id).first()
+        if quiz:
+            completed_quizzes.append({
+                'id': quiz.id,
+                'title': quiz.title,
+                'score': format_number(result.score),
+                'total_points': format_number(result.total_points)
+            })
+    return render_template('student_quiz_templates/student_completed_quizzes.html', completed_quizzes=completed_quizzes)
+
+@app.route('/student/quiz/<uuid:quiz_id>/score')
+@login_required
+def view_quiz_score(quiz_id):
+    student_id = uuid.UUID(session['student_id'])
+    quiz = g.session.query(Quiz).filter_by(id=quiz_id).first()
+    result = g.session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz_id).first()
+    if not quiz or not result:
+        flash('Quiz or result not found.', 'error')
+        return redirect(url_for('student_quiz'))
+    def format_number(n):
+        return int(n) if n == int(n) else round(float(n), 1)
+    score = format_number(result.score)
+    total_points = format_number(result.total_points)
+    return render_template('student_quiz_templates/student_quiz_results.html', quiz_title=quiz.title, score=score, total_questions=total_points)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5002)  # Different port from parent app

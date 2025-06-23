@@ -1,0 +1,38 @@
+{% extends 'layout.html' %}
+{% block title %}Taking Quiz: {{ quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="forms-style-container">
+    <div class="quiz-form-header">
+        <h2>{{ quiz.title }}</h2>
+        <p class="mb-0">Welcome, {{ student_name }}! Please answer all questions.</p>
+    </div>
+
+    <form method="POST">
+        {% for question in quiz.questions %}
+            <div class="question-card">
+                <label class="form-label fs-5">{{ loop.index }}. {{ question.text }}</label>
+                <hr class="my-3">
+                
+                {% if question.question_type == 'multiple_choice' %}
+                    {% for option in question.options %}
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" id="option_{{ option.id }}" value="{{ option.id }}" required>
+                            <label class="form-check-label" for="option_{{ option.id }}">
+                                {{ option.text }}
+                            </label>
+                        </div>
+                    {% endfor %}
+                {% elif question.question_type == 'short_answer' %}
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-style-input" name="question_{{ question.id }}" placeholder="Type your answer here" required>
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+        <div class="p-3">
+            <button type="submit" class="btn btn-primary w-100 btn-lg">Submit Answers</button>
+        </div>
+    </form>
+</div>
+{% endblock %} 

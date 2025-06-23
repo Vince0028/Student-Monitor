@@ -1,0 +1,22 @@
+{% extends 'student_base.html' %}
+
+{% block title %}Completed Quizzes - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h3 style="font-size: 2rem; font-weight: bold; margin-bottom: 2rem;">Completed Quizzes</h3>
+    <div class="quiz-card-grid">
+        {% if completed_quizzes %}
+            {% for quiz in completed_quizzes %}
+            <a href="{{ url_for('view_quiz_score', quiz_id=quiz.id) }}" class="feature-card card-quiz-completed">
+                <div class="feature-card-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="feature-card-title">{{ quiz.title }}</div>
+                <div class="feature-card-desc">You scored <strong>{{ quiz.score }}</strong> out of <strong>{{ quiz.total_points }}</strong>.</div>
+            </a>
+            {% endfor %}
+        {% else %}
+            <div style="grid-column: 1 / -1; text-align: center; color: #888; font-size: 1.2rem;">No completed quizzes yet.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

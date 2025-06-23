@@ -7,9 +7,10 @@ from datetime import date, timedelta, datetime
 import re # For school year validation
 import decimal
 import bcrypt
+import json
 
 # Import SQLAlchemy components
-from sqlalchemy import create_engine, Column, Integer, String, Date, Numeric, ForeignKey, DateTime, UniqueConstraint, and_, or_, case, func, text
+from sqlalchemy import create_engine, Column, Integer, String, Date, Numeric, ForeignKey, DateTime, UniqueConstraint, and_, or_, case, func, text, Text
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base, aliased, joinedload
 from sqlalchemy.sql import func
 from sqlalchemy.exc import NoResultFound, MultipleResultsFound
@@ -1506,27 +1507,32 @@ def section_period_details(section_period_id):
             else:
                 student.average_grade = "N/A"
 
+        # Fetch subjects - show all subjects if teacher is assigned to this section period
+        user_id = uuid.UUID(session['user_id'])
+        user_type = session['user_type']
+        
+        # Check if teacher is assigned to this section period
         is_assigned_teacher = str(section_period.assigned_teacher_id) == str(user_id)
         
-        # Determine which subjects to show based on user type and assignment
-        if user_type == 'admin' or is_assigned_teacher:
-            section_subjects = db_session.query(SectionSubject).filter(
-                SectionSubject.section_period_id == subject_display_period_id
+        if is_assigned_teacher or user_type == 'admin':
+            # If teacher is assigned to this period or user is admin, show all subjects
+            section_subjects = g.session.query(SectionSubject).filter(
+                SectionSubject.section_period_id == section_period_id
             ).order_by(SectionSubject.subject_name).all()
-        else: # A teacher who is not the main adviser should only see subjects they created
-            section_subjects = db_session.query(SectionSubject).filter(
-                SectionSubject.section_period_id == subject_display_period_id,
+        else:
+            # If not assigned, only show subjects created by this teacher
+            section_subjects = g.session.query(SectionSubject).filter(
+                SectionSubject.section_period_id == section_period_id,
                 SectionSubject.created_by_teacher_id == user_id
             ).order_by(SectionSubject.subject_name).all()
     
-        # Use the correct template based on user role
+        # Use different templates based on user type
         template = 'section_period_details.html' if user_type == 'admin' else 'teacher_section_period_details.html'
-        
         return render_template(template,
                                section_period=section_period,
                                students=students,
-                               section_subjects=section_subjects)
-
+                               section_subjects=section_subjects,
+                               parents=parents)
     except NoResultFound:
         flash('Section period not found.', 'error')
         return redirect(url_for('teacher_dashboard') if session.get('user_type') == 'teacher' else url_for('admin_dashboard'))
@@ -1641,10 +1647,6 @@ def edit_student(student_id):
     db_session = g.session
     user_id = uuid.UUID(session['user_id'])
     user_type = session['user_type']
-    if user_type == 'admin':
-        admin_id = uuid.UUID(session['user_id'])
-    else:
-        admin_id = None
     
     student_to_edit = db_session.query(StudentInfo).options(
         joinedload(StudentInfo.section_period).joinedload(SectionPeriod.section).joinedload(Section.grade_level),
@@ -2958,6 +2960,7 @@ def api_verify_adviser_password():
         return jsonify({'success': True})
     return jsonify({'success': False})
 
+<<<<<<< HEAD
 @app.route('/api/verify_admin_password', methods=['POST'])
 @login_required
 def api_verify_admin_password():
@@ -3003,65 +3006,72 @@ def api_verify_gradebook_password():
         return jsonify({'success': True})
     return jsonify({'success': False})
 
-# Dummy route to prevent template build errors.
-@app.route('/admin/reassign_period_teachers', methods=['POST'])
+@app.route('/quiz/maker')
 @login_required
-@user_type_required('admin')
-def reassign_period_teachers():
-    flash('This feature is currently disabled.', 'info')
-    return redirect(url_for('admin_dashboard'))
+@user_type_required('teacher')
+def quiz_maker():
+    return render_template('quiz/quiz_maker.html')
 
-@app.route('/section/<uuid:section_id>/edit', methods=['GET', 'POST'])
+# --- Quiz Models (if not present) ---
+class Quiz(Base):
+    __tablename__ = 'quizzes'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(String(255), nullable=False)
+    questions = relationship('QuizQuestion', back_populates='quiz', cascade='all, delete-orphan')
+
+class QuizQuestion(Base):
+    __tablename__ = 'quiz_questions'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    quiz_id = Column(PG_UUID(as_uuid=True), ForeignKey('quizzes.id'), nullable=False)
+    question_text = Column(Text, nullable=False)
+    question_type = Column(String(50), nullable=False)
+    options_json = Column(Text, nullable=True)  # Store options as JSON string
+    correct_answer = Column(Text, nullable=True)
+    points = Column(Integer, default=1)
+    quiz = relationship('Quiz', back_populates='questions')
+
+# --- API endpoint to save a published quiz ---
+@app.route('/api/quizzes', methods=['POST'])
 @login_required
-@user_type_required('teacher', 'admin')
-def edit_section(section_id):
-    db_session = g.session
-    user_id = uuid.UUID(session['user_id'])
-    user_type = session.get('user_type')
-
-    section = db_session.query(Section).options(
-        joinedload(Section.grade_level),
-        joinedload(Section.strand)
-    ).filter_by(id=section_id).first()
-
-    if not section:
-        flash('Section not found.', 'danger')
-        return redirect(url_for('teacher_dashboard') if user_type == 'teacher' else url_for('admin_dashboard'))
-
-    # Permission check: User must be an admin or the assigned adviser for the section.
-    is_admin = user_type == 'admin'
-    is_adviser = str(section.assigned_user_id) == str(user_id)
-
-    if not (is_admin or is_adviser):
-        flash('You do not have permission to edit this section.', 'danger')
-        return redirect(url_for('teacher_dashboard'))
-    
-    if request.method == 'POST':
-        # Update fields from form submission
-        section.adviser_name = request.form.get('adviser_name', section.adviser_name).strip()
-        section.section_password = request.form.get('section_password', section.section_password).strip()
-        section.adviser_password = request.form.get('adviser_password', section.adviser_password).strip()
-        
-        db_session.commit()
-        flash(f'Section "{section.name}" updated successfully!', 'success')
-        return redirect(url_for('teacher_dashboard'))
-
-    return render_template('edit_section.html', section=section)
-
-@app.route('/api/verify_adviser_password', methods=['POST'])
-@login_required
-def api_verify_adviser_password_DUPLICATE():
+@user_type_required('teacher')
+def api_publish_quiz():
     data = request.get_json()
-    section_id = data.get('section_id')
-    password = data.get('password')
+    title = data.get('title')
+    questions = data.get('questions', [])
+    if not title or not questions:
+        return jsonify({'success': False, 'message': 'Title and questions are required.'}), 400
+    try:
+        quiz = Quiz(title=title)
+        g.session.add(quiz)
+        g.session.flush()  # Get quiz.id
+        for q in questions:
+            question = QuizQuestion(
+                quiz_id=quiz.id,
+                question_text=q.get('text', ''),
+                question_type=q.get('type', ''),
+                options_json=json.dumps(q.get('options', [])),
+                correct_answer=q.get('correctAnswer', ''),
+                points=int(q.get('points', 1))
+            )
+            g.session.add(question)
+        g.session.commit()
+        return jsonify({'success': True, 'quiz_id': str(quiz.id)})
+    except Exception as e:
+        g.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
-    section = g.session.query(Section).filter_by(id=section_id).first()
+@app.route('/quiz/manage')
+@login_required
+@user_type_required('teacher')
+def manage_quiz():
+    quizzes = g.session.query(Quiz).all()
+    return render_template('quiz/manage_quiz.html', quizzes=quizzes)
 
-    if section and section.adviser_password and check_password_hash(section.adviser_password, password):
-        return jsonify({'success': True})
+# Ensure all tables are created
+Base.metadata.create_all(engine)
 
-    return jsonify({'success': False, 'message': 'Incorrect password.'})
-
+=======
+>>>>>>> f867e74d6e00836004c33e69eeb5a417fd67bf94
 if __name__ == '__main__':
     Base.metadata.create_all(engine)
     app.run(debug=True)
