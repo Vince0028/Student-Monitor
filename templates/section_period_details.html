@@ -25,9 +25,11 @@
     <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#studentListCollapse" aria-expanded="false" aria-controls="studentListCollapse">
         Show/Hide Student List
     </button>
+    {% if session.user_type == 'teacher' %}
     <button class="btn btn-info mb-3 ms-2" type="button" id="syncAverageGradesBtn">
         <i class="fas fa-sync-alt"></i> Sync Average Grades
     </button>
+    {% endif %}
     <div class="collapse" id="studentListCollapse">
     <div class="card mt-40">
         <h3>Student List</h3>
@@ -139,6 +141,32 @@
                         alert('An error occurred while syncing average grades.');
                     });
                 }
+            });
+        }
+        // Student search filter
+        const searchInput = document.getElementById('studentSearchInput');
+        const studentTable = document.getElementById('studentTable');
+        if (searchInput && studentTable) {
+            searchInput.addEventListener('input', function() {
+                const filter = searchInput.value.toLowerCase();
+                const rows = studentTable.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    // Skip group divider rows
+                    if (row.classList.contains('table-group-divider')) {
+                        return;
+                    }
+                    const nameCell = row.querySelector('td:nth-child(1)');
+                    const idCell = row.querySelector('td:nth-child(2)');
+                    if (nameCell && idCell) {
+                        const name = nameCell.textContent.toLowerCase();
+                        const id = idCell.textContent.toLowerCase();
+                        if (name.includes(filter) || id.includes(filter)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    }
+                });
             });
         }
     });
