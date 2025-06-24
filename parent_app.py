@@ -101,6 +101,67 @@ class StudentAttendance(Base):
     def __repr__(self):
         return f"<StudentAttendance(date={self.attendance_date}, status='{self.status}', subject='{self.subject_name}')>"
 
+# --- Add StudentInfo model for direct access to students_info ---
+class StudentInfo(Base):
+    __tablename__ = 'students_info'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    section_period_id = Column(PG_UUID(as_uuid=True))
+    name = Column(String(255), nullable=False)
+    student_id_number = Column(String(255), unique=True, nullable=False)
+    gender = Column(String(10), nullable=True)
+    parent_id = Column(PG_UUID(as_uuid=True), nullable=True)
+    average_grade = Column(Numeric(5, 2), nullable=True)
+    # Add more fields if needed
+
+# --- Add minimal models for SectionPeriod, Section, Strand, GradeLevel ---
+class SectionPeriod(Base):
+    __tablename__ = 'section_periods'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True)
+    section_id = Column(PG_UUID(as_uuid=True))
+    period_name = Column(String(50))
+    school_year = Column(String(50))
+
+class Section(Base):
+    __tablename__ = 'sections'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True)
+    name = Column(String(255))
+    strand_id = Column(PG_UUID(as_uuid=True))
+    grade_level_id = Column(PG_UUID(as_uuid=True))
+
+class Strand(Base):
+    __tablename__ = 'strands'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True)
+    name = Column(String(255))
+
+class GradeLevel(Base):
+    __tablename__ = 'grade_levels'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True)
+    name = Column(String(50))
+
+# --- Add minimal models for Grade, SectionSubject, Attendance ---
+class Grade(Base):
+    __tablename__ = 'grades'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True)
+    student_info_id = Column(PG_UUID(as_uuid=True))
+    section_subject_id = Column(PG_UUID(as_uuid=True))
+    grade_value = Column(Numeric(5, 2))
+    semester = Column(String(50))
+    school_year = Column(String(50))
+
+class SectionSubject(Base):
+    __tablename__ = 'section_subjects'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True)
+    section_period_id = Column(PG_UUID(as_uuid=True))
+    subject_name = Column(String(255))
+
+class Attendance(Base):
+    __tablename__ = 'attendance'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True)
+    student_info_id = Column(PG_UUID(as_uuid=True))
+    section_subject_id = Column(PG_UUID(as_uuid=True))
+    attendance_date = Column(Date)
+    status = Column(String(50))
+
 # Create tables
 Base.metadata.create_all(engine)
 
@@ -222,130 +283,149 @@ def parent_logout():
 @login_required
 def parent_dashboard():
     parent_id = uuid.UUID(session['parent_id'])
-    
-    # Get all students for this parent
-    students = g.session.query(Student).filter_by(parent_id=parent_id).order_by(Student.first_name).all()
-    
-    # Calculate summary for each student
+    # Get all students_info for this parent
+    students = g.session.query(StudentInfo).filter_by(parent_id=parent_id).order_by(StudentInfo.name).all()
     for student in students:
-        # Get latest grades
-        latest_grades = g.session.query(StudentGrade).filter_by(student_id=student.id).order_by(StudentGrade.created_at.desc()).limit(5).all()
-        student.latest_grades = latest_grades
-        
-        # Calculate average grade
-        grades = g.session.query(StudentGrade.grade_value).filter_by(student_id=student.id).all()
-        if grades:
-            student.average_grade = sum(float(g[0]) for g in grades) / len(grades)
+        name_parts = student.name.split()
+        student.first_name = name_parts[0]
+        student.last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+        # Fetch section, strand, grade_level
+        section_period = g.session.query(SectionPeriod).filter_by(id=student.section_period_id).first()
+        if section_period:
+            section = g.session.query(Section).filter_by(id=section_period.section_id).first()
+            if section:
+                student.section_name = section.name or ''
+                # Strand
+                if section.strand_id:
+                    strand = g.session.query(Strand).filter_by(id=section.strand_id).first()
+                    student.strand_name = strand.name if strand else ''
+                else:
+                    student.strand_name = ''
+                # Grade level
+                if section.grade_level_id:
+                    grade_level = g.session.query(GradeLevel).filter_by(id=section.grade_level_id).first()
+                    student.grade_level = grade_level.name if grade_level else ''
+                else:
+                    student.grade_level = ''
+            else:
+                student.section_name = ''
+                student.strand_name = ''
+                student.grade_level = ''
         else:
-            student.average_grade = None
-        
-        # Get recent attendance
-        recent_attendance = g.session.query(StudentAttendance).filter_by(student_id=student.id).order_by(StudentAttendance.attendance_date.desc()).limit(10).all()
-        student.recent_attendance = recent_attendance
-
+            student.section_name = ''
+            student.strand_name = ''
+            student.grade_level = ''
+        # Set latest_grades and average_grade to None for now (unless you want to join grades)
+        student.latest_grades = []
+        student.average_grade = student.average_grade if hasattr(student, 'average_grade') else None
     return render_template('parent_dashboard.html', students=students)
 
 @app.route('/parent/student/<uuid:student_id>')
 @login_required
 def student_details(student_id):
     parent_id = uuid.UUID(session['parent_id'])
-    
-    # Verify the student belongs to this parent
-    student = g.session.query(Student).filter_by(id=student_id, parent_id=parent_id).first()
+    student = g.session.query(StudentInfo).filter_by(id=student_id, parent_id=parent_id).first()
     if not student:
         flash('Student not found.', 'error')
         return redirect(url_for('parent_dashboard'))
-
-    # Get all grades for this student
-    grades = g.session.query(StudentGrade).filter_by(student_id=student_id).order_by(StudentGrade.school_year.desc(), StudentGrade.period_name).all()
-    
-    # Get all attendance records
-    attendance_records = g.session.query(StudentAttendance).filter_by(student_id=student_id).order_by(StudentAttendance.attendance_date.desc()).all()
-    
-    # Calculate attendance summary
-    attendance_summary = {
-        'present': sum(1 for a in attendance_records if a.status == 'present'),
-        'absent': sum(1 for a in attendance_records if a.status == 'absent'),
-        'late': sum(1 for a in attendance_records if a.status == 'late'),
-        'excused': sum(1 for a in attendance_records if a.status == 'excused')
-    }
-
-    return render_template('student_details.html', 
-                         student=student, 
-                         grades=grades, 
-                         attendance_records=attendance_records,
-                         attendance_summary=attendance_summary)
+    # Fetch section, grade, strand as in dashboard for display
+    section_period = g.session.query(SectionPeriod).filter_by(id=student.section_period_id).first()
+    if section_period:
+        section = g.session.query(Section).filter_by(id=section_period.section_id).first()
+        if section:
+            student.section_name = section.name or ''
+            if section.strand_id:
+                strand = g.session.query(Strand).filter_by(id=section.strand_id).first()
+                student.strand_name = strand.name if strand else ''
+            else:
+                student.strand_name = ''
+            if section.grade_level_id:
+                grade_level = g.session.query(GradeLevel).filter_by(id=section.grade_level_id).first()
+                student.grade_level = grade_level.name if grade_level else ''
+            else:
+                student.grade_level = ''
+        else:
+            student.section_name = ''
+            student.strand_name = ''
+            student.grade_level = ''
+    else:
+        student.section_name = ''
+        student.strand_name = ''
+        student.grade_level = ''
+    return render_template('student_details.html', student=student)
 
 @app.route('/parent/student/<uuid:student_id>/grades')
 @login_required
 def student_grades(student_id):
     parent_id = uuid.UUID(session['parent_id'])
-    
-    student = g.session.query(Student).filter_by(id=student_id, parent_id=parent_id).first()
+    student = g.session.query(StudentInfo).filter_by(id=student_id, parent_id=parent_id).first()
     if not student:
         flash('Student not found.', 'error')
         return redirect(url_for('parent_dashboard'))
-
-    # Get grades grouped by school year and period
-    grades = g.session.query(StudentGrade).filter_by(student_id=student_id).order_by(
-        StudentGrade.school_year.desc(), 
-        StudentGrade.period_name
+    # Join grades, section_subjects, section_periods for categorized grades
+    grades = g.session.query(
+        Grade, SectionSubject, SectionPeriod
+    ).select_from(Grade).join(
+        SectionSubject, Grade.section_subject_id == SectionSubject.id
+    ).join(
+        SectionPeriod, SectionSubject.section_period_id == SectionPeriod.id
+    ).filter(
+        Grade.student_info_id == student.id
+    ).order_by(
+        SectionPeriod.school_year.desc(),
+        SectionPeriod.period_name,
+        SectionSubject.subject_name
     ).all()
-
-    # Group grades by school year and period
+    # Organize grades by period and subject
     grades_by_period = {}
-    for grade in grades:
-        key = f"{grade.school_year}_{grade.period_name}"
+    for grade, subject, period in grades:
+        key = f'{period.period_name} {period.school_year}'
         if key not in grades_by_period:
-            grades_by_period[key] = {
-                'school_year': grade.school_year,
-                'period_name': grade.period_name,
-                'grades': []
-            }
-        grades_by_period[key]['grades'].append(grade)
-
-    return render_template('student_grades.html', 
-                         student=student, 
-                         grades_by_period=grades_by_period)
+            grades_by_period[key] = []
+        grades_by_period[key].append({
+            'subject': subject.subject_name,
+            'grade': float(grade.grade_value)
+        })
+    return render_template('student_grades.html', student=student, grades_by_period=grades_by_period)
 
 @app.route('/parent/student/<uuid:student_id>/attendance')
 @login_required
 def student_attendance(student_id):
     parent_id = uuid.UUID(session['parent_id'])
-    
-    student = g.session.query(Student).filter_by(id=student_id, parent_id=parent_id).first()
+    student = g.session.query(StudentInfo).filter_by(id=student_id, parent_id=parent_id).first()
     if not student:
         flash('Student not found.', 'error')
         return redirect(url_for('parent_dashboard'))
-
-    # Get attendance records grouped by subject
-    attendance_records = g.session.query(StudentAttendance).filter_by(student_id=student_id).order_by(
-        StudentAttendance.subject_name,
-        StudentAttendance.attendance_date.desc()
+    section_period_id = student.section_period_id
+    # Get all subjects for the section period
+    subjects = g.session.query(SectionSubject).filter_by(section_period_id=section_period_id).all()
+    subject_names = [s.subject_name for s in subjects]
+    subject_ids = [s.id for s in subjects]
+    # Get all unique attendance dates for these subjects (for the section period, not just this student)
+    all_dates_query = g.session.query(Attendance.attendance_date).filter(
+        Attendance.section_subject_id.in_(subject_ids)
+    ).distinct().all()
+    all_dates = sorted({d[0] for d in all_dates_query}, reverse=True)
+    # Get all attendance records for this student for these subjects
+    attendance_records = g.session.query(
+        Attendance, SectionSubject
+    ).select_from(Attendance).join(
+        SectionSubject, Attendance.section_subject_id == SectionSubject.id
+    ).filter(
+        Attendance.student_info_id == student.id,
+        Attendance.section_subject_id.in_(subject_ids)
     ).all()
-
-    # Group by subject
-    attendance_by_subject = {}
-    for record in attendance_records:
-        if record.subject_name not in attendance_by_subject:
-            attendance_by_subject[record.subject_name] = []
-        attendance_by_subject[record.subject_name].append(record)
-
-    # Calculate summary for each subject
-    subject_summaries = {}
-    for subject, records in attendance_by_subject.items():
-        subject_summaries[subject] = {
-            'present': sum(1 for r in records if r.status == 'present'),
-            'absent': sum(1 for r in records if r.status == 'absent'),
-            'late': sum(1 for r in records if r.status == 'late'),
-            'excused': sum(1 for r in records if r.status == 'excused'),
-            'total': len(records)
-        }
-
-    return render_template('student_attendance.html', 
-                         student=student, 
-                         attendance_by_subject=attendance_by_subject,
-                         subject_summaries=subject_summaries)
+    # Build a dict: {(date, subject): status}
+    attendance_map = {}
+    for record, subject in attendance_records:
+        attendance_map[(record.attendance_date, subject.subject_name)] = record.status
+    # Build attendance_by_date for the template
+    attendance_by_date = {}
+    for date in all_dates:
+        attendance_by_date[date] = {}
+        for subject in subject_names:
+            attendance_by_date[date][subject] = attendance_map.get((date, subject), 'Not Recorded')
+    return render_template('student_attendance.html', student=student, attendance_by_date=attendance_by_date, subject_names=subject_names)
 
 @app.route('/parent/profile', methods=['GET', 'POST'])
 @login_required

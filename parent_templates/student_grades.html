@@ -1,0 +1,43 @@
+{% extends 'parent_base.html' %}
+
+{% block title %}Grades - Parent Portal{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h2>Grades for {{ student.name }}</h2>
+    <p>Below are the categorized grades for this student.</p>
+</div>
+
+{% if grades_by_period %}
+    {% for period, grades in grades_by_period.items() %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>{{ period }}</h4>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for grade in grades %}
+                    <tr>
+                        <td>{{ grade.subject }}</td>
+                        <td>{{ '%.2f'|format(grade.grade) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <h3>No Grades Found</h3>
+        <p>This student does not have any grades recorded yet.</p>
+    </div>
+{% endif %}
+{% endblock %} 

@@ -1,0 +1,120 @@
+{% extends 'parent_base.html' %}
+
+{% block title %}Attendance - Parent Portal{% endblock %}
+
+{% block content %}
+<style>
+    .attendance-status-cell {
+        font-weight: bold;
+        color: #fff;
+        border-radius: 6px;
+        padding: 0.4em 0.8em;
+        display: inline-block;
+        min-width: 90px;
+        text-align: center;
+    }
+    .status-present { background: #28a745; }
+    .status-absent { background: #dc3545; }
+    .status-late { background: #ffc107; color: #333; }
+    .status-excused { background: #17a2b8; }
+    .status-notrecorded { background: #6c757d; }
+    .attendance-table-scrollable {
+        max-height: 350px;
+        overflow-y: auto;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        background: #fff;
+    }
+    .attendance-table-scrollable table {
+        min-width: 600px;
+    }
+    .attendance-filter-row {
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+</style>
+<div class="dashboard-header">
+    <h2>Attendance for {{ student.name }}</h2>
+    <p>Below is the attendance record for this student, grouped by date and subject.</p>
+</div>
+
+<div class="attendance-filter-row">
+    <label for="attendanceStatusFilter"><strong>Filter by Status:</strong></label>
+    <select id="attendanceStatusFilter" class="form-select" style="width: 200px;">
+        <option value="all">All</option>
+        <option value="present">Present</option>
+        <option value="absent">Absent</option>
+        <option value="late">Late</option>
+        <option value="excused">Excused</option>
+        <option value="notrecorded">Not Recorded</option>
+    </select>
+</div>
+
+{% if attendance_by_date %}
+    <div class="card mb-4">
+        <div class="card-body attendance-table-scrollable">
+            <table class="table table-striped" id="attendanceTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        {% for subject in subject_names %}
+                        <th>{{ subject }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for date, subj_statuses in attendance_by_date.items() %}
+                    <tr>
+                        <td>{{ date.strftime('%Y-%m-%d') }}</td>
+                        {% for subject in subject_names %}
+                        <td>
+                            {% set status = subj_statuses.get(subject, 'Not Recorded') %}
+                            {% if status == 'present' %}
+                                <span class="attendance-status-cell status-present" data-status="present">Present</span>
+                            {% elif status == 'absent' %}
+                                <span class="attendance-status-cell status-absent" data-status="absent">Absent</span>
+                            {% elif status == 'late' %}
+                                <span class="attendance-status-cell status-late" data-status="late">Late</span>
+                            {% elif status == 'excused' %}
+                                <span class="attendance-status-cell status-excused" data-status="excused">Excused</span>
+                            {% else %}
+                                <span class="attendance-status-cell status-notrecorded" data-status="notrecorded">Not Recorded</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+    document.getElementById('attendanceStatusFilter').addEventListener('change', function() {
+        const filter = this.value;
+        const table = document.getElementById('attendanceTable');
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            let showRow = false;
+            row.querySelectorAll('td').forEach((cell, idx) => {
+                // skip the first cell (date)
+                if (idx === 0) return;
+                const statusSpan = cell.querySelector('.attendance-status-cell');
+                if (!statusSpan) return;
+                const status = statusSpan.getAttribute('data-status');
+                if (filter === 'all' || status === filter) {
+                    showRow = true;
+                }
+            });
+            row.style.display = showRow ? '' : 'none';
+        });
+    });
+    </script>
+{% else %}
+    <div class="empty-state">
+        <h3>No Attendance Records Found</h3>
+        <p>This student does not have any attendance records yet.</p>
+    </div>
+{% endif %}
+{% endblock %} 
