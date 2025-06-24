@@ -31,7 +31,13 @@ if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable is not set.")
 
 # --- SQLAlchemy Setup ---
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=2,
+    max_overflow=0,
+    pool_timeout=30,
+    pool_recycle=1800
+)
 Base = declarative_base()
 
 # --- Parent and Student Models ---

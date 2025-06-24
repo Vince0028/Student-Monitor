@@ -48,7 +48,13 @@ if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable is not set. Please set it in your .env file or as a system environment variable before running the app.")
 
 # --- SQLAlchemy Setup ---
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=2,
+    max_overflow=0,
+    pool_timeout=30,
+    pool_recycle=1800
+)
 Base = declarative_base()
 
 # Define SQLAlchemy Models (including Parent for relationship)
