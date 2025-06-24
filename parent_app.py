@@ -16,6 +16,7 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 from dotenv import load_dotenv
+from app import GradingSystem, GradingComponent, GradableItem, StudentScore
 
 load_dotenv()
 
@@ -362,31 +363,50 @@ def student_grades(student_id):
     if not student:
         flash('Student not found.', 'error')
         return redirect(url_for('parent_dashboard'))
-    # Join grades, section_subjects, section_periods for categorized grades
-    grades = g.session.query(
-        Grade, SectionSubject, SectionPeriod
-    ).select_from(Grade).join(
-        SectionSubject, Grade.section_subject_id == SectionSubject.id
-    ).join(
-        SectionPeriod, SectionSubject.section_period_id == SectionPeriod.id
-    ).filter(
-        Grade.student_info_id == student.id
-    ).order_by(
-        SectionPeriod.school_year.desc(),
-        SectionPeriod.period_name,
-        SectionSubject.subject_name
-    ).all()
-    # Organize grades by period and subject
-    grades_by_period = {}
-    for grade, subject, period in grades:
-        key = f'{period.period_name} {period.school_year}'
-        if key not in grades_by_period:
-            grades_by_period[key] = []
-        grades_by_period[key].append({
-            'subject': subject.subject_name,
-            'grade': float(grade.grade_value)
-        })
-    return render_template('student_grades.html', student=student, grades_by_period=grades_by_period)
+
+    # --- Fetch all subjects for this student ---
+    section_period = g.session.query(SectionPeriod).filter_by(id=student.section_period_id).first()
+    section_subjects = g.session.query(SectionSubject).filter_by(section_period_id=student.section_period_id).all()
+
+    # --- Fetch all grades for this student ---
+    grades = g.session.query(Grade).filter_by(student_info_id=student.id).all()
+    grades_by_subject = {}
+    for subject in section_subjects:
+        subject_grades = [g for g in grades if g.section_subject_id == subject.id]
+        grades_by_subject[subject.subject_name] = {
+            'total_grade': float(subject_grades[0].grade_value) if subject_grades else None,
+            'grades': subject_grades
+        }
+
+    # --- Fetch grading system and items for each subject ---
+    detailed_grades = {}
+    for subject in section_subjects:
+        grading_system = g.session.query(GradingSystem).filter_by(section_subject_id=subject.id).first()
+        if not grading_system:
+            continue
+        components = g.session.query(GradingComponent).filter_by(system_id=grading_system.id).all()
+        items = g.session.query(GradableItem).join(GradingComponent).filter(GradingComponent.system_id == grading_system.id).all()
+        # Fetch scores for this student for all items in this subject
+        scores = g.session.query(StudentScore).filter_by(student_info_id=student.id).all()
+        scores_map = {s.item_id: s.score for s in scores}
+        # Organize by component
+        subject_detail = []
+        for component in components:
+            comp_items = [i for i in items if i.component_id == component.id]
+            for item in comp_items:
+                subject_detail.append({
+                    'component': component.name,
+                    'weight': component.weight,
+                    'item_title': item.title,
+                    'max_score': float(item.max_score),
+                    'score': float(scores_map.get(item.id, 0)),
+                })
+        detailed_grades[subject.subject_name] = {
+            'details': subject_detail,
+            'total_grade': grades_by_subject[subject.subject_name]['total_grade']
+        }
+
+    return render_template('student_grades.html', student=student, detailed_grades=detailed_grades)
 
 @app.route('/parent/student/<uuid:student_id>/attendance')
 @login_required
@@ -432,7 +452,8 @@ def student_attendance(student_id):
 def parent_profile():
     parent_id = uuid.UUID(session['parent_id'])
     parent = g.session.query(Parent).filter_by(id=parent_id).first()
-    
+    # Count children linked from students_info
+    children_linked = g.session.query(StudentInfo).filter_by(parent_id=parent_id).count()
     if not parent:
         flash('Parent not found.', 'error')
         return redirect(url_for('parent_dashboard'))
@@ -467,7 +488,7 @@ def parent_profile():
         flash('Profile updated successfully!', 'success')
         return redirect(url_for('parent_profile'))
 
-    return render_template('parent_profile.html', parent=parent)
+    return render_template('parent_profile.html', parent=parent, children_linked=children_linked)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)  # Different port from main app 
