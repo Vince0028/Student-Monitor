@@ -11,11 +11,13 @@
 <body>
     <header class="parent-header">
         <div class="container" style="display: flex; align-items: center; justify-content: space-between;">
-            <h1 class="parent-title" style="margin-bottom: 0;">
-                <a href="{{ url_for('admin_dashboard') }}">
-                    <i class="fas fa-user-shield"></i> Master Admin Portal
-                </a>
-            </h1>
+            <div style="display: flex; align-items: center; gap: 1em;">
+                <h1 class="parent-title" style="margin-bottom: 0;">
+                    <a href="{{ url_for('admin_dashboard') }}">
+                        <i class="fas fa-user-shield"></i> Master Admin Portal
+                    </a>
+                </h1>
+            </div>
             <div style="display: flex; align-items: center; gap: 1em;">
                 {% block nav %}{% endblock %}
                 <a href="{{ url_for('admin_logout') }}" class="btn btn-danger" style="margin-left: 1em;"><i class="fas fa-sign-out-alt"></i> Logout</a>

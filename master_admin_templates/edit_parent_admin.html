@@ -1,23 +1,23 @@
 {% extends 'admin_base.html' %}
 {% block content %}
 <div class="dashboard-container" style="max-width: 420px; margin: 3rem auto; padding: 2.5rem 2rem; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.07);">
-    <h2 style="text-align: center; margin-bottom: 2rem; color: #2563eb;"><i class="fas fa-user-edit"></i> Edit {{ user.user_type|capitalize }}</h2>
+    <h2 style="text-align: center; margin-bottom: 2rem; color: #2563eb;"><i class="fas fa-user-edit"></i> Edit Parent</h2>
     <form method="POST">
         <div class="form-group" style="margin-bottom: 1.2em;">
             <label for="username" style="font-weight: 500;">Username:</label>
-            <input type="text" id="username" name="username" class="form-control" value="{{ user.username }}" required style="padding: 0.7em; border-radius: 6px; border: 1px solid #d1d5db;">
+            <input type="text" id="username" name="username" class="form-control" value="{{ parent.username }}" required style="padding: 0.7em; border-radius: 6px; border: 1px solid #d1d5db;">
         </div>
         <div class="form-group" style="margin-bottom: 1.2em;">
             <label for="user_type" style="font-weight: 500;">User Type:</label>
-            <input type="text" id="user_type" name="user_type" class="form-control" value="{{ user.user_type|capitalize }}" disabled style="padding: 0.7em; border-radius: 6px; border: 1px solid #d1d5db; background: #f3f4f6; color: #6b7280;">
-            <input type="hidden" name="user_type" value="{{ user.user_type }}">
+            <input type="text" id="user_type" name="user_type" class="form-control" value="Parent" disabled style="padding: 0.7em; border-radius: 6px; border: 1px solid #d1d5db; background: #f3f4f6; color: #6b7280;">
+            <input type="hidden" name="user_type" value="parent">
         </div>
         <div class="form-group" style="margin-bottom: 1.8em;">
             <label for="password" style="font-weight: 500;">Password <span style="font-weight: 400; color: #888;">(leave blank to keep current)</span>:</label>
             <input type="password" id="password" name="password" class="form-control" autocomplete="new-password" style="padding: 0.7em; border-radius: 6px; border: 1px solid #d1d5db;">
         </div>
         <button type="submit" class="btn btn-primary btn-block" style="margin-bottom: 0.8em; font-size: 1.1em;"><i class="fas fa-save"></i> Save Changes</button>
-        <a href="{{ url_for('manage_users', user_type=user.user_type) }}" class="btn btn-cancel btn-block" style="font-size: 1.1em;"><i class="fas fa-arrow-left"></i> Cancel</a>
+        <a href="{{ url_for('manage_users', user_type='parent') }}" class="btn btn-cancel btn-block" style="font-size: 1.1em;"><i class="fas fa-arrow-left"></i> Cancel</a>
     </form>
 </div>
 {% endblock %} 

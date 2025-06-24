@@ -290,6 +290,18 @@ def admin_logs():
     logs = AdminLog.query.order_by(AdminLog.timestamp.desc()).all()
     return render_template('admin_logs.html', logs=logs)
 
+# Add Parent model for admin viewing
+class Parent(db.Model):
+    __tablename__ = 'parents'
+    id = db.Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    username = db.Column(db.String(255), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    first_name = db.Column(db.String(255), nullable=False)
+    last_name = db.Column(db.String(255), nullable=False)
+    phone_number = db.Column(db.String(50), nullable=True)
+    # created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+
 @app.route('/admin/users')
 def manage_users():
     if not session.get('admin_logged_in'):
@@ -298,41 +310,56 @@ def manage_users():
     search = request.args.get('search', '').strip()
     grade_level = request.args.get('grade_level', '')
     strand = request.args.get('strand', '')
-    query = User.query
-    normalized_grade_level = grade_level
-    if user_type:
-        query = query.filter_by(user_type=user_type)
-    if user_type == 'student' and grade_level:
-        # Accept both '11', 'Grade 11', etc.
-        grade_level_options = [grade_level]
-        if grade_level.startswith('Grade '):
-            grade_level_options.append(grade_level.replace('Grade ', ''))
-        elif grade_level.isdigit():
-            grade_level_options.append(f'Grade {grade_level}')
-        query = query.filter(User.grade_level_assigned.in_(grade_level_options))
-        if grade_level in ['11', '12', 'Grade 11', 'Grade 12'] and strand:
-            query = query.filter(User.specialization == strand)
-        # For template logic
-        if grade_level in ['11', '12', 'Grade 11', 'Grade 12']:
-            normalized_grade_level = '11or12'
-    if search:
-        query = query.filter(User.username.ilike(f'%{search}%'))
-    users = query.order_by(User.username.asc()).all()
-    user_list = [
-        {
-            'id': str(u.id),
-            'username': u.username,
-            'user_type': u.user_type,
-            'grade_level_assigned': u.grade_level_assigned or '',
-            'specialization': u.specialization or ''
-        }
-        for u in users
-    ]
     grade_levels = [f'Grade {i}' for i in range(7, 13)]
     strands = ['STEM', 'ABM', 'HUMMS', 'HE', 'EIM']
+    normalized_grade_level = grade_level
+    users = []
+    if user_type == 'parent':
+        query = Parent.query
+        if search:
+            query = query.filter(Parent.username.ilike(f'%{search}%'))
+        parents = query.order_by(Parent.username.asc()).all()
+        users = [
+            {
+                'id': str(p.id),
+                'username': p.username,
+                'user_type': 'parent',
+                'email': p.email,
+                'first_name': p.first_name,
+                'last_name': p.last_name
+            }
+            for p in parents
+        ]
+    else:
+        query = User.query
+        if user_type:
+            query = query.filter_by(user_type=user_type)
+        if user_type == 'student' and grade_level:
+            grade_level_options = [grade_level]
+            if grade_level.startswith('Grade '):
+                grade_level_options.append(grade_level.replace('Grade ', ''))
+            elif grade_level.isdigit():
+                grade_level_options.append(f'Grade {grade_level}')
+            query = query.filter(User.grade_level_assigned.in_(grade_level_options))
+            if grade_level in ['11', '12', 'Grade 11', 'Grade 12'] and strand:
+                query = query.filter(User.specialization == strand)
+            if grade_level in ['11', '12', 'Grade 11', 'Grade 12']:
+                normalized_grade_level = '11or12'
+        if search:
+            query = query.filter(User.username.ilike(f'%{search}%'))
+        users = [
+            {
+                'id': str(u.id),
+                'username': u.username,
+                'user_type': u.user_type,
+                'grade_level_assigned': u.grade_level_assigned or '',
+                'specialization': u.specialization or ''
+            }
+            for u in query.order_by(User.username.asc()).all()
+        ]
     return render_template(
         'manage_users.html',
-        users=user_list,
+        users=users,
         selected_user_type=user_type,
         search=search,
         selected_grade_level=grade_level,
@@ -397,43 +424,30 @@ def add_user_admin():
     return render_template('add_user_admin.html', user_type=user_type, grade_levels=grade_levels, strands=strands)
 
 @app.route('/admin/users/<user_id>/edit', methods=['GET', 'POST'])
-def edit_user_admin(user_id):
+def edit_user(user_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     user = User.query.get(user_id)
-    if not user or user.user_type != 'admin':
-        flash('Admin user not found.', 'danger')
+    if not user:
+        flash('User not found.', 'danger')
         return redirect(url_for('manage_users'))
     if request.method == 'POST':
         username = request.form['username'].strip()
-        user_type = request.form['user_type']
-        specialization = request.form.get('specialization') or None
-        grade_level_assigned = request.form.get('grade_level_assigned') or None
-        if not username or not user_type:
-            flash('Username and user type are required.', 'danger')
+        password = request.form.get('password', '').strip()
+        if not username:
+            flash('Username is required.', 'danger')
             return render_template('edit_user_admin.html', user=user)
-        if user_type != 'admin':
-            flash('You can only set user type to admin here.', 'danger')
-            return render_template('edit_user_admin.html', user=user)
-        try:
-            user.username = username
-            user.user_type = user_type
-            user.specialization = specialization
-            user.grade_level_assigned = grade_level_assigned
-            db.session.commit()
-            # Log the action
-            acting_admin = session.get('admin_username', 'unknown')
-            log = AdminLog(action='edit', target_username=username, acting_admin=acting_admin)
-            db.session.add(log)
-            db.session.commit()
-            flash('Admin user updated successfully!', 'success')
-            return redirect(url_for('manage_users'))
-        except IntegrityError:
-            db.session.rollback()
-            flash('A user with that username already exists.', 'danger')
-        except Exception as e:
-            db.session.rollback()
-            flash('An error occurred while updating the user.', 'danger')
+        user.username = username
+        if password:
+            user.password_hash = generate_password_hash(password)
+        db.session.commit()
+        # Log the action
+        acting_admin = session.get('admin_username', 'unknown')
+        log = AdminLog(action='edit', target_username=username, acting_admin=acting_admin)
+        db.session.add(log)
+        db.session.commit()
+        flash('User updated successfully!', 'success')
+        return redirect(url_for('manage_users', user_type=user.user_type))
     return render_template('edit_user_admin.html', user=user)
 
 @app.route('/admin/users/<user_id>/delete', methods=['POST'])
@@ -529,6 +543,24 @@ def create_admin_command(username, password):
     db.session.add(new_admin)
     db.session.commit()
     print(f"Admin user '{username}' created successfully.")
+
+@app.route('/admin/parents/<parent_id>/edit', methods=['GET', 'POST'])
+def edit_parent(parent_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    parent = Parent.query.get(parent_id)
+    if not parent:
+        flash('Parent not found.', 'danger')
+        return redirect(url_for('manage_users', user_type='parent'))
+    if request.method == 'POST':
+        parent.username = request.form['username'].strip()
+        password = request.form.get('password', '').strip()
+        if password:
+            parent.password_hash = generate_password_hash(password)
+        db.session.commit()
+        flash('Parent updated successfully!', 'success')
+        return redirect(url_for('manage_users', user_type='parent'))
+    return render_template('edit_parent_admin.html', parent=parent)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5005) 
