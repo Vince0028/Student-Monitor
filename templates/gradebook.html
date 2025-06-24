@@ -56,6 +56,9 @@
             </p>
         </div>
         <div>
+            <a href="{{ url_for('quiz_maker', section_period_id=subject.section_period_id, subject_id=subject.id) }}" class="btn btn-success me-2">
+                <i class="fas fa-plus-circle"></i> Create a Quiz/Exam
+            </a>
             <a href="{{ url_for('teacher_section_attendance_details', section_period_id=subject.section_period_id, subject_id=subject.id) }}" class="btn btn-primary me-2">
                 <i class="fas fa-clipboard-check"></i> Attendance
             </a>

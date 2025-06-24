@@ -352,15 +352,5 @@
             });
         }
     </script>
-
-    function showUniversalConfirmationModal(url, redirect, message, buttonText) {
-        const modal = new bootstrap.Modal(document.getElementById('universalConfirmModal'));
-        let form = document.querySelector('#universalConfirmModal form');
-        form.setAttribute('action', url);
-        document.querySelector('#universalConfirmModal .modal-body p').textContent = message;
-        document.querySelector('#universalConfirmModal #confirmActionBtn').textContent = buttonText;
-        document.getElementById('universalConfirmModal').dataset.redirect = redirect;
-        modal.show();
-    }
 </body>
 </html>

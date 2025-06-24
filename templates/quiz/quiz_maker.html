@@ -61,6 +61,24 @@
         .drag-handle { cursor: grab; color: #cbd5e0; padding: 5px; }
         .drag-handle:hover { color: #4facfe; }
         .question-card.dragging { opacity: 0.5; transform: rotate(5deg); }
+        .multi-toggle-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .multi-toggle-label {
+            font-size: 0.95rem;
+            color: #718096;
+            margin-right: 10px;
+        }
+        .multi-toggle-checkbox {
+            width: 22px;
+            height: 22px;
+            accent-color: #4facfe;
+            margin-left: 0;
+            vertical-align: middle;
+            cursor: pointer;
+        }
         @media (max-width: 768px) { .quiz-container { margin: 10px; border-radius: 15px; } .quiz-content { padding: 20px; } .question-card { padding: 20px; } .quiz-title { font-size: 2rem; } }
     </style>
 </head>
@@ -72,7 +90,7 @@
         </div>
         <div class="quiz-content">
             <div class="quiz-form-header">
-                <input type="text" placeholder="Untitled Quiz" id="quizTitle" value="My Awesome Quiz">
+                <input type="text" placeholder="Put your Quiz Name here..." id="quizTitle" value="">
                 <div style="margin-top: 10px; color: #718096;">
                     <i class="fas fa-users"></i> Questions: <span id="questionCount">0</span>
                 </div>
@@ -108,6 +126,9 @@
         </div>
     </div>
     <script>
+        // Inject Flask variables for redirect
+        const sectionPeriodId = "{{ subject.section_period_id }}";
+        const subjectId = "{{ subject.id }}";
         // All the provided JS goes here
         let questions = [];
         let questionCounter = 0;
@@ -115,7 +136,16 @@
         function renderQuestion(question) { const container = document.getElementById('questionsContainer'); const questionDiv = document.createElement('div'); questionDiv.className = 'question-card'; questionDiv.id = `question-${question.id}`; questionDiv.innerHTML = `<div class="question-header"><div class="question-number">${questions.indexOf(question) + 1}</div><input type="text" class="question-input" placeholder="Type your question here..." value="${question.text}" onchange="updateQuestion(${question.id}, 'text', this.value)"><div class="question-actions"><button class="action-btn drag-handle" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></button><button class="action-btn" onclick="duplicateQuestion(${question.id})" title="Duplicate"><i class="fas fa-copy"></i></button><button class="action-btn delete-btn" onclick="deleteQuestion(${question.id})" title="Delete"><i class="fas fa-trash"></i></button></div></div><div class="question-type-selector"><select class="type-dropdown" onchange="changeQuestionType(${question.id}, this.value)"><option value="multiple_choice" ${question.type === 'multiple_choice' ? 'selected' : ''}><i class="fas fa-list-ul"></i> Multiple Choice</option><option value="short_answer" ${question.type === 'short_answer' ? 'selected' : ''}><i class="fas fa-font"></i> Short Answer</option><option value="true_false" ${question.type === 'true_false' ? 'selected' : ''}><i class="fas fa-check-circle"></i> True/False</option></select></div><div style='margin-bottom:10px;'><label style='font-size:0.95rem;color:#718096;'>Points:</label> <input type='number' min='1' value='${question.points || 1}' style='width:60px;' onchange='updateQuestion(${question.id}, "points", this.value)'></div><div id="question-content-${question.id}">${renderQuestionContent(question)}</div>`; container.appendChild(questionDiv); }
         function renderQuestionContent(question) {
             if (question.type === 'multiple_choice') {
-                return `<div class="options-container">${question.options.map((option, index) => `<div class="option-item"><div class="option-radio ${option.isCorrect ? 'selected' : ''}" onclick="selectCorrectOption(${question.id}, ${index})"></div><input type="text" class="option-input" placeholder="Option ${index + 1}" value="${option.text}" onchange="updateOption(${question.id}, ${index}, this.value)">${question.options.length > 2 ? `<i class="fas fa-times remove-option" onclick="removeOption(${question.id}, ${index})"></i>` : ''}</div>`).join('')}<button class="add-option-btn" onclick="addOption(${question.id})"><i class="fas fa-plus"></i> Add option</button></div>`;
+                let multiToggle = `<div class='multi-toggle-row'><label class='multi-toggle-label'>Allow multiple correct answers:</label><input type='checkbox' class='multi-toggle-checkbox' onchange='toggleMultiAnswer(${question.id}, this.checked)' ${question.allowMultiple ? 'checked' : ''}></div>`;
+                let optionsHtml = question.options.map((option, index) => {
+                    let onKeyDown = `onkeydown=\"handleOptionEnter(event, ${question.id}, ${index})\"`;
+                    if (question.allowMultiple) {
+                        return `<div class=\"option-item\"><input type='checkbox' class='option-radio' ${option.isCorrect ? 'checked' : ''} onclick='toggleCorrectOption(${question.id}, ${index}, this.checked)'><input type=\"text\" class=\"option-input\" placeholder=\"Option ${index + 1}\" value=\"${option.text}\" onchange=\"updateOption(${question.id}, ${index}, this.value)\" ${onKeyDown}>${question.options.length > 2 ? `<i class=\"fas fa-times remove-option\" onclick=\"removeOption(${question.id}, ${index})\"></i>` : ''}</div>`;
+                    } else {
+                        return `<div class=\"option-item\"><div class=\"option-radio ${option.isCorrect ? 'selected' : ''}\" onclick=\"selectCorrectOption(${question.id}, ${index})\"></div><input type=\"text\" class=\"option-input\" placeholder=\"Option ${index + 1}\" value=\"${option.text}\" onchange=\"updateOption(${question.id}, ${index}, this.value)\" ${onKeyDown}>${question.options.length > 2 ? `<i class=\"fas fa-times remove-option\" onclick=\"removeOption(${question.id}, ${index})\"></i>` : ''}</div>`;
+                    }
+                }).join('');
+                return multiToggle + `<div class=\"options-container\">${optionsHtml}<button class=\"add-option-btn\" onclick=\"addOption(${question.id})\"><i class=\"fas fa-plus\"></i> Add option</button></div>`;
             } else if (question.type === 'short_answer') {
                 return `<div class="short-answer-field"><input type="text" class="short-answer-input" placeholder="Enter the correct answer..." value="${question.correctAnswer}" onchange="updateQuestion(${question.id}, 'correctAnswer', this.value)"></div>`;
             } else if (question.type === 'true_false') {
@@ -141,14 +171,85 @@
         function updateQuestion(questionId, field, value) { const question = questions.find(q => q.id === questionId); if (question) { question[field] = value; } }
         function updateOption(questionId, optionIndex, value) { const question = questions.find(q => q.id === questionId); if (question && question.options[optionIndex]) { question.options[optionIndex].text = value; } }
         function selectCorrectOption(questionId, optionIndex) { const question = questions.find(q => q.id === questionId); if (question) { question.options.forEach((option, index) => { option.isCorrect = index === optionIndex; }); document.getElementById(`question-content-${questionId}`).innerHTML = renderQuestionContent(question); } }
-        function addOption(questionId) { const question = questions.find(q => q.id === questionId); if (question) { question.options.push({ text: '', isCorrect: false }); document.getElementById(`question-content-${questionId}`).innerHTML = renderQuestionContent(question); } }
+        function addOption(questionId, focusNew = false) {
+            updateOptionInputsToModel(questionId);
+            const question = questions.find(q => q.id === questionId);
+            if (question) {
+                question.options.push({ text: '', isCorrect: false });
+                document.getElementById(`question-content-${questionId}`).innerHTML = renderQuestionContent(question);
+                if (focusNew) {
+                    setTimeout(() => {
+                        const newInputs = Array.from(document.querySelectorAll(`#question-${questionId} .option-input`));
+                        if (newInputs.length > 0) {
+                            newInputs[newInputs.length - 1].focus();
+                        }
+                    }, 10);
+                }
+            }
+        }
         function removeOption(questionId, optionIndex) { const question = questions.find(q => q.id === questionId); if (question && question.options.length > 2) { question.options.splice(optionIndex, 1); document.getElementById(`question-content-${questionId}`).innerHTML = renderQuestionContent(question); } }
         function changeQuestionType(questionId, newType) { const question = questions.find(q => q.id === questionId); if (question) { question.type = newType; if (newType === 'multiple_choice') { question.options = [ { text: '', isCorrect: false }, { text: '', isCorrect: false } ]; } else if (newType === 'true_false') { question.correctAnswer = 'true'; } document.getElementById(`question-content-${questionId}`).innerHTML = renderQuestionContent(question); } }
         function deleteQuestion(questionId) { questions = questions.filter(q => q.id !== questionId); document.getElementById(`question-${questionId}`).remove(); updateQuestionNumbers(); updateEmptyState(); updateQuestionCount(); }
-        function duplicateQuestion(questionId) { const question = questions.find(q => q.id === questionId); if (question) { questionCounter++; const duplicatedQuestion = { ...question, id: questionCounter, text: question.text + ' (Copy)', options: question.options ? [...question.options] : [] }; questions.push(duplicatedQuestion); renderQuestion(duplicatedQuestion); updateQuestionCount(); } }
+        function duplicateQuestion(questionId) {
+            const question = questions.find(q => q.id === questionId);
+            if (question) {
+                questionCounter++;
+                const duplicatedQuestion = {
+                    ...question,
+                    id: questionCounter,
+                    text: question.text,
+                    options: question.options ? question.options.map(opt => ({...opt})) : []
+                };
+                questions.push(duplicatedQuestion);
+                renderQuestion(duplicatedQuestion);
+                updateQuestionCount();
+            }
+        }
         function updateQuestionNumbers() { questions.forEach((question, index) => { const questionElement = document.getElementById(`question-${question.id}`); if (questionElement) { const numberElement = questionElement.querySelector('.question-number'); numberElement.textContent = index + 1; } }); }
         function updateEmptyState() { const emptyState = document.getElementById('emptyState'); emptyState.style.display = questions.length === 0 ? 'block' : 'none'; }
         function updateQuestionCount() { document.getElementById('questionCount').textContent = questions.length; }
+        function toggleMultiAnswer(questionId, checked) {
+            const question = questions.find(q => q.id === questionId);
+            if (question) {
+                question.allowMultiple = checked;
+                if (!checked) {
+                    let found = false;
+                    question.options.forEach(opt => {
+                        if (opt.isCorrect && !found) { found = true; } else { opt.isCorrect = false; }
+                    });
+                }
+                document.getElementById(`question-content-${questionId}`).innerHTML = renderQuestionContent(question);
+            }
+        }
+        function toggleCorrectOption(questionId, optionIndex, checked) {
+            const question = questions.find(q => q.id === questionId);
+            if (question && question.allowMultiple) {
+                question.options[optionIndex].isCorrect = checked;
+            }
+        }
+        function updateOptionInputsToModel(questionId) {
+            const question = questions.find(q => q.id === questionId);
+            if (question) {
+                const optionInputs = Array.from(document.querySelectorAll(`#question-${questionId} .option-input`));
+                optionInputs.forEach((input, idx) => {
+                    if (question.options[idx]) {
+                        question.options[idx].text = input.value;
+                    }
+                });
+            }
+        }
+        function handleOptionEnter(event, questionId, optionIndex) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                updateOptionInputsToModel(questionId);
+                const optionInputs = Array.from(document.querySelectorAll(`#question-${questionId} .option-input`));
+                if (optionIndex < optionInputs.length - 1) {
+                    optionInputs[optionIndex + 1].focus();
+                } else {
+                    addOption(questionId, true);
+                }
+            }
+        }
         // Initialize with empty state
         updateEmptyState();
         updateQuestionCount();
@@ -162,19 +263,44 @@
                 alert('Please add at least one question.');
                 return;
             }
+            for (const q of questions) {
+                if (q.type === 'multiple_choice') {
+                    if (q.allowMultiple) {
+                        if (!q.options.some(opt => opt.isCorrect)) {
+                            alert('Warning: At least one multiple choice question has no correct answer selected.');
+                            return;
+                        }
+                    } else {
+                        if (!q.options.some(opt => opt.isCorrect)) {
+                            alert('Warning: At least one multiple choice question has no correct answer selected.');
+                            return;
+                        }
+                    }
+                }
+                if (q.type === 'short_answer' && (!q.correctAnswer || !q.correctAnswer.trim())) {
+                    alert('Warning: At least one short answer question has no correct answer.');
+                    return;
+                }
+                if (q.type === 'true_false' && (!q.correctAnswer || (q.correctAnswer !== 'true' && q.correctAnswer !== 'false'))) {
+                    alert('Warning: At least one true/false question has no correct answer.');
+                    return;
+                }
+            }
             fetch('/api/quizzes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     title: quizTitle,
-                    questions: questions
+                    questions: questions,
+                    section_period_id: sectionPeriodId,
+                    subject_id: subjectId
                 })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     alert('Quiz published successfully!');
-                    window.location.href = '/quiz/maker'; // Redirect to quiz maker or another valid page
+                    window.location.href = `/section_period/${sectionPeriodId}/subject/${subjectId}/gradebook`;
                 } else {
                     alert('Failed to publish quiz: ' + (data.message || 'Unknown error'));
                 }
