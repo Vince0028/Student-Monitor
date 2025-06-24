@@ -2001,44 +2001,95 @@ def add_subject_to_section_period(section_period_id):
             flash('Subject name and assigned teacher name are required.', 'error')
             return render_template('add_section_subject.html', section_period=section_period)
         
-        # --- Sync Logic: Sync JHS subjects, but not SHS ---
-        target_period_id = section_period_id
+        # --- Enhanced Sync Logic ---
         if section_period.period_type == 'Quarter':
+            # JHS: Sync to master period only (existing logic)
+            target_period_id = section_period_id
             master_period = db_session.query(SectionPeriod).filter(
                 SectionPeriod.section_id == section_period.section_id,
                 SectionPeriod.school_year == section_period.school_year
             ).order_by(SectionPeriod.period_name).first()
             if master_period:
                 target_period_id = master_period.id
-        # --- End Sync Logic ---
-
-        # Check for existing subject in the target period
-        existing_subject = db_session.query(SectionSubject).filter_by(
-            section_period_id=target_period_id,
-            subject_name=subject_name
-        ).first()
-
-        if existing_subject:
-            flash(f'Subject "{subject_name}" already exists for this period.', 'error')
+            # Check for existing subject in the target period
+            existing_subject = db_session.query(SectionSubject).filter_by(
+                section_period_id=target_period_id,
+                subject_name=subject_name
+            ).first()
+            if existing_subject:
+                flash(f'Subject "{subject_name}" already exists for this period.', 'error')
+                return render_template('add_section_subject.html', section_period=section_period)
+            try:
+                new_subject = SectionSubject(
+                    section_period_id=target_period_id, # Add to correct period (master for JHS)
+                    subject_name=subject_name,
+                    created_by_teacher_id=user_id, 
+                    assigned_teacher_name=assigned_teacher_name,
+                    subject_password=generate_password_hash(subject_password) if subject_password else None
+                )
+                db_session.add(new_subject)
+                db_session.commit()
+                flash(f'Subject "{subject_name}" added successfully!', 'success')
+                return redirect(url_for('section_period_details', section_period_id=section_period_id))
+            except Exception as e:
+                db_session.rollback()
+                app.logger.error(f"Error adding subject: {e}")
+                flash('An error occurred while adding the subject. Please try again.', 'error')
+        elif section_period.period_type == 'Semester':
+            # SHS: Sync to all section periods in the same grade, strand, period, and school year
+            # Get the current section's grade_level_id and strand_id
+            section = db_session.query(Section).filter_by(id=section_period.section_id).first()
+            if not section:
+                flash('Section not found.', 'error')
+                return render_template('add_section_subject.html', section_period=section_period)
+            matching_section_periods = db_session.query(SectionPeriod).join(Section).filter(
+                Section.grade_level_id == section.grade_level_id,
+                Section.strand_id == section.strand_id,
+                SectionPeriod.period_name == section_period.period_name,
+                SectionPeriod.school_year == section_period.school_year
+            ).all()
+            added_count = 0
+            for sp in matching_section_periods:
+                # Check if subject already exists for this period
+                existing_subject = db_session.query(SectionSubject).filter_by(
+                    section_period_id=sp.id,
+                    subject_name=subject_name
+                ).first()
+                if not existing_subject:
+                    if sp.id == section_period.id:
+                        # For the original section_period, use the provided teacher and password
+                        new_subject = SectionSubject(
+                            section_period_id=sp.id,
+                            subject_name=subject_name,
+                            created_by_teacher_id=user_id,
+                            assigned_teacher_name=assigned_teacher_name,
+                            subject_password=generate_password_hash(subject_password) if subject_password else None
+                        )
+                    else:
+                        # For other section_periods, only copy the subject name, leave teacher and password blank
+                        new_subject = SectionSubject(
+                            section_period_id=sp.id,
+                            subject_name=subject_name,
+                            created_by_teacher_id=user_id,
+                            assigned_teacher_name='',
+                            subject_password=None
+                        )
+                    db_session.add(new_subject)
+                    added_count += 1
+            try:
+                db_session.commit()
+                if added_count > 0:
+                    flash(f'Subject "{subject_name}" added to all {section.strand.name if section.strand else ""} sections for {section_period.period_name} {section_period.school_year}!', 'success')
+                else:
+                    flash(f'Subject "{subject_name}" already exists in all matching sections.', 'info')
+                return redirect(url_for('section_period_details', section_period_id=section_period_id))
+            except Exception as e:
+                db_session.rollback()
+                app.logger.error(f"Error adding subject: {e}")
+                flash('An error occurred while adding the subject. Please try again.', 'error')
+        else:
+            flash('Unknown period type. Cannot sync subject.', 'error')
             return render_template('add_section_subject.html', section_period=section_period)
-        
-        try:
-            new_subject = SectionSubject(
-                section_period_id=target_period_id, # Add to correct period (master for JHS, current for SHS)
-                subject_name=subject_name,
-                created_by_teacher_id=user_id, 
-                assigned_teacher_name=assigned_teacher_name,
-                subject_password=generate_password_hash(subject_password) if subject_password else None
-            )
-            db_session.add(new_subject)
-            db_session.commit()
-            
-            flash(f'Subject "{subject_name}" added successfully!', 'success')
-            return redirect(url_for('section_period_details', section_period_id=section_period_id))
-        except Exception as e:
-            db_session.rollback()
-            app.logger.error(f"Error adding subject: {e}")
-            flash('An error occurred while adding the subject. Please try again.', 'error')
 
     return render_template('add_section_subject.html', section_period=section_period)
 
