@@ -62,6 +62,11 @@
             <a href="{{ url_for('teacher_section_attendance_details', section_period_id=subject.section_period_id, subject_id=subject.id) }}" class="btn btn-primary me-2">
                 <i class="fas fa-clipboard-check"></i> Attendance
             </a>
+            {% if not subject.grading_system %}
+            <a href="{{ url_for('setup_grading_system', subject_id=subject.id) }}" class="btn btn-warning me-2">
+                <i class="fas fa-cogs"></i> Set Up Grading System
+            </a>
+            {% endif %}
             <a href="{{ url_for('teacher_section_period_view', section_period_id=subject.section_period_id) }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Period Details
             </a>
