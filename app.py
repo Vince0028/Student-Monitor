@@ -48,7 +48,13 @@ if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable is not set. Please set it in your .env file or as a system environment variable before running the app.")
 
 # --- SQLAlchemy Setup ---
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=2,
+    max_overflow=0,
+    pool_timeout=30,
+    pool_recycle=1800
+)
 Base = declarative_base()
 
 # Define SQLAlchemy Models (including Parent for relationship)
@@ -1695,6 +1701,14 @@ def assign_parent():
     try:
         student.parent_id = uuid.UUID(parent_id)
         db_session.commit()
+
+        # --- Improved Parent Portal Sync Logic ---
+        success, message = sync_student_to_parent_portal(student, uuid.UUID(parent_id), app.logger)
+        if not success:
+            app.logger.error(f"Parent portal sync failed: {message}")
+            # Optionally, you can flash a message or return an error to the admin here
+            # flash(f'Parent portal sync failed: {message}', 'error')
+
         return jsonify({'success': True, 'message': 'Parent assigned successfully!'})
     except Exception as e:
         db_session.rollback()
@@ -1987,44 +2001,95 @@ def add_subject_to_section_period(section_period_id):
             flash('Subject name and assigned teacher name are required.', 'error')
             return render_template('add_section_subject.html', section_period=section_period)
         
-        # --- Sync Logic: Sync JHS subjects, but not SHS ---
-        target_period_id = section_period_id
+        # --- Enhanced Sync Logic ---
         if section_period.period_type == 'Quarter':
+            # JHS: Sync to master period only (existing logic)
+            target_period_id = section_period_id
             master_period = db_session.query(SectionPeriod).filter(
                 SectionPeriod.section_id == section_period.section_id,
                 SectionPeriod.school_year == section_period.school_year
             ).order_by(SectionPeriod.period_name).first()
             if master_period:
                 target_period_id = master_period.id
-        # --- End Sync Logic ---
-
-        # Check for existing subject in the target period
-        existing_subject = db_session.query(SectionSubject).filter_by(
-            section_period_id=target_period_id,
-            subject_name=subject_name
-        ).first()
-
-        if existing_subject:
-            flash(f'Subject "{subject_name}" already exists for this period.', 'error')
+            # Check for existing subject in the target period
+            existing_subject = db_session.query(SectionSubject).filter_by(
+                section_period_id=target_period_id,
+                subject_name=subject_name
+            ).first()
+            if existing_subject:
+                flash(f'Subject "{subject_name}" already exists for this period.', 'error')
+                return render_template('add_section_subject.html', section_period=section_period)
+            try:
+                new_subject = SectionSubject(
+                    section_period_id=target_period_id, # Add to correct period (master for JHS)
+                    subject_name=subject_name,
+                    created_by_teacher_id=user_id, 
+                    assigned_teacher_name=assigned_teacher_name,
+                    subject_password=generate_password_hash(subject_password) if subject_password else None
+                )
+                db_session.add(new_subject)
+                db_session.commit()
+                flash(f'Subject "{subject_name}" added successfully!', 'success')
+                return redirect(url_for('section_period_details', section_period_id=section_period_id))
+            except Exception as e:
+                db_session.rollback()
+                app.logger.error(f"Error adding subject: {e}")
+                flash('An error occurred while adding the subject. Please try again.', 'error')
+        elif section_period.period_type == 'Semester':
+            # SHS: Sync to all section periods in the same grade, strand, period, and school year
+            # Get the current section's grade_level_id and strand_id
+            section = db_session.query(Section).filter_by(id=section_period.section_id).first()
+            if not section:
+                flash('Section not found.', 'error')
+                return render_template('add_section_subject.html', section_period=section_period)
+            matching_section_periods = db_session.query(SectionPeriod).join(Section).filter(
+                Section.grade_level_id == section.grade_level_id,
+                Section.strand_id == section.strand_id,
+                SectionPeriod.period_name == section_period.period_name,
+                SectionPeriod.school_year == section_period.school_year
+            ).all()
+            added_count = 0
+            for sp in matching_section_periods:
+                # Check if subject already exists for this period
+                existing_subject = db_session.query(SectionSubject).filter_by(
+                    section_period_id=sp.id,
+                    subject_name=subject_name
+                ).first()
+                if not existing_subject:
+                    if sp.id == section_period.id:
+                        # For the original section_period, use the provided teacher and password
+                        new_subject = SectionSubject(
+                            section_period_id=sp.id,
+                            subject_name=subject_name,
+                            created_by_teacher_id=user_id,
+                            assigned_teacher_name=assigned_teacher_name,
+                            subject_password=generate_password_hash(subject_password) if subject_password else None
+                        )
+                    else:
+                        # For other section_periods, only copy the subject name, leave teacher and password blank
+                        new_subject = SectionSubject(
+                            section_period_id=sp.id,
+                            subject_name=subject_name,
+                            created_by_teacher_id=user_id,
+                            assigned_teacher_name='',
+                            subject_password=None
+                        )
+                    db_session.add(new_subject)
+                    added_count += 1
+            try:
+                db_session.commit()
+                if added_count > 0:
+                    flash(f'Subject "{subject_name}" added to all {section.strand.name if section.strand else ""} sections for {section_period.period_name} {section_period.school_year}!', 'success')
+                else:
+                    flash(f'Subject "{subject_name}" already exists in all matching sections.', 'info')
+                return redirect(url_for('section_period_details', section_period_id=section_period_id))
+            except Exception as e:
+                db_session.rollback()
+                app.logger.error(f"Error adding subject: {e}")
+                flash('An error occurred while adding the subject. Please try again.', 'error')
+        else:
+            flash('Unknown period type. Cannot sync subject.', 'error')
             return render_template('add_section_subject.html', section_period=section_period)
-        
-        try:
-            new_subject = SectionSubject(
-                section_period_id=target_period_id, # Add to correct period (master for JHS, current for SHS)
-                subject_name=subject_name,
-                created_by_teacher_id=user_id, 
-                assigned_teacher_name=assigned_teacher_name,
-                subject_password=generate_password_hash(subject_password) if subject_password else None
-            )
-            db_session.add(new_subject)
-            db_session.commit()
-            
-            flash(f'Subject "{subject_name}" added successfully!', 'success')
-            return redirect(url_for('section_period_details', section_period_id=section_period_id))
-        except Exception as e:
-            db_session.rollback()
-            app.logger.error(f"Error adding subject: {e}")
-            flash('An error occurred while adding the subject. Please try again.', 'error')
 
     return render_template('add_section_subject.html', section_period=section_period)
 
@@ -3295,6 +3360,80 @@ def api_create_quiz():
         import traceback
         app.logger.error(f"Error in /api/quizzes: {e}\n{traceback.format_exc()}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+# --- Parent Portal Sync Helper Function ---
+def sync_student_to_parent_portal(student, parent_id, logger=None):
+    """
+    Sync a student to the parent portal's students table.
+    """
+    from sqlalchemy.orm import sessionmaker as ParentSessionMaker, declarative_base as ParentDeclarativeBase
+    from sqlalchemy import create_engine as create_parent_engine
+    from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+    from sqlalchemy import Column, String, DateTime, ForeignKey
+    import datetime
+    import uuid as uuidlib
+
+    PARENT_DATABASE_URL = os.environ.get('DATABASE_URL')
+    if not PARENT_DATABASE_URL:
+        if logger: logger.error("No DATABASE_URL for parent portal sync.")
+        return False, "No DATABASE_URL"
+
+    parent_engine = create_parent_engine(PARENT_DATABASE_URL, pool_pre_ping=True)
+    ParentSession = ParentSessionMaker(bind=parent_engine)
+    parent_db_session = ParentSession()
+    ParentPortalBase = ParentDeclarativeBase()
+
+    class ParentPortalStudent(ParentPortalBase):
+        __tablename__ = 'students'
+        id = Column(PG_UUID(as_uuid=True), primary_key=True)
+        parent_id = Column(PG_UUID(as_uuid=True), ForeignKey('parents.id'), nullable=False)
+        student_id_number = Column(String(255), unique=True, nullable=False)
+        first_name = Column(String(255), nullable=False)
+        last_name = Column(String(255), nullable=False)
+        grade_level = Column(String(50), nullable=False)
+        section_name = Column(String(255), nullable=False)
+        strand_name = Column(String(255), nullable=True)
+        created_at = Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
+
+    try:
+        ParentPortalBase.metadata.create_all(parent_engine)
+        portal_student = parent_db_session.query(ParentPortalStudent).filter_by(student_id_number=student.student_id_number).first()
+        name_parts = student.name.split()
+        first_name = name_parts[0]
+        last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+        section = student.section_period.section
+        grade_level = section.grade_level.name if section and section.grade_level else ''
+        section_name = section.name if section else ''
+        strand_name = section.strand.name if section and section.strand else None
+
+        if not portal_student:
+            new_portal_student = ParentPortalStudent(
+                id=uuidlib.uuid4(),
+                parent_id=parent_id,
+                student_id_number=student.student_id_number,
+                first_name=first_name,
+                last_name=last_name,
+                grade_level=grade_level or '',
+                section_name=section_name or '',
+                strand_name=strand_name or '',
+                created_at=datetime.datetime.utcnow()
+            )
+            parent_db_session.add(new_portal_student)
+        else:
+            setattr(portal_student, 'parent_id', parent_id)
+            setattr(portal_student, 'first_name', first_name)
+            setattr(portal_student, 'last_name', last_name)
+            setattr(portal_student, 'grade_level', grade_level or '')
+            setattr(portal_student, 'section_name', section_name or '')
+            setattr(portal_student, 'strand_name', strand_name or '')
+        parent_db_session.commit()
+        return True, "Sync successful"
+    except Exception as e:
+        parent_db_session.rollback()
+        if logger: logger.error(f"Error syncing to parent portal: {e}")
+        return False, str(e)
+    finally:
+        parent_db_session.close()
 
 if __name__ == '__main__':
     Base.metadata.create_all(engine)

@@ -235,7 +235,11 @@
     {% endif %}
 
     <div class="button-group-right mt-40">
-        <a href="{{ url_for('section_details', section_id=section_period.section.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Section</a>
+        {% if section_period.section.strand %}
+            <a href="{{ url_for('strand_details', strand_id=section_period.section.strand.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Sections</a>
+        {% else %}
+            <a href="{{ url_for('grade_level_details', grade_level_id=section_period.section.grade_level.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Grade Level</a>
+        {% endif %}
     </div>
 </div>
 

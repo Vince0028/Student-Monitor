@@ -54,7 +54,11 @@
     {% endif %}
 
     <div class="button-group-right mt-40">
-        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Grade Level</a>
+        {% if section.strand %}
+            <a href="{{ url_for('strand_details', strand_id=section.strand.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Sections</a>
+        {% else %}
+            <a href="{{ url_for('grade_level_details', grade_level_id=section.grade_level.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Grade Level</a>
+        {% endif %}
     </div>
 </div>
 
