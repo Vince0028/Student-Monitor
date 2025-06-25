@@ -48,10 +48,10 @@ if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable is not set. Please set it in your .env file or as a system environment variable before running the app.")
 
 # --- SQLAlchemy Setup ---
-# Use the pooled connection string from Supabase (Connection Pooling tab)
+# For Supabase free tier on Render: pool_size=2, max_overflow=0
 engine = create_engine(
-    DATABASE_URL,  # Should be the pooled connection string (starts with postgresql://...@p.db.supabase.co)
-    pool_size=1,
+    DATABASE_URL,  # Use the pooled connection string from Supabase
+    pool_size=2,
     max_overflow=0,
     pool_timeout=30,
 )
