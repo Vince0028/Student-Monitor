@@ -11,6 +11,11 @@ body, html {
     padding: 0;
     box-sizing: border-box;
 }
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
 .dashboard-container {
     width: 100%;
     max-width: 950px;
@@ -128,10 +133,22 @@ body, html {
     .feature-card-desc { font-size: 0.95rem; }
     .feature-card-stats { font-size: 0.93rem; }
 }
+main.student-main {
+    flex: 1 0 auto;
+}
+.student-footer {
+    width: 100vw;
+    background: #1769c4;
+    color: #fff;
+    text-align: center;
+    padding: 0.7rem 0 0.5rem 0;
+    font-size: 1rem;
+    z-index: 10;
+}
 </style>
 <div class="dashboard-container">
     <div class="dashboard-header">
-        <h3>Welcome back, {{ session.student_name }}!</h3>
+        <h3>Welcome back, {{ session.student_name.title() }}!</h3>
     </div>
     <div class="dashboard-card-grid">
         <!-- Assignments Card -->
