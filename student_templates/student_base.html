@@ -5,46 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Student Portal - Student Monitor{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <style>
-        body { margin: 0; padding: 0; background: #f7f8fa; }
-        .container { max-width: 1700px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
 </head>
-<body {% if request.endpoint == 'student_login' %}class="no-scroll-page login-page"{% elif request.endpoint in ['student_dashboard', 'student_assignments'] %}class="no-scroll-page"{% endif %} style="min-height: 100vh; display: flex; flex-direction: column;">
+<body {% if request.endpoint == 'student_login' %}class="no-scroll-page login-page"{% elif request.endpoint in ['student_dashboard', 'student_assignments'] %}class="no-scroll-page"{% endif %}>
+    <!-- Header Start (matching master admin style) -->
     <header class="student-header">
-        <div class="container" style="display: flex; align-items: center; justify-content: space-between; padding-top: 1rem; padding-bottom: 1rem;">
-            <h1 class="student-title" style="margin: 0;">
-                <a href="{{ url_for('student_dashboard') if session.student_id else url_for('student_login') }}" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
-                    <i class="fas fa-user-graduate"></i> Student Portal
-                </a>
-            </h1>
+        <div class="container" style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 1em;">
+                <img src="{{ url_for('static', filename='master_admin_static/pcshs_logo.png') }}" alt="PCSHS Logo" style="height: 70px; width: auto; margin-right: 12px;">
+                <h1 class="student-title" style="margin-bottom: 0;">
+                    <a href="{{ url_for('student_dashboard') if session.student_id else url_for('student_login') }}">
+                        Student Portal
+                    </a>
+                </h1>
+            </div>
             <nav class="student-nav">
-                {% if request.endpoint != 'student_login' %}
-                <ul class="nav-links" style="display: flex; gap: 1.5rem; align-items: center; margin: 0;">
+                <ul>
                     {% if session.student_id %}
-                        {% if request.endpoint == 'student_dashboard' %}
-                            <li style="display:none;"><a href="{{ url_for('student_dashboard') }}"><i class="fas fa-home"></i> Dashboard</a></li>
-                            <li style="display:none;"><a href="{{ url_for('student_grades') }}"><i class="fas fa-chart-line"></i> Grades</a></li>
-                            <li style="display:none;"><a href="{{ url_for('student_attendance') }}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
-                            <li><a href="{{ url_for('student_logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                        {% else %}
-                            <li><a href="{{ url_for('student_dashboard') }}"><i class="fas fa-home"></i> Dashboard</a></li>
-                            <li><a href="{{ url_for('student_grades') }}"><i class="fas fa-chart-line"></i> Grades</a></li>
-                            <li><a href="{{ url_for('student_attendance') }}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
-                            <li><a href="{{ url_for('student_logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                        {% endif %}
+                        <li><a href="{{ url_for('student_dashboard') }}" class="{% if request.endpoint == 'student_dashboard' %}active{% endif %}"><i class="fas fa-home"></i> Dashboard</a></li>
+                        <li><a href="{{ url_for('student_grades') }}" class="{% if request.endpoint == 'student_grades' %}active{% endif %}"><i class="fas fa-graduation-cap"></i> Grades</a></li>
+                        <li><a href="{{ url_for('student_attendance') }}" class="{% if request.endpoint == 'student_attendance' %}active{% endif %}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+                        <li><a href="{{ url_for('student_quiz') }}" class="{% if request.endpoint == 'student_quiz' %}active{% endif %}"><i class="fas fa-question-circle"></i> Quiz</a></li>
+                        <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin-left: 1em;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                     {% else %}
-                        {% if request.endpoint != 'student_login' %}
-                            <li><a href="{{ url_for('student_login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
-                        {% endif %}
+                        <li><a href="{{ url_for('student_login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
                     {% endif %}
                 </ul>
-                {% endif %}
             </nav>
         </div>
     </header>
-    <main class="student-main{% if request.endpoint in ['student_assignments', 'student_assignments_upcoming', 'student_assignments_completed', 'student_assignments_past_due'] %} assignments-main{% endif %}" style="flex: 1 0 auto;">
+    <!-- Header End -->
+    <main class="student-main{% if request.endpoint in ['student_assignments', 'student_assignments_upcoming', 'student_assignments_completed', 'student_assignments_past_due'] %} assignments-main{% endif %}">
         <div class="container">
             <div class="flash-messages" style="position: fixed; top: 130px; left: 50%; transform: translateX(-50%); z-index: 9999; width: auto; max-width: 90vw; pointer-events: none;">
                 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -61,7 +52,7 @@
             {% block content %}{% endblock %}
         </div>
     </main>
-    <footer class="student-footer" style="flex-shrink: 0; width: 100%; position: relative; bottom: 0; left: 0;">
+    <footer class="student-footer">
         <div class="container">
             <p>&copy; 2024 Student Monitor - Student Portal. All rights reserved.</p>
         </div>
