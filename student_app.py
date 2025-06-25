@@ -162,43 +162,18 @@ def index():
 
 @app.route('/student/login', methods=['GET', 'POST'])
 def student_login():
-    if 'student_id' in session:
-        return redirect(url_for('student_dashboard'))
     if request.method == 'POST':
-        student_id_number = request.form['student_id_number']  # Use student_id_number field from the form
-        password = request.form['password']
-        if not student_id_number or not password:
-            flash('Student ID Number and password are required.', 'error')
-            return render_template('student_login.html')
-        student = g.session.query(StudentInfo).filter_by(student_id_number=student_id_number).first()
-        if student and student.password_hash:
-            # Accept both hashed and plain text passwords for compatibility
-            valid = False
-            try:
-                valid = check_password_hash(student.password_hash, password)
-            except Exception:
-                pass
-            if not valid:
-                valid = (student.password_hash == password)
-            if valid:
-                session.permanent = True
-                session['student_id'] = str(student.id)
-                session['student_id_number'] = student.student_id_number
-                session['student_name'] = student.name
-                response = redirect(url_for('student_dashboard'), code=303)
-                response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-                response.headers['Pragma'] = 'no-cache'
-                response.headers['Expires'] = '0'
-                return response
-        flash('Invalid Student ID Number or password.', 'error')
-    response = render_template('student_login.html')
-    # Set headers to prevent caching of the login page
-    from flask import make_response
-    resp = make_response(response)
-    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    resp.headers['Pragma'] = 'no-cache'
-    resp.headers['Expires'] = '0'
-    return resp
+        username = request.form.get('username')
+        password = request.form.get('password')
+        student = g.session.query(StudentInfo).filter_by(student_id_number=username).first()
+        if student and student.password_hash and password and check_password_hash(student.password_hash, password):
+            session.clear()
+            session['student_id'] = str(student.id)
+            flash('Login successful!', 'success')
+            return redirect(url_for('student_dashboard'))
+        else:
+            flash('Invalid username or password.', 'error')
+    return render_template('student_login.html')
 
 @app.route('/student/logout')
 @login_required
@@ -210,9 +185,13 @@ def student_logout():
 @app.route('/student/dashboard')
 @login_required
 def student_dashboard():
+    if 'student_id' not in session:
+        session.clear()
+        return redirect(url_for('student_login'))
     student_id = uuid.UUID(session['student_id'])
     student = g.session.query(StudentInfo).filter_by(id=student_id).first()
     if not student:
+        session.clear()
         flash('Student not found.', 'error')
         return redirect(url_for('student_login'))
     # Get latest grades
@@ -240,14 +219,27 @@ def student_dashboard():
 def student_grades():
     db_session = g.session
     student_id = session.get('student_id')
+    student = db_session.query(StudentInfo).filter_by(id=student_id).first()
+    if not student:
+        flash('Student not found.', 'error')
+        return redirect(url_for('student_login'))
 
-    # Fetch grades and eagerly load subject and section period details
+    # Get the base student_id_number (before -S2)
+    base_id = student.student_id_number.split('-S2')[0]
+
+    # Find all StudentInfo records for this base ID (1st and 2nd sem, etc)
+    all_student_infos = db_session.query(StudentInfo).filter(
+        StudentInfo.student_id_number.like(f"{base_id}%")
+    ).all()
+    all_student_ids = [info.id for info in all_student_infos]
+
+    # Fetch grades for all these student_info records
     grades = db_session.query(Grade).join(
         Grade.section_subject
     ).join(
         SectionSubject.section_period
     ).filter(
-        Grade.student_info_id == student_id
+        Grade.student_info_id.in_(all_student_ids)
     ).options(
         joinedload(Grade.section_subject).joinedload(SectionSubject.section_period)
     ).order_by(
@@ -274,13 +266,30 @@ def student_grades():
 @app.route('/student/attendance')
 @login_required
 def student_attendance():
+    if 'student_id' not in session:
+        session.clear()
+        return redirect(url_for('student_login'))
     student_id = uuid.UUID(session['student_id'])
     student = g.session.query(StudentInfo).filter_by(id=student_id).first()
     if not student:
+        session.clear()
         flash('Student not found.', 'error')
         return redirect(url_for('student_login'))
-    # Get all attendance records for this student
-    attendance_records = g.session.query(Attendance).filter_by(student_info_id=student_id).order_by(Attendance.attendance_date.desc()).all()
+
+    # Get the base student_id_number (before -S2)
+    base_id = student.student_id_number.split('-S2')[0]
+
+    # Find all StudentInfo records for this base ID (1st and 2nd sem, etc)
+    all_student_infos = g.session.query(StudentInfo).filter(
+        StudentInfo.student_id_number.like(f"{base_id}%")
+    ).all()
+    all_student_ids = [info.id for info in all_student_infos]
+
+    # Get all attendance records for these student_info ids
+    attendance_records = g.session.query(Attendance).filter(
+        Attendance.student_info_id.in_(all_student_ids)
+    ).order_by(Attendance.attendance_date.desc()).all()
+
     # Build a mapping from section_subject_id to subject_name
     section_subject_ids = {r.section_subject_id for r in attendance_records}
     if section_subject_ids:
@@ -289,20 +298,38 @@ def student_attendance():
         subject_map = {s.id: s.subject_name for s in subjects}
     else:
         subject_map = {}
-    # Calculate summary statistics
+
+    # Group attendance records by period (semester/quarter)
+    period_map = {}
+    # Cache for section_period lookups
+    section_period_cache = {}
+    for record in attendance_records:
+        # Get the period info from the student's section_period_id
+        student_info = next((info for info in all_student_infos if info.id == record.student_info_id), None)
+        period_key = "Unknown Period"
+        if student_info:
+            sp_id = student_info.section_period_id
+            if sp_id not in section_period_cache:
+                section_period = g.session.query(SectionPeriod).filter_by(id=sp_id).first()
+                section_period_cache[sp_id] = section_period
+            else:
+                section_period = section_period_cache[sp_id]
+            if section_period:
+                period_name = section_period.period_name
+                school_year = section_period.school_year
+                period_key = f"{period_name} {school_year}"
+        if period_key not in period_map:
+            period_map[period_key] = []
+        period_map[period_key].append(record)
+
+    # Calculate summary statistics for all records (can also do per period if needed)
     present_count = sum(1 for a in attendance_records if a.status == 'present')
     absent_count = sum(1 for a in attendance_records if a.status == 'absent')
     late_count = sum(1 for a in attendance_records if a.status == 'late')
     excused_count = sum(1 for a in attendance_records if a.status == 'excused')
     total_classes = len(attendance_records)
     attendance_rate = round(((present_count + late_count) / total_classes * 100), 1) if total_classes > 0 else 0
-    # Group records by subject for display
-    records_by_subject = {}
-    for record in attendance_records:
-        subject = subject_map.get(record.section_subject_id, 'Unknown')
-        if subject not in records_by_subject:
-            records_by_subject[subject] = []
-        records_by_subject[subject].append(record)
+
     return render_template('student_attendance_history.html',
         student=student,
         attendance_records=attendance_records,
@@ -312,7 +339,7 @@ def student_attendance():
         excused_count=excused_count,
         total_classes=total_classes,
         attendance_rate=attendance_rate,
-        records_by_subject=records_by_subject,
+        records_by_period=period_map,
         subject_map=subject_map)
 
 @app.route('/student/profile', methods=['GET', 'POST'])

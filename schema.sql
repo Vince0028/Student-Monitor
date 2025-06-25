@@ -1,18 +1,3 @@
- -- Drop tables in reverse order of dependency to avoid foreign key constraints issues
-DROP TABLE IF EXISTS student_scores CASCADE;
-DROP TABLE IF EXISTS gradable_items CASCADE;
-DROP TABLE IF EXISTS grading_components CASCADE;
-DROP TABLE IF EXISTS grading_systems CASCADE;
-DROP TABLE IF EXISTS grades CASCADE;
-DROP TABLE IF EXISTS attendance CASCADE;
-DROP TABLE IF EXISTS section_subjects CASCADE;
-DROP TABLE IF EXISTS students_info CASCADE;
-DROP TABLE IF EXISTS section_periods CASCADE;
-DROP TABLE IF EXISTS sections CASCADE;
-DROP TABLE IF EXISTS strands CASCADE;
-DROP TABLE IF EXISTS grade_levels CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-
 -- Create users table
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

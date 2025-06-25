@@ -1619,29 +1619,9 @@ def section_period_details(section_period_id):
             joinedload(SectionPeriod.assigned_teacher)
         ).filter(SectionPeriod.id == section_period_id).one()
 
-        # --- Data Sync Logic ---
-        student_display_period_id = section_period_id
-        subject_display_period_id = section_period_id
-
-        # For JHS and SHS, find the master period (first period in the school year)
-        if section_period.period_type in ['Quarter', 'Semester']:
-            master_period = db_session.query(SectionPeriod).filter(
-                SectionPeriod.section_id == section_period.section_id,
-                SectionPeriod.school_year == section_period.school_year
-            ).order_by(SectionPeriod.period_name).first()
-            
-            if master_period:
-                # Always sync students to the master period
-                student_display_period_id = master_period.id
-                # Only sync subjects for JHS (Quarters)
-                if section_period.period_type == 'Quarter':
-                    subject_display_period_id = master_period.id
-        # --- End Sync Logic ---
-
-        # Fetch students from the correct (master) period
-        students = db_session.query(StudentInfo).options(joinedload(StudentInfo.parent)).filter(StudentInfo.section_period_id == student_display_period_id).order_by(StudentInfo.name).all()
+        # Remove Data Sync Logic: Only show students for this period
+        students = db_session.query(StudentInfo).options(joinedload(StudentInfo.parent)).filter(StudentInfo.section_period_id == section_period_id).order_by(StudentInfo.name).all()
         for student in students:
-            # Note: This is a simple average calculation. A more complex one might be needed later.
             grades = db_session.query(Grade.grade_value).filter(Grade.student_info_id == student.id).all()
             if grades:
                 student.average_grade = sum(g[0] for g in grades) / len(grades)
@@ -1684,18 +1664,15 @@ def section_period_details(section_period_id):
         is_assigned_teacher = str(section_period.assigned_teacher_id) == str(user_id)
         
         if is_assigned_teacher or user_type == 'admin':
-            # If teacher is assigned to this period or user is admin, show all subjects
             section_subjects = g.session.query(SectionSubject).filter(
                 SectionSubject.section_period_id == section_period_id
             ).order_by(SectionSubject.subject_name).all()
         else:
-            # If not assigned, only show subjects created by this teacher
             section_subjects = g.session.query(SectionSubject).filter(
                 SectionSubject.section_period_id == section_period_id,
                 SectionSubject.created_by_teacher_id == user_id
             ).order_by(SectionSubject.subject_name).all()
     
-        # Use different templates based on user type
         template = 'section_period_details.html' if user_type == 'admin' else 'teacher_section_period_details.html'
         return render_template(template,
                                section_period=section_period,
@@ -3466,6 +3443,64 @@ def sync_student_to_parent_portal(student, parent_id, logger=None):
         return False, str(e)
     finally:
         parent_db_session.close()
+
+@app.route('/section_period/<uuid:section_period_id>/sync_students_from_first_sem', methods=['POST'])
+@login_required
+@user_type_required('admin', 'teacher')
+def sync_students_from_first_sem(section_period_id):
+    db_session = g.session
+    # Get the current (target) period
+    current_period = db_session.query(SectionPeriod).filter_by(id=section_period_id).first()
+    if not current_period or current_period.period_name.lower() != '2nd semester':
+        flash('Sync is only available for 2nd Semester periods.', 'error')
+        return redirect(url_for('section_period_details', section_period_id=section_period_id))
+
+    # Find the 1st semester in the same section and school year
+    first_sem = db_session.query(SectionPeriod).filter(
+        SectionPeriod.section_id == current_period.section_id,
+        SectionPeriod.school_year == current_period.school_year,
+        func.lower(SectionPeriod.period_name) == '1st semester'
+    ).first()
+    if not first_sem:
+        flash('No 1st Semester found to sync from.', 'warning')
+        return redirect(url_for('section_period_details', section_period_id=section_period_id))
+
+    # Get students from 1st semester
+    prev_students = db_session.query(StudentInfo).filter_by(section_period_id=first_sem.id).all()
+    # Get all existing student_id_numbers in the system (not just this period)
+    all_existing_ids = {s.student_id_number for s in db_session.query(StudentInfo).all()}
+
+    count_added = 0
+    for s in prev_students:
+        new_id_number = s.student_id_number
+        # If this ID already exists, generate a new one for 2nd sem
+        if new_id_number in all_existing_ids:
+            base_id = s.student_id_number
+            suffix = '-S2'
+            candidate = base_id + suffix
+            i = 2
+            while candidate in all_existing_ids:
+                candidate = f"{base_id}{suffix}-{i}"
+                i += 1
+            new_id_number = candidate
+        # Add the new student, copying password_hash and parent_id
+        new_student = StudentInfo(
+            name=s.name,
+            student_id_number=new_id_number,
+            gender=s.gender,
+            section_period_id=current_period.id,
+            password_hash=s.password_hash,
+            parent_id=s.parent_id
+        )
+        db_session.add(new_student)
+        all_existing_ids.add(new_id_number)
+        count_added += 1
+    db_session.commit()
+    if count_added == 0:
+        flash('No new students were synced. All students from 1st Semester already exist in this period.', 'info')
+    else:
+        flash(f'Synced {count_added} students from 1st Semester. All have unique IDs for 2nd Semester, and share the same login and parent.', 'success')
+    return redirect(url_for('section_period_details', section_period_id=section_period_id))
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
