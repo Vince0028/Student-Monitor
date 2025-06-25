@@ -27,4 +27,12 @@ class StudentQuizResult(Base):
     score = Column(Numeric(5, 2), nullable=False)
     total_points = Column(Numeric(5, 2), nullable=False)
     completed_at = Column(DateTime(timezone=True), server_default=func.now())
-    __table_args__ = (UniqueConstraint('student_info_id', 'quiz_id'),) 
+    __table_args__ = (UniqueConstraint('student_info_id', 'quiz_id'),)
+
+class StudentQuizAnswer(Base):
+    __tablename__ = 'student_quiz_answers'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    student_quiz_result_id = Column(PG_UUID(as_uuid=True), ForeignKey('student_quiz_results.id'), nullable=False)
+    question_id = Column(String, nullable=False)  # or Integer, depending on your question IDs
+    answer_text = Column(String, nullable=True)
+    score = Column(Numeric(5, 2), nullable=True)  # Teacher can fill this in 

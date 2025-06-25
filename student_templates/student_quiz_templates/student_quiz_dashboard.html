@@ -20,6 +20,18 @@
             <div class="feature-card-title">Completed Quizzes</div>
             <div class="feature-card-desc">Review your scores for quizzes you've finished.</div>
         </a>
+        <!-- Pending Quizzes Card -->
+        <div class="feature-card card-quiz-pending">
+            <div class="feature-card-icon"><i class="fas fa-hourglass-half" style="color:#2563eb;"></i></div>
+            <div class="feature-card-title">Pending Quizzes</div>
+            <div class="feature-card-desc">
+                {% if pending_quizzes and pending_quizzes|length > 0 %}
+                    <span style="font-weight:600; color:#2563eb;">{{ pending_quizzes|length }} pending</span> waiting for teacher review
+                {% else %}
+                    No quizzes are pending review
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %} 

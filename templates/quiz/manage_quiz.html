@@ -1,679 +1,174 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz Maker - Modern Interface</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .quiz-container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .quiz-header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            padding: 30px;
-            color: white;
-            text-align: center;
-        }
-
-        .quiz-title {
-            font-size: 2.5rem;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .quiz-subtitle {
-            opacity: 0.9;
-            font-size: 1.1rem;
-        }
-
-        .quiz-content {
-            padding: 30px;
-        }
-
-        .quiz-form-header {
-            background: #f8f9ff;
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            border-left: 5px solid #4facfe;
-        }
-
-        .quiz-form-header h2 {
-            color: #2d3748;
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-        }
-
-        .quiz-form-header input {
-            border: none;
-            background: transparent;
-            font-size: 1.8rem;
-            font-weight: 600;
-            color: #2d3748;
-            width: 100%;
-            padding: 10px 0;
-        }
-
-        .quiz-form-header input:focus {
-            outline: none;
-            border-bottom: 2px solid #4facfe;
-        }
-
-        .question-card {
-            background: white;
-            border: 2px solid #e2e8f0;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 20px;
-            position: relative;
-            transition: all 0.3s ease;
-        }
-
-        .question-card:hover {
-            border-color: #4facfe;
-            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.1);
-        }
-
-        .question-card.active {
-            border-color: #4facfe;
-            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.15);
-        }
-
-        .question-header {
-            display: flex;
-            justify-content: between;
-            align-items: flex-start;
-            margin-bottom: 20px;
-        }
-
-        .question-number {
-            background: #4facfe;
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            margin-right: 15px;
-            flex-shrink: 0;
-        }
-
-        .question-input {
-            flex: 1;
-            border: none;
-            font-size: 1.2rem;
-            padding: 10px 0;
-            color: #2d3748;
-            background: transparent;
-        }
-
-        .question-input:focus {
-            outline: none;
-            border-bottom: 2px solid #4facfe;
-        }
-
-        .question-input::placeholder {
-            color: #a0aec0;
-        }
-
-        .question-actions {
-            display: flex;
-            gap: 10px;
-            margin-left: auto;
-        }
-
-        .action-btn {
-            background: none;
-            border: none;
-            color: #718096;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 8px;
-            transition: all 0.2s;
-        }
-
-        .action-btn:hover {
-            background: #f7fafc;
-            color: #4facfe;
-        }
-
-        .delete-btn:hover {
-            color: #e53e3e;
-            background: #fed7d7;
-        }
-
-        .question-type-selector {
-            margin-bottom: 20px;
-        }
-
-        .type-dropdown {
-            background: #f7fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 12px 15px;
-            font-size: 1rem;
-            color: #2d3748;
-            cursor: pointer;
-            min-width: 200px;
-        }
-
-        .type-dropdown:focus {
-            outline: none;
-            border-color: #4facfe;
-        }
-
-        .options-container {
-            space-y: 15px;
-        }
-
-        .option-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 15px;
-            background: #f8f9ff;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            transition: all 0.2s;
-        }
-
-        .option-item:hover {
-            background: #e6f3ff;
-        }
-
-        .option-radio {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            border: 2px solid #cbd5e0;
-            cursor: pointer;
-            position: relative;
-            transition: all 0.2s;
-        }
-
-        .option-radio.selected {
-            border-color: #4facfe;
-            background: #4facfe;
-        }
-
-        .option-radio.selected::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 8px;
-            height: 8px;
-            background: white;
-            border-radius: 50%;
-        }
-
-        .option-input {
-            flex: 1;
-            border: none;
-            background: transparent;
-            font-size: 1rem;
-            padding: 8px 0;
-            color: #2d3748;
-        }
-
-        .option-input:focus {
-            outline: none;
-        }
-
-        .option-input::placeholder {
-            color: #a0aec0;
-        }
-
-        .remove-option {
-            color: #718096;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 5px;
-            transition: all 0.2s;
-        }
-
-        .remove-option:hover {
-            color: #e53e3e;
-            background: #fed7d7;
-        }
-
-        .add-option-btn {
-            background: none;
-            border: 2px dashed #cbd5e0;
-            color: #718096;
-            padding: 15px;
-            border-radius: 10px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
-            transition: all 0.2s;
-        }
-
-        .add-option-btn:hover {
-            border-color: #4facfe;
-            color: #4facfe;
-            background: #f8f9ff;
-        }
-
-        .short-answer-field {
-            background: #f8f9ff;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-
-        .short-answer-input {
-            width: 100%;
-            border: none;
-            background: transparent;
-            font-size: 1rem;
-            padding: 8px 0;
-            color: #2d3748;
-        }
-
-        .short-answer-input:focus {
-            outline: none;
-        }
-
-        .add-question-btn {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 20px auto;
-        }
-
-        .add-question-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
-        }
-
-        .quiz-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 25px;
-            background: #f8f9ff;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
-        }
-
-        .btn-secondary {
-            background: #e2e8f0;
-            color: #4a5568;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-secondary:hover {
-            background: #cbd5e0;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #718096;
-        }
-
-        .empty-state i {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            opacity: 0.3;
-        }
-
-        .drag-handle {
-            cursor: grab;
-            color: #cbd5e0;
-            padding: 5px;
-        }
-
-        .drag-handle:hover {
-            color: #4facfe;
-        }
-
-        .question-card.dragging {
-            opacity: 0.5;
-            transform: rotate(5deg);
-        }
-
-        @media (max-width: 768px) {
-            .quiz-container {
-                margin: 10px;
-                border-radius: 15px;
-            }
-            
-            .quiz-content {
-                padding: 20px;
-            }
-            
-            .question-card {
-                padding: 20px;
-            }
-            
-            .quiz-title {
-                font-size: 2rem;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="quiz-container">
-        <div class="quiz-header">
-            <div class="quiz-title">Quiz Builder</div>
-            <div class="quiz-subtitle">Create engaging quizzes with ease</div>
-        </div>
-
-        <div class="quiz-content">
-            <div class="quiz-form-header">
-                <input type="text" placeholder="Untitled Quiz" id="quizTitle" value="My Awesome Quiz">
-                <div style="margin-top: 10px; color: #718096;">
-                    <i class="fas fa-users"></i> Questions: <span id="questionCount">0</span>
-                </div>
-            </div>
-
-            <div id="questionsContainer">
-                <!-- Questions will be added here -->
-            </div>
-
-            <div class="empty-state" id="emptyState">
-                <i class="fas fa-clipboard-question"></i>
-                <h3>No questions yet</h3>
-                <p>Click the button below to add your first question</p>
-            </div>
-
-            <button class="add-question-btn" onclick="addQuestion()">
-                <i class="fas fa-plus"></i>
-                Add Question
-            </button>
-        </div>
-
-        <div class="quiz-actions">
-            <button class="btn-secondary">
-                <i class="fas fa-eye"></i>
-                Preview
-            </button>
+{% extends 'base.html' %}
+{% block title %}Quiz Manager{% endblock %}
+{% block custom_css %}
+<!-- Use only student_style.css for all card and layout styles -->
+<style>
+.student-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.student-table th, .student-table td {
+  padding: 1rem 0.7rem;
+  text-align: left;
+  font-size: 1rem;
+  vertical-align: middle;
+}
+.student-table th {
+  color: #6b7280;
+  font-weight: 600;
+  background: none;
+  border-bottom: 2px solid #f1f1f1;
+}
+.student-table td {
+  border-bottom: 1px solid #f1f1f1;
+  background: none;
+}
+.student-table tr:last-child td {
+  border-bottom: none;
+}
+.student-table .student-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #f1f1f1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: #bdbdbd;
+  margin-right: 0.8rem;
+}
+.student-table .stat-badge {
+  margin-left: 0.3rem;
+}
+.student-table .view-btn {
+  background: #f3f4f6;
+  border: none;
+  border-radius: 0.7rem;
+  padding: 0.5rem 1.1rem;
+  font-size: 1rem;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.student-table .view-btn:hover {
+  background: #e0e7ff;
+}
+.student-table tr:hover td {
+  background: #f9fafb;
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container" style="max-width:1200px; margin:0 auto; padding-top:2.5rem;">
+    <h2 style="font-size:2.2rem; font-weight:700; margin-bottom:0.2rem;">Quiz Manager</h2>
+    <p class="text-muted" style="color:#6b7280; margin-bottom:2.2rem;">Monitor student performance and quiz results</p>
+    <div class="summary-cards" style="display:grid; grid-template-columns:repeat(4,1fr); gap:1.5rem; margin-bottom:2.2rem;">
+        <div class="summary-card" style="background:#fff; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.06); padding:1.5rem 2rem 1.5rem 1.5rem; display:flex; flex-direction:row; align-items:center; border:1.5px solid #f1f1f1;">
             <div>
-                <button class="btn-secondary" style="margin-right: 10px;">
-                    <i class="fas fa-save"></i>
-                    Save Draft
-                </button>
-                <button class="btn-primary">
-                    <i class="fas fa-share"></i>
-                    Publish Quiz
-                </button>
+                <div class="label" style="color:#6b7280; font-size:1rem; margin-bottom:0.2rem; font-weight:500;">Total Students</div>
+                <div class="value" style="font-size:1.7rem; font-weight:700; color:#222; margin-bottom:0.1rem;">{{ total_students }}</div>
             </div>
+            <div class="icon" style="font-size:2rem; color:#bdbdbd; margin-left:auto; opacity:0.7;"><i class="fas fa-users"></i></div>
+        </div>
+        <div class="summary-card" style="background:#fff; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.06); padding:1.5rem 2rem 1.5rem 1.5rem; display:flex; flex-direction:row; align-items:center; border:1.5px solid #f1f1f1;">
+            <div>
+                <div class="label" style="color:#6b7280; font-size:1rem; margin-bottom:0.2rem; font-weight:500;">Total Quizzes</div>
+                <div class="value" style="font-size:1.7rem; font-weight:700; color:#222; margin-bottom:0.1rem;">{{ total_quizzes }}</div>
+            </div>
+            <div class="icon" style="font-size:2rem; color:#bdbdbd; margin-left:auto; opacity:0.7;"><i class="fas fa-clipboard-list"></i></div>
+        </div>
+        <div class="summary-card" style="background:#fff; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.06); padding:1.5rem 2rem 1.5rem 1.5rem; display:flex; flex-direction:row; align-items:center; border:1.5px solid #f1f1f1;">
+            <div>
+                <div class="label" style="color:#6b7280; font-size:1rem; margin-bottom:0.2rem; font-weight:500;">Class Average</div>
+                <div class="value" style="font-size:1.7rem; font-weight:700; color:#222; margin-bottom:0.1rem;">{{ class_average }}</div>
+            </div>
+            <div class="icon" style="font-size:2rem; color:#bdbdbd; margin-left:auto; opacity:0.7;"><i class="fas fa-chart-line"></i></div>
+        </div>
+        <div class="summary-card" style="background:#fff; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.06); padding:1.5rem 2rem 1.5rem 1.5rem; display:flex; flex-direction:row; align-items:center; border:1.5px solid #f1f1f1;">
+            <div>
+                <div class="label" style="color:#6b7280; font-size:1rem; margin-bottom:0.2rem; font-weight:500;">Recent Activity</div>
+                <div class="value" style="font-size:1.7rem; font-weight:700; color:#222; margin-bottom:0.1rem;">{{ recent_activity }}/{{ total_students }}</div>
+                <div class="sub" style="color:#bdbdbd; font-size:0.95rem; margin-top:0.2rem;">submissions</div>
+            </div>
+            <div class="icon" style="font-size:2rem; color:#bdbdbd; margin-left:auto; opacity:0.7;"><i class="fas fa-clock"></i></div>
         </div>
     </div>
-
-    <script>
-        let questions = [];
-        let questionCounter = 0;
-
-        function addQuestion() {
-            questionCounter++;
-            const question = {
-                id: questionCounter,
-                text: '',
-                type: 'multiple_choice',
-                options: [
-                    { text: '', isCorrect: false },
-                    { text: '', isCorrect: false }
-                ],
-                correctAnswer: ''
-            };
-            
-            questions.push(question);
-            renderQuestion(question);
-            updateEmptyState();
-            updateQuestionCount();
-        }
-
-        function renderQuestion(question) {
-            const container = document.getElementById('questionsContainer');
-            const questionDiv = document.createElement('div');
-            questionDiv.className = 'question-card';
-            questionDiv.id = `question-${question.id}`;
-            
-            questionDiv.innerHTML = `
-                <div class="question-header">
-                    <div class="question-number">${questions.indexOf(question) + 1}</div>
-                    <input type="text" class="question-input" placeholder="Type your question here..." 
-                           value="${question.text}" onchange="updateQuestion(${question.id}, 'text', this.value)">
-                    <div class="question-actions">
-                        <button class="action-btn drag-handle" title="Drag to reorder">
-                            <i class="fas fa-grip-vertical"></i>
-                        </button>
-                        <button class="action-btn" onclick="duplicateQuestion(${question.id})" title="Duplicate">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                        <button class="action-btn delete-btn" onclick="deleteQuestion(${question.id})" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="question-type-selector">
-                    <select class="type-dropdown" onchange="changeQuestionType(${question.id}, this.value)">
-                        <option value="multiple_choice" ${question.type === 'multiple_choice' ? 'selected' : ''}>
-                            <i class="fas fa-list-ul"></i> Multiple Choice
-                        </option>
-                        <option value="short_answer" ${question.type === 'short_answer' ? 'selected' : ''}>
-                            <i class="fas fa-font"></i> Short Answer
-                        </option>
-                        <option value="true_false" ${question.type === 'true_false' ? 'selected' : ''}>
-                            <i class="fas fa-check-circle"></i> True/False
-                        </option>
-                    </select>
-                </div>
-                
-                <div id="question-content-${question.id}">
-                    ${renderQuestionContent(question)}
-                </div>
-            `;
-            
-            container.appendChild(questionDiv);
-        }
-
-        function renderQuestionContent(question) {
-            if (question.type === 'multiple_choice') {
-                return `
-                    <div class="options-container">
-                        ${question.options.map((option, index) => `
-                            <div class="option-item">
-                                <div class="option-radio ${option.isCorrect ? 'selected' : ''}" 
-                                     onclick="selectCorrectOption(${question.id}, ${index})"></div>
-                                <input type="text" class="option-input" placeholder="Option ${index + 1}" 
-                                       value="${option.text}" onchange="updateOption(${question.id}, ${index}, this.value)">
-                                ${question.options.length > 2 ? `
-                                    <i class="fas fa-times remove-option" onclick="removeOption(${question.id}, ${index})"></i>
-                                ` : ''}
-                            </div>
-                        `).join('')}
-                        <button class="add-option-btn" onclick="addOption(${question.id})">
-                            <i class="fas fa-plus"></i> Add option
-                        </button>
-                    </div>
-                `;
-            } else if (question.type === 'short_answer') {
-                return `
-                    <div class="short-answer-field">
-                        <input type="text" class="short-answer-input" placeholder="Enter the correct answer..." 
-                               value="${question.correctAnswer}" onchange="updateQuestion(${question.id}, 'correctAnswer', this.value)">
-                    </div>
-                `;
-            } else if (question.type === 'true_false') {
-                return `
-                    <div class="options-container">
-                        <div class="option-item">
-                            <div class="option-radio ${question.correctAnswer === 'true' ? 'selected' : ''}" 
-                                 onclick="updateQuestion(${question.id}, 'correctAnswer', 'true')"></div>
-                            <span class="option-input" style="border: none; font-weight: 500;">True</span>
-                        </div>
-                        <div class="option-item">
-                            <div class="option-radio ${question.correctAnswer === 'false' ? 'selected' : ''}" 
-                                 onclick="updateQuestion(${question.id}, 'correctAnswer', 'false')"></div>
-                            <span class="option-input" style="border: none; font-weight: 500;">False</span>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        function updateQuestion(questionId, field, value) {
-            const question = questions.find(q => q.id === questionId);
-            if (question) {
-                question[field] = value;
-            }
-        }
-
-        function updateOption(questionId, optionIndex, value) {
-            const question = questions.find(q => q.id === questionId);
-            if (question && question.options[optionIndex]) {
-                question.options[optionIndex].text = value;
-            }
-        }
-
-        function selectCorrectOption(questionId, optionIndex) {
-            const question = questions.find(q => q.id === questionId);
-            if (question) {
-                question.options.forEach((option, index) => {
-                    option.isCorrect = index === optionIndex;
-                });
-                document.getElementById(`question-content-${questionId}`).innerHTML = renderQuestionContent(question);
-            }
-        }
-
-        function addOption(questionId) {
-            const question = questions.find(q => q.id === questionId);
-            if (question) {
-                question.options.push({ text: '', isCorrect: false });
-                document.getElementById(`question-content-${questionId}`).innerHTML = renderQuestionContent(question);
-            }
-        }
-
-        function removeOption(questionId, optionIndex) {
-            const question = questions.find(q => q.id === questionId);
-            if (question && question.options.length > 2) {
-                question.options.splice(optionIndex, 1);
-                document.getElementById(`question-content-${questionId}`).innerHTML = renderQuestionContent(question);
-            }
-        }
-
-        function changeQuestionType(questionId, newType) {
-            const question = questions.find(q => q.id === questionId);
-            if (question) {
-                question.type = newType;
-                if (newType === 'multiple_choice') {
-                    question.options = [
-                        { text: '', isCorrect: false },
-                        { text: '', isCorrect: false }
-                    ];
-                } else if (newType === 'true_false') {
-                    question.correctAnswer = 'true';
-                }
-                document.getElementById(`question-content-${questionId}`).innerHTML = renderQuestionContent(question);
-            }
-        }
-
-        function deleteQuestion(questionId) {
-            if (confirm('Are you sure you want to delete this question?')) {
-                questions = questions.filter(q => q.id !== questionId);
-                document.getElementById(`question-${questionId}`).remove();
-                updateQuestionNumbers();
-                updateEmptyState();
-                updateQuestionCount();
-            }
-        }
-
-        function duplicateQuestion(questionId) {
-            const question = questions.find(q => q.id === questionId);
-            if (question) {
-                questionCounter++;
-                const duplicatedQuestion = {
-                    ...question,
-                    id: questionCounter,
-                    text: question.text + ' (Copy)',
-                    options: question.options ? [...question.options] : []
-                };
-                questions.push(duplicatedQuestion);
-                renderQuestion(duplicatedQuestion);
-                updateQuestionCount();
-            }
-        }
-
-        function updateQuestionNumbers() {
-            questions.forEach((question, index) => {
-                const questionElement = document.getElementById(`question-${question.id}`);
-                if (questionElement) {
-                    const numberElement = questionElement.querySelector('.question-number');
-                    numberElement.textContent = index + 1;
-                }
-            });
-        }
-
-        function updateEmptyState() {
-            const emptyState = document.getElementById('emptyState');
-            emptyState.style.display = questions.length === 0 ? 'block' : 'none';
-        }
-
-        function updateQuestionCount() {
-            document.getElementById('questionCount').textContent = questions.length;
-        }
-
-        // Initialize with empty state
-        updateEmptyState();
-        updateQuestionCount();
-    </script>
-</body>
-</html>
+    <div style="margin-bottom:2.2rem;">
+        <h3 style="font-size:1.2rem; font-weight:700; margin-bottom:0.7rem;">Quiz Status</h3>
+        <ul style="list-style:none; padding:0; margin:0; max-width:600px;">
+            {% for quiz in quizzes %}
+            <li style="display:flex; align-items:center; gap:1.1rem; padding:0.7rem 0; border-bottom:1px solid #f1f1f1;">
+                {% if quiz_status_map[quiz.id] == 'pending' %}
+                    <span style="font-size:1.3rem;"><i class="fas fa-hourglass-half" style="color:#2563eb;"></i></span>
+                    <span style="font-weight:600; flex:1;">{{ quiz.title }}</span>
+                    <span style="color:#2563eb; font-weight:600;">Pending (Manual Check Required)</span>
+                {% else %}
+                    <span style="font-size:1.3rem;"><i class="fas fa-check-circle" style="color:#43b581;"></i></span>
+                    <span style="font-weight:600; flex:1;">{{ quiz.title }}</span>
+                    <span style="color:#43b581; font-weight:600;">Completed</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="search-filter-row" style="display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem;">
+        <div class="search-box" style="flex:1; max-width:350px; position:relative;">
+            <input type="text" placeholder="Search students..." id="studentSearch" style="width:100%; padding:0.7rem 2.5rem 0.7rem 1rem; border-radius:0.7rem; border:1px solid #d1d5db; font-size:1rem; background:#fafbfc;">
+            <i class="fas fa-search" style="position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:#bdbdbd;"></i>
+        </div>
+        <div class="subject-filter">
+            <select style="padding:0.7rem 1.5rem 0.7rem 1rem; border-radius:0.7rem; border:1px solid #d1d5db; font-size:1rem; background:#fafbfc;">
+                <option>All Subjects</option>
+                {% if subjects %}
+                    {% for subj in subjects %}
+                    <option value="{{ subj.id }}">{{ subj.name }}</option>
+                    {% endfor %}
+                {% endif %}
+            </select>
+        </div>
+    </div>
+    <div class="students-section" style="background:#fff; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:2rem;">
+        <h2 style="font-size:1.3rem; font-weight:700; margin-bottom:0.5rem;">Students</h2>
+        <p style="color:#6b7280; font-size:1rem; margin-bottom:1.5rem;">Monitor all student quiz performance</p>
+        <table class="student-table" style="width:100%; table-layout:auto;">
+            <thead>
+                <tr>
+                    <th style="text-align:left;">Name</th>
+                    <th style="text-align:left;">Email</th>
+                    <th style="text-align:center;">Average</th>
+                    <th style="text-align:center;">Progress</th>
+                    <th style="text-align:center;"></th>
+                </tr>
+            </thead>
+            <tbody id="studentList">
+                {% for student in students %}
+                <tr>
+                    <td>
+                        <span class="student-avatar"><i class="fas fa-user"></i></span>
+                        <span class="name" style="font-weight:600; font-size:1.1rem;">{{ student.name }}</span>
+                    </td>
+                    <td><span class="email" style="color:#6b7280; font-size:0.97rem;">{{ student.email if student.email else '' }}</span></td>
+                    <td style="text-align:center;"><span class="stat-badge badge-blue">{{ student.average_grade if student.average_grade is not none else 'N/A' }}%</span></td>
+                    <td style="text-align:center;"><span class="stat-value">{{ student.progress if student.progress else 'N/A' }}</span></td>
+                    <td style="text-align:center;"><a class="view-btn" href="{{ url_for('manage_student_quiz', section_period_id=section_period_id, subject_id=subject_id, student_id=student.id) }}"><i class="fas fa-eye"></i> View</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+    // Simple search filter for students
+    document.getElementById('studentSearch').addEventListener('input', function() {
+        const filter = this.value.toLowerCase();
+        document.querySelectorAll('#studentList tr').forEach(function(row) {
+            const name = row.querySelector('.name').textContent.toLowerCase();
+            const email = row.querySelector('.email').textContent.toLowerCase();
+            row.style.display = (name.includes(filter) || email.includes(filter)) ? '' : 'none';
+        });
+    });
+</script>
+{% endblock %}
