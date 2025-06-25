@@ -77,59 +77,61 @@
         margin-right: 0.5em;
     }
 </style>
-<div class="dashboard-header">
-    <h2>Grades for {{ student.name }}</h2>
-    <p>Below is a detailed breakdown of your child's grades for each subject.</p>
-</div>
+<div class="parent-main-container">
+    <div class="dashboard-header">
+        <h2>Grades for {{ student.name }}</h2>
+        <p>Below is a detailed breakdown of your child's grades for each subject.</p>
+    </div>
 
-{% if detailed_grades %}
-    {% for subject, data in detailed_grades.items() %}
-    <div class="grade-card">
-        <div class="grade-card-header">
-            <h4><i class="fas fa-book grade-item-icon"></i> {{ subject }}</h4>
-            <span class="total-grade"><i class="fas fa-star"></i> Total Grade: {{ '%.2f'|format(data.total_grade) if data.total_grade is not none else 'N/A' }}</span>
-        </div>
-        <div style="max-height: 350px; overflow-y: auto; min-width: 400px;">
-            {% if data.details %}
-                {% set grouped = {} %}
-                {% for item in data.details %}
-                    {% set _ = grouped.setdefault(item.component, []).append(item) %}
-                {% endfor %}
-                <table class="grade-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 28%;">Component</th>
-                            <th>Item</th>
-                            <th>Score</th>
-                            <th>Max Score</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for component, items in grouped.items() %}
-                            <tr class="component-row">
-                                <td colspan="4"><i class="fas fa-layer-group"></i> {{ component }}</td>
-                            </tr>
-                            {% for item in items %}
+    {% if detailed_grades %}
+        {% for subject, data in detailed_grades.items() %}
+        <div class="grade-card parent-card">
+            <div class="grade-card-header">
+                <h4><i class="fas fa-book grade-item-icon"></i> {{ subject }}</h4>
+                <span class="total-grade"><i class="fas fa-star"></i> Total Grade: {{ '%.2f'|format(data.total_grade) if data.total_grade is not none else 'N/A' }}</span>
+            </div>
+            <div class="responsive-table-wrapper" style="max-height: 350px; overflow-y: auto; min-width: 400px;">
+                {% if data.details %}
+                    {% set grouped = {} %}
+                    {% for item in data.details %}
+                        {% set _ = grouped.setdefault(item.component, []).append(item) %}
+                    {% endfor %}
+                    <table class="grade-table">
+                        <thead>
                             <tr>
-                                <td></td>
-                                <td><i class="fas fa-clipboard-list grade-item-icon"></i> {{ item.item_title }}</td>
-                                <td>{{ '%.2f'|format(item.score) }}</td>
-                                <td>{{ '%.2f'|format(item.max_score) }}</td>
+                                <th style="width: 28%;">Component</th>
+                                <th>Item</th>
+                                <th>Score</th>
+                                <th>Max Score</th>
                             </tr>
+                        </thead>
+                        <tbody>
+                            {% for component, items in grouped.items() %}
+                                <tr class="component-row">
+                                    <td colspan="4"><i class="fas fa-layer-group"></i> {{ component }}</td>
+                                </tr>
+                                {% for item in items %}
+                                <tr>
+                                    <td></td>
+                                    <td><i class="fas fa-clipboard-list grade-item-icon"></i> {{ item.item_title }}</td>
+                                    <td>{{ '%.2f'|format(item.score) }}</td>
+                                    <td>{{ '%.2f'|format(item.max_score) }}</td>
+                                </tr>
+                                {% endfor %}
                             {% endfor %}
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-            <p style="color: #888;">No detailed grade items found for this subject.</p>
-            {% endif %}
+                        </tbody>
+                    </table>
+                {% else %}
+                <p style="color: #888;">No detailed grade items found for this subject.</p>
+                {% endif %}
+            </div>
         </div>
-    </div>
-    {% endfor %}
-{% else %}
-    <div class="empty-state">
-        <h3>No Grades Found</h3>
-        <p>This student does not have any grades recorded yet.</p>
-    </div>
-{% endif %}
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <h3>No Grades Found</h3>
+            <p>This student does not have any grades recorded yet.</p>
+        </div>
+    {% endif %}
+</div>
 {% endblock %} 
