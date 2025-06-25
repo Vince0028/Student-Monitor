@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Quiz Dashboard{% endblock %}
+{% block custom_css %}
+<!-- No custom card CSS here; use student_style.css for card styles -->
+{% endblock %}
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="quiz-dashboard-header">
+        <h2>Quiz Dashboard</h2>
+        <p class="text-muted">Access quiz creation and management tools</p>
+    </div>
+    <div class="dashboard-card-grid">
+        <a href="{{ url_for('quiz_maker', section_period_id=section_period_id, subject_id=subject_id) }}" class="feature-card">
+            <div class="feature-card-icon"><i class="fas fa-plus-circle"></i></div>
+            <div class="feature-card-title">Create Quiz</div>
+            <div class="feature-card-desc">Design and publish new quizzes for your students using the modern quiz maker.</div>
+        </a>
+        <a href="{{ url_for('manage_quiz', section_period_id=section_period_id, subject_id=subject_id) }}" class="feature-card">
+            <div class="feature-card-icon"><i class="fas fa-list-check"></i></div>
+            <div class="feature-card-title">Quiz Manager</div>
+            <div class="feature-card-desc">Monitor student performance, view quiz results, and manage all quizzes in one place.</div>
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -10,7 +10,11 @@
             {% for quiz in completed_quizzes %}
             <a href="{{ url_for('view_quiz_score', quiz_id=quiz.id) }}" class="feature-card card-quiz-completed">
                 <div class="feature-card-icon"><i class="fas fa-check-circle"></i></div>
-                <div class="feature-card-title">{{ quiz.title }}</div>
+                <div class="feature-card-title">{{ quiz.title }}
+                    {% if quiz.is_essay_pending %}
+                        <span style="color:#2563eb; font-size:0.95rem; font-weight:600; margin-left:0.5rem;">[Score Pending]</span>
+                    {% endif %}
+                </div>
                 <div class="feature-card-desc">You scored <strong>{{ quiz.score }}</strong> out of <strong>{{ quiz.total_points }}</strong>.</div>
             </a>
             {% endfor %}

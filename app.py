@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import the Quiz model from models.py
-from models import Quiz
+from models import Quiz, StudentQuizResult, StudentQuizAnswer
 
 # --- Flask App Configuration ---
 app = Flask(__name__)
@@ -3378,6 +3378,253 @@ def api_create_quiz():
         import traceback
         app.logger.error(f"Error in /api/quizzes: {e}\n{traceback.format_exc()}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/quiz/dashboard')
+@login_required
+@user_type_required('teacher')
+def quiz_dashboard(section_period_id, subject_id):
+    import json
+    db_session = g.session
+    # Get all quizzes for this section_period and subject
+    quizzes = db_session.query(Quiz).filter_by(section_period_id=section_period_id, subject_id=subject_id).all()
+    # Get all students in this section_period
+    students = db_session.query(StudentInfo).filter_by(section_period_id=section_period_id).all()
+    student_ids = [s.id for s in students]
+    # Find quizzes with at least one essay/short answer question
+    quiz_id_to_essay_qids = {}
+    for quiz in quizzes:
+        try:
+            questions = json.loads(quiz.questions_json or '[]')
+        except Exception:
+            questions = []
+        essay_qids = [str(q['id']) for q in questions if q.get('type') == 'short_answer']
+        if essay_qids:
+            quiz_id_to_essay_qids[quiz.id] = essay_qids
+    # For each quiz with essay questions, check if any StudentQuizAnswer for those questions is unscored
+    from sqlalchemy import or_, and_
+    pending_quizzes = []
+    if quiz_id_to_essay_qids:
+        # Get all StudentQuizResult for these quizzes and students
+        sqr_query = db_session.query(StudentQuizResult).filter(
+            StudentQuizResult.quiz_id.in_(quiz_id_to_essay_qids.keys()),
+            StudentQuizResult.student_info_id.in_(student_ids)
+        ).all()
+        # Map: quiz_id -> list of StudentQuizResult ids
+        quiz_id_to_sqrids = {}
+        for sqr in sqr_query:
+            quiz_id_to_sqrids.setdefault(sqr.quiz_id, []).append(sqr.id)
+        # For each quiz, check if any StudentQuizAnswer for its essay questions is unscored
+        for quiz in quizzes:
+            if quiz.id not in quiz_id_to_essay_qids:
+                continue
+            essay_qids = quiz_id_to_essay_qids[quiz.id]
+            sqrids = quiz_id_to_sqrids.get(quiz.id, [])
+            if not sqrids:
+                continue  # No attempts yet
+            # Query for unscored answers
+            unscored = db_session.query(StudentQuizAnswer).filter(
+                StudentQuizAnswer.student_quiz_result_id.in_(sqrids),
+                StudentQuizAnswer.question_id.in_(essay_qids),
+                StudentQuizAnswer.score.is_(None)
+            ).first()
+            if unscored:
+                pending_quizzes.append({
+                    'quiz': quiz,
+                    'pending_type': 'essay_unscored',
+                })
+    return render_template(
+        'quiz/quiz_dashboard.html',
+        section_period_id=section_period_id,
+        subject_id=subject_id,
+        pending_quizzes=pending_quizzes
+    )
+
+@app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/quiz/manage')
+@login_required
+@user_type_required('teacher')
+def manage_quiz(section_period_id, subject_id):
+    import json
+    db_session = g.session
+    # Get the subject
+    subject = db_session.query(SectionSubject).filter_by(id=subject_id, section_period_id=section_period_id).first()
+    # Get all students in this section period
+    students = db_session.query(StudentInfo).filter_by(section_period_id=section_period_id).order_by(StudentInfo.name).all()
+    # Get quizzes for this subject/period
+    quizzes = db_session.query(Quiz).filter_by(section_period_id=section_period_id, subject_id=subject_id).all()
+    # Calculate summary stats
+    total_students = len(students)
+    total_quizzes = len(quizzes)
+    grades = [float(s.average_grade) for s in students if s.average_grade is not None]
+    class_average = f"{round(sum(grades)/len(grades), 2)}%" if grades else "N/A"
+    recent_activity = 0  # Placeholder, replace with real logic if needed
+
+    # --- Quiz status logic ---
+    student_ids = [s.id for s in students]
+    quiz_id_to_essay_qids = {}
+    for quiz in quizzes:
+        try:
+            questions = json.loads(quiz.questions_json or '[]')
+        except Exception:
+            questions = []
+        essay_qids = [str(q['id']) for q in questions if q.get('type') == 'short_answer']
+        if essay_qids:
+            quiz_id_to_essay_qids[quiz.id] = essay_qids
+    from sqlalchemy import or_, and_
+    quiz_status_map = {}
+    if quiz_id_to_essay_qids:
+        sqr_query = db_session.query(StudentQuizResult).filter(
+            StudentQuizResult.quiz_id.in_(quiz_id_to_essay_qids.keys()),
+            StudentQuizResult.student_info_id.in_(student_ids)
+        ).all()
+        quiz_id_to_sqrids = {}
+        for sqr in sqr_query:
+            quiz_id_to_sqrids.setdefault(sqr.quiz_id, []).append(sqr.id)
+        for quiz in quizzes:
+            if quiz.id not in quiz_id_to_essay_qids:
+                quiz_status_map[quiz.id] = 'completed'  # No essay questions, always completed
+                continue
+            essay_qids = quiz_id_to_essay_qids[quiz.id]
+            sqrids = quiz_id_to_sqrids.get(quiz.id, [])
+            if not sqrids:
+                quiz_status_map[quiz.id] = 'pending'  # No attempts yet
+                continue
+            unscored = db_session.query(StudentQuizAnswer).filter(
+                StudentQuizAnswer.student_quiz_result_id.in_(sqrids),
+                StudentQuizAnswer.question_id.in_(essay_qids),
+                StudentQuizAnswer.score.is_(None)
+            ).first()
+            if unscored:
+                quiz_status_map[quiz.id] = 'pending'
+            else:
+                quiz_status_map[quiz.id] = 'completed'
+    else:
+        for quiz in quizzes:
+            quiz_status_map[quiz.id] = 'completed'
+
+    return render_template(
+        'quiz/manage_quiz.html',
+        section_period_id=section_period_id,
+        subject_id=subject_id,
+        subject=subject,
+        students=students,
+        quizzes=quizzes,
+        total_students=total_students,
+        total_quizzes=total_quizzes,
+        class_average=class_average,
+        recent_activity=recent_activity,
+        quiz_status_map=quiz_status_map
+    )
+
+@app.route('/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/student/<uuid:student_id>/manage_quiz')
+@login_required
+@user_type_required('teacher')
+def manage_student_quiz(section_period_id, subject_id, student_id):
+    import json
+    db_session = g.session
+    # Fetch the student
+    student = db_session.query(StudentInfo).filter_by(id=student_id, section_period_id=section_period_id).first()
+    if not student:
+        flash('Student not found.', 'error')
+        return redirect(request.referrer or url_for('manage_quiz', section_period_id=section_period_id, subject_id=subject_id))
+
+    # Fetch all quizzes for this section_period and subject
+    quizzes = db_session.query(Quiz).filter_by(
+        section_period_id=section_period_id,
+        subject_id=subject_id
+    ).all()
+
+    # Fetch all quiz attempts for this student for these quizzes
+    quiz_attempts_map = {r.quiz_id: r for r in db_session.query(StudentQuizResult).filter(
+        StudentQuizResult.student_info_id == student_id,
+        StudentQuizResult.quiz_id.in_([q.id for q in quizzes])
+    ).all()}
+
+    quiz_rows = []
+    for quiz in quizzes:
+        attempt = quiz_attempts_map.get(quiz.id)
+        status = 'not_attempted'
+        essay_questions = []
+        essay_answers = []
+        if attempt:
+            # Load questions
+            try:
+                questions = json.loads(quiz.questions_json or '[]')
+            except Exception:
+                questions = []
+            essay_qs = [q for q in questions if q.get('type') == 'essay_type']
+            if essay_qs:
+                # Get all essay answers for this attempt
+                essay_qids = [str(q['id']) for q in essay_qs]
+                answers = db_session.query(StudentQuizAnswer).filter(
+                    StudentQuizAnswer.student_quiz_result_id == attempt.id,
+                    StudentQuizAnswer.question_id.in_(essay_qids)
+                ).all()
+                # If any are unscored, status is pending
+                if any(a.score is None for a in answers):
+                    status = 'pending'
+                else:
+                    status = 'completed'
+                essay_questions = essay_qs
+                essay_answers = answers
+            else:
+                status = 'completed'
+        quiz_rows.append({
+            'quiz': quiz,
+            'attempt': attempt,
+            'status': status,
+            'essay_questions': essay_questions,
+            'essay_answers': essay_answers
+        })
+
+    return render_template('quiz/manage_student_quiz.html',
+                           student=student,
+                           quiz_rows=quiz_rows,
+                           section_period_id=section_period_id,
+                           subject_id=subject_id)
+
+@app.route('/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/student/<uuid:student_id>/quiz/<uuid:quiz_id>/score_essay', methods=['POST'])
+@login_required
+@user_type_required('teacher')
+def score_student_essay(section_period_id, subject_id, student_id, quiz_id):
+    import json
+    db_session = g.session
+    # Get the student's quiz result
+    sqr = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz_id).first()
+    if not sqr:
+        flash('Quiz attempt not found.', 'error')
+        return redirect(request.referrer or url_for('manage_student_quiz', section_period_id=section_period_id, subject_id=subject_id, student_id=student_id))
+    # Get all essay answers for this attempt
+    answers = db_session.query(StudentQuizAnswer).filter_by(student_quiz_result_id=sqr.id).all()
+    # Update scores from form
+    updated = 0
+    for ans in answers:
+        score_val = request.form.get(f'score_{ans.question_id}')
+        if score_val is not None and score_val != '':
+            try:
+                ans.score = float(score_val)
+                updated += 1
+            except ValueError:
+                continue
+    # Recalculate total score for this attempt
+    quiz = db_session.query(Quiz).filter_by(id=quiz_id).first()
+    questions = json.loads(quiz.questions_json or '[]')
+    answer_map = {a.question_id: a for a in answers}
+    total_score = 0
+    for q in questions:
+        qid = str(q['id'])
+        pts = int(q.get('points', 1))
+        if q.get('type') == 'essay_type':
+            ans = answer_map.get(qid)
+            if ans and ans.score is not None:
+                total_score += float(ans.score)
+        else:
+            # For non-essay, use the original auto-scored logic
+            # (Assume auto-scored points are already in sqr.score, so add them)
+            pass
+    sqr.score = total_score
+    db_session.commit()
+    flash(f'Saved scores for {updated} essay question(s).', 'success')
+    return redirect(url_for('manage_student_quiz', section_period_id=section_period_id, subject_id=subject_id, student_id=student_id))
 
 # --- Parent Portal Sync Helper Function ---
 def sync_student_to_parent_portal(student, parent_id, logger=None):

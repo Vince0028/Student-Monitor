@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 # This is a circular dependency, so it's better to move models to a separate file
 # For now, we will import them here
 from app import SectionSubject, Grade, SectionPeriod
-from models import Quiz, StudentQuizResult, Base
+from models import Quiz, StudentQuizResult, Base, StudentQuizAnswer
 
 load_dotenv()
 
@@ -416,9 +416,31 @@ def student_quiz():
     db_session = g.session
     student_id = session.get('student_id')
     student = db_session.query(StudentInfo).filter_by(id=student_id).first()
-    # Only show quizzes for the student's section_period_id and subjects
     quizzes = db_session.query(Quiz).filter_by(section_period_id=student.section_period_id).all()
-    return render_template('student_quiz_templates/student_quiz_dashboard.html', quizzes=quizzes)
+    # Find pending quizzes for this student
+    import json
+    pending_quizzes = []
+    for quiz in quizzes:
+        try:
+            questions = json.loads(quiz.questions_json or '[]')
+        except Exception:
+            questions = []
+        essay_qids = [str(q['id']) for q in questions if q.get('type') == 'essay_type']
+        if not essay_qids:
+            continue
+        # Get this student's attempt for this quiz
+        sqr = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz.id).first()
+        if not sqr:
+            continue  # Not taken yet
+        # Check if any essay_type is unscored
+        unscored = db_session.query(StudentQuizAnswer).filter(
+            StudentQuizAnswer.student_quiz_result_id == sqr.id,
+            StudentQuizAnswer.question_id.in_(essay_qids),
+            StudentQuizAnswer.score.is_(None)
+        ).first()
+        if unscored:
+            pending_quizzes.append(quiz)
+    return render_template('student_quiz_templates/student_quiz_dashboard.html', quizzes=quizzes, pending_quizzes=pending_quizzes)
 
 @app.route('/student/quiz/upcoming')
 @login_required
@@ -444,16 +466,30 @@ def student_completed_quizzes():
     # Get all completed quiz results for this student
     completed_results = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id).all()
     completed_quizzes = []
+    import json
+    from models import StudentQuizAnswer
     def format_number(n):
         return int(n) if n == int(n) else round(float(n), 1)
     for result in completed_results:
         quiz = db_session.query(Quiz).filter_by(id=result.quiz_id).first()
+        is_essay_pending = False
         if quiz:
+            questions = json.loads(quiz.questions_json or '[]')
+            essay_qids = [str(q['id']) for q in questions if q.get('type') == 'essay_type']
+            if essay_qids:
+                answers = db_session.query(StudentQuizAnswer).filter(
+                    StudentQuizAnswer.student_quiz_result_id == result.id,
+                    StudentQuizAnswer.question_id.in_(essay_qids),
+                    StudentQuizAnswer.score.is_(None)
+                ).all()
+                if answers:
+                    is_essay_pending = True
             completed_quizzes.append({
                 'id': quiz.id,
                 'title': quiz.title,
                 'score': format_number(result.score),
-                'total_points': format_number(result.total_points)
+                'total_points': format_number(result.total_points),
+                'is_essay_pending': is_essay_pending
             })
     return render_template('student_quiz_templates/student_completed_quizzes.html', completed_quizzes=completed_quizzes)
 
@@ -480,12 +516,13 @@ def take_quiz(quiz_id):
         print('Form data:', dict(request.form))
         total_score = 0
         total_points = 0
+        essay_answers = []
         for question in questions:
             qid = str(question['id'])
             correct = False
+            answer = request.form.get(f'answer-{qid}')
             if question['type'] == 'multiple_choice':
                 if question.get('allowMultiple'):
-                    # Get all selected indices as a set of ints
                     selected = request.form.getlist(f'answer-{qid}[]')
                     selected_indices = set(int(i) for i in selected)
                     correct_indices = set(i for i, opt in enumerate(question['options']) if opt.get('isCorrect'))
@@ -493,17 +530,15 @@ def take_quiz(quiz_id):
                     if selected_indices == correct_indices and correct_indices:
                         correct = True
                 else:
-                    answer = request.form.get(f'answer-{qid}')
                     correct_index = next((i for i, opt in enumerate(question['options']) if opt.get('isCorrect')), None)
                     print(f'SINGLE: answer={answer}, correct_index={correct_index}')
                     if answer is not None and correct_index is not None and int(answer) == correct_index:
                         correct = True
-            elif question['type'] == 'short_answer':
-                answer = request.form.get(f'answer-{qid}')
-                if answer and answer.strip().lower() == (question.get('correctAnswer') or '').strip().lower():
-                    correct = True
+            elif question['type'] == 'essay_type':
+                # Always require teacher to check, do not auto-score
+                essay_answers.append({'question_id': qid, 'answer_text': answer})
+                correct = False
             elif question['type'] == 'true_false':
-                answer = request.form.get(f'answer-{qid}')
                 if answer == (question.get('correctAnswer') or '').lower():
                     correct = True
             pts = int(question.get('points', 1))
@@ -511,7 +546,6 @@ def take_quiz(quiz_id):
             if correct:
                 total_score += pts
         print(f'Total Score: {total_score}, Total Points: {total_points}')
-        
         # Record completion in StudentQuizResult with error handling
         try:
             result = StudentQuizResult(
@@ -521,8 +555,18 @@ def take_quiz(quiz_id):
                 total_points=total_points
             )
             g.session.add(result)
+            g.session.flush()  # Get result.id for answers
+            # Store essay answers
+            for ans in essay_answers:
+                essay = StudentQuizAnswer(
+                    student_quiz_result_id=result.id,
+                    question_id=ans['question_id'],
+                    answer_text=ans['answer_text'],
+                    score=None
+                )
+                g.session.add(essay)
             g.session.commit()
-            print('StudentQuizResult created and committed.')
+            print('StudentQuizResult and essay answers created and committed.')
             flash('Quiz submitted successfully!', 'success')
             return redirect(url_for('view_quiz_score', quiz_id=quiz_id))
         except Exception as e:
@@ -530,7 +574,6 @@ def take_quiz(quiz_id):
             print(f'Error submitting quiz: {e}')
             flash('An error occurred while submitting your quiz. Please try again.', 'error')
             return redirect(url_for('student_quiz'))
-    
     return render_template('student_quiz_templates/student_take_quiz.html', quiz=quiz, questions=questions)
 
 @app.route('/student/quiz/<uuid:quiz_id>/score')
