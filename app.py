@@ -51,8 +51,8 @@ if not DATABASE_URL:
 # For Supabase free tier on Render: pool_size=2, max_overflow=1 (safe for free tier, avoids connection exhaustion)
 engine = create_engine(
     DATABASE_URL,  # Use the pooled connection string from Supabase
-    pool_size=2,   # Supabase free tier allows max 2 connections
-    max_overflow=1, # Allow 1 extra connection for short spikes
+    pool_size=1,   # Supabase free tier allows max 2 connections
+    max_overflow=0, # Allow 1 extra connection for short spikes
     pool_timeout=30,
 )
 Base = declarative_base()
