@@ -1,31 +1,40 @@
 {% extends 'admin_base.html' %}
 {% block content %}
-<div class="dashboard-container">
+<div class="container">
     <h2>Admin Action Logs</h2>
+    <div style="display: flex; gap: 1em; margin: 1.5em 0 1em 0;">
+        <a href="{{ url_for('manage_users') }}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5em; border-radius: 6px; font-weight: 500; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+            <i class="fas fa-arrow-left"></i> Back to Manage Users
+        </a>
+        <a href="{{ url_for('teacher_logs') }}" class="btn btn-info" style="display: inline-flex; align-items: center; gap: 0.5em; border-radius: 6px; font-weight: 500; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+            <i class="fas fa-chalkboard-teacher"></i> View Teacher Logs
+        </a>
+    </div>
     <div class="table-responsive">
-        <table class="data-table" style="width:100%; margin-top: 1em;">
+        <table class="table table-striped">
             <thead>
                 <tr>
-                    <th>Action</th>
-                    <th>Target Admin</th>
-                    <th>Acting Admin</th>
                     <th>Timestamp</th>
+                    <th>Admin</th>
+                    <th>Action</th>
+                    <th>Target</th>
                 </tr>
             </thead>
             <tbody>
                 {% for log in logs %}
                 <tr>
-                    <td>{{ log.action|capitalize }}</td>
-                    <td>{{ log.target_username }}</td>
+                    <td>{{ log.timestamp.strftime('%Y-%m-%d %I:%M:%S %p') }}</td>
                     <td>{{ log.acting_admin }}</td>
-                    <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>
+                        <span class="badge badge-{% if log.action == 'add' %}success{% elif log.action == 'edit' %}warning{% elif log.action == 'delete' %}danger{% else %}secondary{% endif %}">
+                            {{ log.action|capitalize }}
+                        </span>
+                    </td>
+                    <td>{{ log.target_username }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    <a href="{{ url_for('manage_users') }}" class="btn btn-primary" style="margin: 1.5em 0 1em 0; display: inline-flex; align-items: center; gap: 0.5em; border-radius: 6px; font-weight: 500; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
-        <i class="fas fa-arrow-left"></i> Back to Manage Users
-    </a>
 </div>
 {% endblock %} 

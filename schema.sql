@@ -6,9 +6,6 @@ CREATE TABLE users (
     user_type VARCHAR(10) NOT NULL, -- 'admin' or 'teacher'
     specialization VARCHAR(255), -- For teachers: STEM, ICT, ABM, HUMSS, GAS, HE (for SHS), NULL for JHS
     grade_level_assigned VARCHAR(50), -- e.g., 'Grade 7', 'Grade 11'. Null for admin.
-    firstname VARCHAR(255),
-    lastname VARCHAR(255),
-    middlename VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

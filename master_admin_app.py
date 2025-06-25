@@ -60,7 +60,7 @@ def admin_dashboard():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     admin_user = User.query.filter_by(username=session.get('admin_username')).first()
-    if admin_user and admin_user.firstname and admin_user.lastname:
+    if admin_user:
         admin_name = f"{admin_user.firstname} {admin_user.lastname}".strip()
     else:
         admin_name = session.get('admin_username', 'Admin')
@@ -290,6 +290,14 @@ def admin_logs():
     logs = AdminLog.query.order_by(AdminLog.timestamp.desc()).all()
     return render_template('admin_logs.html', logs=logs)
 
+@app.route('/admin/teacher_logs')
+def teacher_logs():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    logs = TeacherLog.query.order_by(TeacherLog.timestamp.desc()).all()
+    return render_template('teacher_logs.html', logs=logs)
+
 # Add Parent model for admin viewing
 class Parent(db.Model):
     __tablename__ = 'parents'
@@ -407,8 +415,8 @@ def add_user_admin():
         middlename = request.form.get('middlename', '').strip()
         specialization = request.form.get('specialization') or None
         grade_level_assigned = request.form.get('grade_level_assigned') or None
-        if not username or not user_type or not password:
-            flash('Username, password, and user type are required.', 'danger')
+        if not username or not user_type or not password or not firstname or not lastname:
+            flash('Username, password, first name, last name, and user type are required.', 'danger')
             return render_template('add_user_admin.html', user_type=user_type, grade_levels=grade_levels, strands=strands)
         # For students, use grade_level_assigned and specialization (strand)
         if user_type == 'student':
@@ -428,6 +436,9 @@ def add_user_admin():
                 user_type=user_type,
                 specialization=specialization,
                 grade_level_assigned=grade_level_assigned,
+                firstname=firstname,
+                lastname=lastname,
+                middlename=middlename,
                 password_hash=hashed_password
             )
             db.session.add(new_user)
@@ -507,8 +518,8 @@ def register_admin():
         lastname = request.form.get('lastname', '').strip()
         middlename = request.form.get('middlename', '').strip()
 
-        if not all([username, password]):
-            flash('Username and password are required.', 'danger')
+        if not all([username, password, firstname, lastname]):
+            flash('Username, password, first name, and last name are required.', 'danger')
             return render_template('register_admin.html')
 
         if not username.endswith('@masteradmin.pcshs.edu.ph'):
@@ -629,6 +640,15 @@ def delete_student_admin(student_id):
         db.session.rollback()
         flash('An error occurred while deleting the student.', 'danger')
     return redirect(url_for('manage_users', user_type='student'))
+
+# --- Teacher Log Model ---
+class TeacherLog(db.Model):
+    __tablename__ = 'teacher_logs'
+    id = db.Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    action = db.Column(db.String(50), nullable=False)
+    target = db.Column(db.String(255), nullable=False)
+    timestamp = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    teacher_username = db.Column(db.String(255), nullable=False)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5005) 

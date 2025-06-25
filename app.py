@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import the Quiz model from models.py
-from models import Quiz, StudentQuizResult, StudentQuizAnswer
+from models import Quiz
 
 # --- Flask App Configuration ---
 app = Flask(__name__)
@@ -327,8 +327,30 @@ class StudentScore(Base):
     student = relationship('StudentInfo', back_populates='scores')
 
     def __repr__(self):
-        return f"<StudentScore(student_id={self.student_info_id}, item_id={self.item_id}, score={self.score})>"
+        return f"<StudentScore(id={self.id}, item_id={self.item_id}, student_info_id={self.student_info_id}, score={self.score})>"
 
+# --- Teacher Log Model for Tracking Teacher Actions ---
+class TeacherLog(Base):
+    __tablename__ = 'teacher_logs'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    teacher_id = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    teacher_username = Column(String(255), nullable=False)
+    action_type = Column(String(50), nullable=False)  # 'add_student', 'edit_student', 'delete_student', 'add_grade', 'edit_grade', 'delete_grade'
+    target_type = Column(String(50), nullable=False)  # 'student' or 'grade'
+    target_id = Column(PG_UUID(as_uuid=True), nullable=True)  # student_id or grade_id
+    target_name = Column(String(255), nullable=False)  # student name or grade description
+    details = Column(Text, nullable=True)  # Additional details about the action
+    section_period_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_periods.id'), nullable=True)
+    subject_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_subjects.id'), nullable=True)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    teacher = relationship('User')
+    section_period = relationship('SectionPeriod')
+    subject = relationship('SectionSubject')
+
+    def __repr__(self):
+        return f"<TeacherLog(id={self.id}, teacher='{self.teacher_username}', action='{self.action_type}', target='{self.target_name}')>"
 
 Session = sessionmaker(bind=engine)
 
@@ -405,6 +427,30 @@ def sync_total_grade_to_database(db_session, student_id, subject_id, teacher_id,
         db_session.rollback()
         app.logger.error(f"Error syncing total grade to database: {e}")
         # Don't raise the exception - we don't want to break the main functionality
+
+def create_teacher_log(db_session, teacher_id, teacher_username, action_type, target_type, target_id, target_name, details=None, section_period_id=None, subject_id=None):
+    """
+    Helper function to create teacher log entries
+    """
+    try:
+        log_entry = TeacherLog(
+            teacher_id=teacher_id,
+            teacher_username=teacher_username,
+            action_type=action_type,
+            target_type=target_type,
+            target_id=target_id,
+            target_name=target_name,
+            details=details,
+            section_period_id=section_period_id,
+            subject_id=subject_id
+        )
+        db_session.add(log_entry)
+        db_session.commit()
+        return True
+    except Exception as e:
+        db_session.rollback()
+        print(f"Error creating teacher log: {e}")
+        return False
 
 TEACHER_SPECIALIZATIONS_SHS = ['ICT', 'STEM', 'ABM', 'HUMSS', 'GAS', 'HE'] # Strands as specializations for SHS
 
@@ -1619,9 +1665,29 @@ def section_period_details(section_period_id):
             joinedload(SectionPeriod.assigned_teacher)
         ).filter(SectionPeriod.id == section_period_id).one()
 
-        # Remove Data Sync Logic: Only show students for this period
-        students = db_session.query(StudentInfo).options(joinedload(StudentInfo.parent)).filter(StudentInfo.section_period_id == section_period_id).order_by(StudentInfo.name).all()
+        # --- Data Sync Logic ---
+        student_display_period_id = section_period_id
+        subject_display_period_id = section_period_id
+
+        # For JHS and SHS, find the master period (first period in the school year)
+        if section_period.period_type in ['Quarter', 'Semester']:
+            master_period = db_session.query(SectionPeriod).filter(
+                SectionPeriod.section_id == section_period.section_id,
+                SectionPeriod.school_year == section_period.school_year
+            ).order_by(SectionPeriod.period_name).first()
+            
+            if master_period:
+                # Always sync students to the master period
+                student_display_period_id = master_period.id
+                # Only sync subjects for JHS (Quarters)
+                if section_period.period_type == 'Quarter':
+                    subject_display_period_id = master_period.id
+        # --- End Sync Logic ---
+
+        # Fetch students from the correct (master) period
+        students = db_session.query(StudentInfo).options(joinedload(StudentInfo.parent)).filter(StudentInfo.section_period_id == student_display_period_id).order_by(StudentInfo.name).all()
         for student in students:
+            # Note: This is a simple average calculation. A more complex one might be needed later.
             grades = db_session.query(Grade.grade_value).filter(Grade.student_info_id == student.id).all()
             if grades:
                 student.average_grade = sum(g[0] for g in grades) / len(grades)
@@ -1664,15 +1730,18 @@ def section_period_details(section_period_id):
         is_assigned_teacher = str(section_period.assigned_teacher_id) == str(user_id)
         
         if is_assigned_teacher or user_type == 'admin':
+            # If teacher is assigned to this period or user is admin, show all subjects
             section_subjects = g.session.query(SectionSubject).filter(
                 SectionSubject.section_period_id == section_period_id
             ).order_by(SectionSubject.subject_name).all()
         else:
+            # If not assigned, only show subjects created by this teacher
             section_subjects = g.session.query(SectionSubject).filter(
                 SectionSubject.section_period_id == section_period_id,
                 SectionSubject.created_by_teacher_id == user_id
             ).order_by(SectionSubject.subject_name).all()
     
+        # Use different templates based on user type
         template = 'section_period_details.html' if user_type == 'admin' else 'teacher_section_period_details.html'
         return render_template(template,
                                section_period=section_period,
@@ -1705,20 +1774,17 @@ def assign_parent():
         return jsonify({'success': False, 'message': 'Student or Parent not found.'})
 
     try:
-        # Assign parent to all records with the same base student_id_number
-        base_id = student.student_id_number.split('-S2')[0]
-        all_student_infos = db_session.query(StudentInfo).filter(
-            StudentInfo.student_id_number.like(f"{base_id}%")
-        ).all()
-        for s in all_student_infos:
-            s.parent_id = uuid.UUID(parent_id)
+        student.parent_id = uuid.UUID(parent_id)
         db_session.commit()
 
         # --- Improved Parent Portal Sync Logic ---
         success, message = sync_student_to_parent_portal(student, uuid.UUID(parent_id), app.logger)
         if not success:
             app.logger.error(f"Parent portal sync failed: {message}")
-        return jsonify({'success': True, 'message': 'Parent assigned to all periods/semesters for this student!'})
+            # Optionally, you can flash a message or return an error to the admin here
+            # flash(f'Parent portal sync failed: {message}', 'error')
+
+        return jsonify({'success': True, 'message': 'Parent assigned successfully!'})
     except Exception as e:
         db_session.rollback()
         app.logger.error(f"Error assigning parent: {e}")
@@ -1736,16 +1802,10 @@ def unassign_parent():
     student = db_session.query(StudentInfo).filter_by(id=student_id).first()
     if not student:
         return jsonify({'success': False, 'message': 'Student not found.'})
-    # Unassign parent from all records with the same base student_id_number
-    base_id = student.student_id_number.split('-S2')[0]
-    all_student_infos = db_session.query(StudentInfo).filter(
-        StudentInfo.student_id_number.like(f"{base_id}%")
-    ).all()
     try:
-        for s in all_student_infos:
-            s.parent_id = None
+        student.parent_id = None
         db_session.commit()
-        return jsonify({'success': True, 'message': 'Parent unassigned from all periods/semesters for this student.'})
+        return jsonify({'success': True, 'message': 'Parent unassigned successfully!'})
     except Exception as e:
         db_session.rollback()
         app.logger.error(f"Error unassigning parent: {e}")
@@ -1805,6 +1865,22 @@ def add_student_to_section_period(section_period_id):
             )
             db_session.add(new_student)
             db_session.commit()
+            
+            # Log the action for teachers only
+            if user_type == 'teacher':
+                teacher_username = session.get('username', 'unknown')
+                create_teacher_log(
+                    db_session=db_session,
+                    teacher_id=user_id,
+                    teacher_username=teacher_username,
+                    action_type='add_student',
+                    target_type='student',
+                    target_id=new_student.id,
+                    target_name=name,
+                    details=f"Added student {name} (ID: {student_id_number}) to section period",
+                    section_period_id=target_period_id
+                )
+            
             flash('Student added successfully!', 'success')
             return redirect(url_for('section_period_details', section_period_id=section_period_id))
         except Exception as e:
@@ -1838,6 +1914,22 @@ def delete_student_admin(student_id):
     redirect_url_after_delete = url_for('admin_dashboard') # Default fallback
     if student_to_delete.section_period:
         redirect_url_after_delete = url_for('section_period_details', section_period_id=student_to_delete.section_period.id)
+
+    # Log the action for teachers only
+    user_type = session.get('user_type')
+    if user_type == 'teacher':
+        teacher_username = session.get('username', 'unknown')
+        create_teacher_log(
+            db_session=db_session,
+            teacher_id=user_id,
+            teacher_username=teacher_username,
+            action_type='delete_student',
+            target_type='student',
+            target_id=student_to_delete.id,
+            target_name=student_to_delete.name,
+            details=f"Deleted student {student_to_delete.name} (ID: {student_to_delete.student_id_number})",
+            section_period_id=student_to_delete.section_period_id
+        )
 
     try:
         db_session.delete(student_to_delete)
@@ -1937,6 +2029,22 @@ def edit_student(student_id):
                 flash(f'Student "{student_name}" updated successfully! (Password unchanged)', 'success')
 
             db_session.commit()
+            
+            # Log the action for teachers only
+            if user_type == 'teacher':
+                teacher_username = session.get('username', 'unknown')
+                create_teacher_log(
+                    db_session=db_session,
+                    teacher_id=user_id,
+                    teacher_username=teacher_username,
+                    action_type='edit_student',
+                    target_type='student',
+                    target_id=student_to_edit.id,
+                    target_name=student_name,
+                    details=f"Updated student {student_name} (ID: {student_id_number})",
+                    section_period_id=new_section_period_id
+                )
+            
             return redirect(url_for('section_period_details', section_period_id=student_to_edit.section_period.id))
         except Exception as e:
             db_session.rollback()
@@ -2481,6 +2589,22 @@ def add_grades_for_student(section_period_id, student_id):
                 if existing_grade_record:
                     existing_grade_record.grade_value = grade_data['grade_value']
                     existing_grade_record.teacher_id = teacher_id
+                    # Log grade update for teachers only
+                    if session.get('user_type') == 'teacher':
+                        teacher_username = session.get('username', 'unknown')
+                        subject_name = db_session.query(SectionSubject).filter_by(id=grade_data['section_subject_id']).first().subject_name
+                        create_teacher_log(
+                            db_session=db_session,
+                            teacher_id=teacher_id,
+                            teacher_username=teacher_username,
+                            action_type='edit_grade',
+                            target_type='grade',
+                            target_id=existing_grade_record.id,
+                            target_name=f"{student.name} - {subject_name}",
+                            details=f"Updated grade for {student.name} in {subject_name}: {grade_data['grade_value']} ({period_name} {school_year})",
+                            section_period_id=section_period_id,
+                            subject_id=grade_data['section_subject_id']
+                        )
                 else:
                     new_grade = Grade(
                         student_info_id=student_id,
@@ -2491,6 +2615,22 @@ def add_grades_for_student(section_period_id, student_id):
                         school_year=school_year
                     )
                     db_session.add(new_grade)
+                    # Log grade addition for teachers only
+                    if session.get('user_type') == 'teacher':
+                        teacher_username = session.get('username', 'unknown')
+                        subject_name = db_session.query(SectionSubject).filter_by(id=grade_data['section_subject_id']).first().subject_name
+                        create_teacher_log(
+                            db_session=db_session,
+                            teacher_id=teacher_id,
+                            teacher_username=teacher_username,
+                            action_type='add_grade',
+                            target_type='grade',
+                            target_id=new_grade.id,
+                            target_name=f"{student.name} - {subject_name}",
+                            details=f"Added grade for {student.name} in {subject_name}: {grade_data['grade_value']} ({period_name} {school_year})",
+                            section_period_id=section_period_id,
+                            subject_id=grade_data['section_subject_id']
+                        )
             db_session.commit()
             flash(f'Grades for {student.name} ({period_name} {school_year}) saved successfully!', 'success')
             return redirect(url_for('teacher_section_period_view', section_period_id=section_period_id))
@@ -2940,6 +3080,28 @@ def update_student_score(item_id, student_id):
         if score_value_str is None or score_value_str.strip() == '':
             # If the score is cleared, delete the record
             if score:
+                # Log score deletion for teachers
+                teacher_username = session.get('username', 'unknown')
+                teacher_id = uuid.UUID(session['user_id'])
+                student_name = g.session.query(StudentInfo).filter_by(id=student_id).first().name
+                item_title = g.session.query(GradableItem).filter_by(id=item_id).first().title
+                subject_name = g.session.query(GradableItem).join(GradingComponent).join(GradingSystem).join(SectionSubject).filter(GradableItem.id == item_id).first().section_subject.subject_name
+                section_period_id = g.session.query(GradableItem).join(GradingComponent).join(GradingSystem).join(SectionSubject).filter(GradableItem.id == item_id).first().section_subject.section_period_id
+                subject_id = g.session.query(GradableItem).join(GradingComponent).join(GradingSystem).join(SectionSubject).filter(GradableItem.id == item_id).first().section_subject.id
+                
+                create_teacher_log(
+                    db_session=g.session,
+                    teacher_id=teacher_id,
+                    teacher_username=teacher_username,
+                    action_type='delete_grade',
+                    target_type='grade',
+                    target_id=score.id,
+                    target_name=f"{student_name} - {item_title}",
+                    details=f"Deleted score for {student_name} in {subject_name} ({item_title})",
+                    section_period_id=section_period_id,
+                    subject_id=subject_id
+                )
+                
                 g.session.delete(score)
                 g.session.commit()
                 return jsonify({'success': True, 'message': 'Score deleted.'})
@@ -2950,6 +3112,27 @@ def update_student_score(item_id, student_id):
         
         if score:
             score.score = score_value
+            # Log score update for teachers
+            teacher_username = session.get('username', 'unknown')
+            teacher_id = uuid.UUID(session['user_id'])
+            student_name = g.session.query(StudentInfo).filter_by(id=student_id).first().name
+            item_title = g.session.query(GradableItem).filter_by(id=item_id).first().title
+            subject_name = g.session.query(GradableItem).join(GradingComponent).join(GradingSystem).join(SectionSubject).filter(GradableItem.id == item_id).first().section_subject.subject_name
+            section_period_id = g.session.query(GradableItem).join(GradingComponent).join(GradingSystem).join(SectionSubject).filter(GradableItem.id == item_id).first().section_subject.section_period_id
+            subject_id = g.session.query(GradableItem).join(GradingComponent).join(GradingSystem).join(SectionSubject).filter(GradableItem.id == item_id).first().section_subject.id
+            
+            create_teacher_log(
+                db_session=g.session,
+                teacher_id=teacher_id,
+                teacher_username=teacher_username,
+                action_type='edit_grade',
+                target_type='grade',
+                target_id=score.id,
+                target_name=f"{student_name} - {item_title}",
+                details=f"Updated score for {student_name} in {subject_name} ({item_title}): {score_value}",
+                section_period_id=section_period_id,
+                subject_id=subject_id
+            )
         else:
             # Security check: ensure the item belongs to the teacher before creating a score
             item = g.session.query(GradableItem).join(GradingComponent).join(GradingSystem).filter(
@@ -2961,6 +3144,27 @@ def update_student_score(item_id, student_id):
             
             score = StudentScore(item_id=item_id, student_info_id=student_id, score=score_value)
             g.session.add(score)
+            
+            # Log score addition for teachers
+            teacher_username = session.get('username', 'unknown')
+            teacher_id = uuid.UUID(session['user_id'])
+            student_name = g.session.query(StudentInfo).filter_by(id=student_id).first().name
+            subject_name = item.component.system.section_subject.subject_name
+            section_period_id = item.component.system.section_subject.section_period_id
+            subject_id = item.component.system.section_subject.id
+            
+            create_teacher_log(
+                db_session=g.session,
+                teacher_id=teacher_id,
+                teacher_username=teacher_username,
+                action_type='add_grade',
+                target_type='grade',
+                target_id=score.id,
+                target_name=f"{student_name} - {item.title}",
+                details=f"Added score for {student_name} in {subject_name} ({item.title}): {score_value}",
+                section_period_id=section_period_id,
+                subject_id=subject_id
+            )
         
         g.session.commit()
         
@@ -3379,253 +3583,6 @@ def api_create_quiz():
         app.logger.error(f"Error in /api/quizzes: {e}\n{traceback.format_exc()}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/quiz/dashboard')
-@login_required
-@user_type_required('teacher')
-def quiz_dashboard(section_period_id, subject_id):
-    import json
-    db_session = g.session
-    # Get all quizzes for this section_period and subject
-    quizzes = db_session.query(Quiz).filter_by(section_period_id=section_period_id, subject_id=subject_id).all()
-    # Get all students in this section_period
-    students = db_session.query(StudentInfo).filter_by(section_period_id=section_period_id).all()
-    student_ids = [s.id for s in students]
-    # Find quizzes with at least one essay/short answer question
-    quiz_id_to_essay_qids = {}
-    for quiz in quizzes:
-        try:
-            questions = json.loads(quiz.questions_json or '[]')
-        except Exception:
-            questions = []
-        essay_qids = [str(q['id']) for q in questions if q.get('type') == 'short_answer']
-        if essay_qids:
-            quiz_id_to_essay_qids[quiz.id] = essay_qids
-    # For each quiz with essay questions, check if any StudentQuizAnswer for those questions is unscored
-    from sqlalchemy import or_, and_
-    pending_quizzes = []
-    if quiz_id_to_essay_qids:
-        # Get all StudentQuizResult for these quizzes and students
-        sqr_query = db_session.query(StudentQuizResult).filter(
-            StudentQuizResult.quiz_id.in_(quiz_id_to_essay_qids.keys()),
-            StudentQuizResult.student_info_id.in_(student_ids)
-        ).all()
-        # Map: quiz_id -> list of StudentQuizResult ids
-        quiz_id_to_sqrids = {}
-        for sqr in sqr_query:
-            quiz_id_to_sqrids.setdefault(sqr.quiz_id, []).append(sqr.id)
-        # For each quiz, check if any StudentQuizAnswer for its essay questions is unscored
-        for quiz in quizzes:
-            if quiz.id not in quiz_id_to_essay_qids:
-                continue
-            essay_qids = quiz_id_to_essay_qids[quiz.id]
-            sqrids = quiz_id_to_sqrids.get(quiz.id, [])
-            if not sqrids:
-                continue  # No attempts yet
-            # Query for unscored answers
-            unscored = db_session.query(StudentQuizAnswer).filter(
-                StudentQuizAnswer.student_quiz_result_id.in_(sqrids),
-                StudentQuizAnswer.question_id.in_(essay_qids),
-                StudentQuizAnswer.score.is_(None)
-            ).first()
-            if unscored:
-                pending_quizzes.append({
-                    'quiz': quiz,
-                    'pending_type': 'essay_unscored',
-                })
-    return render_template(
-        'quiz/quiz_dashboard.html',
-        section_period_id=section_period_id,
-        subject_id=subject_id,
-        pending_quizzes=pending_quizzes
-    )
-
-@app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/quiz/manage')
-@login_required
-@user_type_required('teacher')
-def manage_quiz(section_period_id, subject_id):
-    import json
-    db_session = g.session
-    # Get the subject
-    subject = db_session.query(SectionSubject).filter_by(id=subject_id, section_period_id=section_period_id).first()
-    # Get all students in this section period
-    students = db_session.query(StudentInfo).filter_by(section_period_id=section_period_id).order_by(StudentInfo.name).all()
-    # Get quizzes for this subject/period
-    quizzes = db_session.query(Quiz).filter_by(section_period_id=section_period_id, subject_id=subject_id).all()
-    # Calculate summary stats
-    total_students = len(students)
-    total_quizzes = len(quizzes)
-    grades = [float(s.average_grade) for s in students if s.average_grade is not None]
-    class_average = f"{round(sum(grades)/len(grades), 2)}%" if grades else "N/A"
-    recent_activity = 0  # Placeholder, replace with real logic if needed
-
-    # --- Quiz status logic ---
-    student_ids = [s.id for s in students]
-    quiz_id_to_essay_qids = {}
-    for quiz in quizzes:
-        try:
-            questions = json.loads(quiz.questions_json or '[]')
-        except Exception:
-            questions = []
-        essay_qids = [str(q['id']) for q in questions if q.get('type') == 'short_answer']
-        if essay_qids:
-            quiz_id_to_essay_qids[quiz.id] = essay_qids
-    from sqlalchemy import or_, and_
-    quiz_status_map = {}
-    if quiz_id_to_essay_qids:
-        sqr_query = db_session.query(StudentQuizResult).filter(
-            StudentQuizResult.quiz_id.in_(quiz_id_to_essay_qids.keys()),
-            StudentQuizResult.student_info_id.in_(student_ids)
-        ).all()
-        quiz_id_to_sqrids = {}
-        for sqr in sqr_query:
-            quiz_id_to_sqrids.setdefault(sqr.quiz_id, []).append(sqr.id)
-        for quiz in quizzes:
-            if quiz.id not in quiz_id_to_essay_qids:
-                quiz_status_map[quiz.id] = 'completed'  # No essay questions, always completed
-                continue
-            essay_qids = quiz_id_to_essay_qids[quiz.id]
-            sqrids = quiz_id_to_sqrids.get(quiz.id, [])
-            if not sqrids:
-                quiz_status_map[quiz.id] = 'pending'  # No attempts yet
-                continue
-            unscored = db_session.query(StudentQuizAnswer).filter(
-                StudentQuizAnswer.student_quiz_result_id.in_(sqrids),
-                StudentQuizAnswer.question_id.in_(essay_qids),
-                StudentQuizAnswer.score.is_(None)
-            ).first()
-            if unscored:
-                quiz_status_map[quiz.id] = 'pending'
-            else:
-                quiz_status_map[quiz.id] = 'completed'
-    else:
-        for quiz in quizzes:
-            quiz_status_map[quiz.id] = 'completed'
-
-    return render_template(
-        'quiz/manage_quiz.html',
-        section_period_id=section_period_id,
-        subject_id=subject_id,
-        subject=subject,
-        students=students,
-        quizzes=quizzes,
-        total_students=total_students,
-        total_quizzes=total_quizzes,
-        class_average=class_average,
-        recent_activity=recent_activity,
-        quiz_status_map=quiz_status_map
-    )
-
-@app.route('/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/student/<uuid:student_id>/manage_quiz')
-@login_required
-@user_type_required('teacher')
-def manage_student_quiz(section_period_id, subject_id, student_id):
-    import json
-    db_session = g.session
-    # Fetch the student
-    student = db_session.query(StudentInfo).filter_by(id=student_id, section_period_id=section_period_id).first()
-    if not student:
-        flash('Student not found.', 'error')
-        return redirect(request.referrer or url_for('manage_quiz', section_period_id=section_period_id, subject_id=subject_id))
-
-    # Fetch all quizzes for this section_period and subject
-    quizzes = db_session.query(Quiz).filter_by(
-        section_period_id=section_period_id,
-        subject_id=subject_id
-    ).all()
-
-    # Fetch all quiz attempts for this student for these quizzes
-    quiz_attempts_map = {r.quiz_id: r for r in db_session.query(StudentQuizResult).filter(
-        StudentQuizResult.student_info_id == student_id,
-        StudentQuizResult.quiz_id.in_([q.id for q in quizzes])
-    ).all()}
-
-    quiz_rows = []
-    for quiz in quizzes:
-        attempt = quiz_attempts_map.get(quiz.id)
-        status = 'not_attempted'
-        essay_questions = []
-        essay_answers = []
-        if attempt:
-            # Load questions
-            try:
-                questions = json.loads(quiz.questions_json or '[]')
-            except Exception:
-                questions = []
-            essay_qs = [q for q in questions if q.get('type') == 'essay_type']
-            if essay_qs:
-                # Get all essay answers for this attempt
-                essay_qids = [str(q['id']) for q in essay_qs]
-                answers = db_session.query(StudentQuizAnswer).filter(
-                    StudentQuizAnswer.student_quiz_result_id == attempt.id,
-                    StudentQuizAnswer.question_id.in_(essay_qids)
-                ).all()
-                # If any are unscored, status is pending
-                if any(a.score is None for a in answers):
-                    status = 'pending'
-                else:
-                    status = 'completed'
-                essay_questions = essay_qs
-                essay_answers = answers
-            else:
-                status = 'completed'
-        quiz_rows.append({
-            'quiz': quiz,
-            'attempt': attempt,
-            'status': status,
-            'essay_questions': essay_questions,
-            'essay_answers': essay_answers
-        })
-
-    return render_template('quiz/manage_student_quiz.html',
-                           student=student,
-                           quiz_rows=quiz_rows,
-                           section_period_id=section_period_id,
-                           subject_id=subject_id)
-
-@app.route('/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/student/<uuid:student_id>/quiz/<uuid:quiz_id>/score_essay', methods=['POST'])
-@login_required
-@user_type_required('teacher')
-def score_student_essay(section_period_id, subject_id, student_id, quiz_id):
-    import json
-    db_session = g.session
-    # Get the student's quiz result
-    sqr = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz_id).first()
-    if not sqr:
-        flash('Quiz attempt not found.', 'error')
-        return redirect(request.referrer or url_for('manage_student_quiz', section_period_id=section_period_id, subject_id=subject_id, student_id=student_id))
-    # Get all essay answers for this attempt
-    answers = db_session.query(StudentQuizAnswer).filter_by(student_quiz_result_id=sqr.id).all()
-    # Update scores from form
-    updated = 0
-    for ans in answers:
-        score_val = request.form.get(f'score_{ans.question_id}')
-        if score_val is not None and score_val != '':
-            try:
-                ans.score = float(score_val)
-                updated += 1
-            except ValueError:
-                continue
-    # Recalculate total score for this attempt
-    quiz = db_session.query(Quiz).filter_by(id=quiz_id).first()
-    questions = json.loads(quiz.questions_json or '[]')
-    answer_map = {a.question_id: a for a in answers}
-    total_score = 0
-    for q in questions:
-        qid = str(q['id'])
-        pts = int(q.get('points', 1))
-        if q.get('type') == 'essay_type':
-            ans = answer_map.get(qid)
-            if ans and ans.score is not None:
-                total_score += float(ans.score)
-        else:
-            # For non-essay, use the original auto-scored logic
-            # (Assume auto-scored points are already in sqr.score, so add them)
-            pass
-    sqr.score = total_score
-    db_session.commit()
-    flash(f'Saved scores for {updated} essay question(s).', 'success')
-    return redirect(url_for('manage_student_quiz', section_period_id=section_period_id, subject_id=subject_id, student_id=student_id))
-
 # --- Parent Portal Sync Helper Function ---
 def sync_student_to_parent_portal(student, parent_id, logger=None):
     """
@@ -3699,64 +3656,6 @@ def sync_student_to_parent_portal(student, parent_id, logger=None):
         return False, str(e)
     finally:
         parent_db_session.close()
-
-@app.route('/section_period/<uuid:section_period_id>/sync_students_from_first_sem', methods=['POST'])
-@login_required
-@user_type_required('admin', 'teacher')
-def sync_students_from_first_sem(section_period_id):
-    db_session = g.session
-    # Get the current (target) period
-    current_period = db_session.query(SectionPeriod).filter_by(id=section_period_id).first()
-    if not current_period or current_period.period_name.lower() != '2nd semester':
-        flash('Sync is only available for 2nd Semester periods.', 'error')
-        return redirect(url_for('section_period_details', section_period_id=section_period_id))
-
-    # Find the 1st semester in the same section and school year
-    first_sem = db_session.query(SectionPeriod).filter(
-        SectionPeriod.section_id == current_period.section_id,
-        SectionPeriod.school_year == current_period.school_year,
-        func.lower(SectionPeriod.period_name) == '1st semester'
-    ).first()
-    if not first_sem:
-        flash('No 1st Semester found to sync from.', 'warning')
-        return redirect(url_for('section_period_details', section_period_id=section_period_id))
-
-    # Get students from 1st semester
-    prev_students = db_session.query(StudentInfo).filter_by(section_period_id=first_sem.id).all()
-    # Get all existing student_id_numbers in the system (not just this period)
-    all_existing_ids = {s.student_id_number for s in db_session.query(StudentInfo).all()}
-
-    count_added = 0
-    for s in prev_students:
-        new_id_number = s.student_id_number
-        # If this ID already exists, generate a new one for 2nd sem
-        if new_id_number in all_existing_ids:
-            base_id = s.student_id_number
-            suffix = '-S2'
-            candidate = base_id + suffix
-            i = 2
-            while candidate in all_existing_ids:
-                candidate = f"{base_id}{suffix}-{i}"
-                i += 1
-            new_id_number = candidate
-        # Add the new student, copying password_hash and parent_id
-        new_student = StudentInfo(
-            name=s.name,
-            student_id_number=new_id_number,
-            gender=s.gender,
-            section_period_id=current_period.id,
-            password_hash=s.password_hash,
-            parent_id=s.parent_id
-        )
-        db_session.add(new_student)
-        all_existing_ids.add(new_id_number)
-        count_added += 1
-    db_session.commit()
-    if count_added == 0:
-        flash('No new students were synced. All students from 1st Semester already exist in this period.', 'info')
-    else:
-        flash(f'Synced {count_added} students from 1st Semester. All have unique IDs for 2nd Semester, and share the same login and parent.', 'success')
-    return redirect(url_for('section_period_details', section_period_id=section_period_id))
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
