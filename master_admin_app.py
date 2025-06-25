@@ -435,6 +435,12 @@ def add_user_admin():
             )
             db.session.add(new_user)
             db.session.commit()
+            # Log the action for student add
+            if user_type == 'student':
+                acting_admin = session.get('admin_username', 'unknown')
+                log = AdminLog(action='add', target_username=username, acting_admin=acting_admin)
+                db.session.add(log)
+                db.session.commit()
             flash(f'{user_type.capitalize()} user added successfully!', 'success')
             return redirect(url_for('manage_users', user_type=user_type))
         except IntegrityError:
@@ -596,6 +602,11 @@ def edit_student(student_id):
         student.name = request.form['name'].strip()
         student.student_id_number = request.form['student_id_number'].strip()
         db.session.commit()
+        # Log the action for student edit
+        acting_admin = session.get('admin_username', 'unknown')
+        log = AdminLog(action='edit', target_username=student.student_id_number, acting_admin=acting_admin)
+        db.session.add(log)
+        db.session.commit()
         flash('Student updated successfully!', 'success')
         return redirect(url_for('manage_users', user_type='student'))
     return render_template('edit_user_admin.html', user=student, is_student=True)
@@ -610,6 +621,11 @@ def delete_student_admin(student_id):
         return redirect(url_for('manage_users', user_type='student'))
     try:
         db.session.delete(student)
+        db.session.commit()
+        # Log the action for student delete
+        acting_admin = session.get('admin_username', 'unknown')
+        log = AdminLog(action='delete', target_username=student.student_id_number, acting_admin=acting_admin)
+        db.session.add(log)
         db.session.commit()
         flash('Student deleted successfully!', 'success')
     except Exception as e:
