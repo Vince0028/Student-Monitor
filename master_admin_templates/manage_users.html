@@ -48,18 +48,84 @@
         </div>
     </div>
     <a href="{{ url_for('add_user_admin') }}?user_type={{ selected_user_type }}" class="btn btn-primary" style="margin-bottom: 1.5em;"><i class="fas fa-user-plus"></i> Add New {{ selected_user_type|capitalize }}</a>
-    <div class="table-responsive">
+    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
         <table class="data-table" style="margin: 0 auto; min-width: 400px;">
             <thead>
                 <tr>
+                    {% if selected_user_type == 'student' %}
+                        <th style="text-align: left;">LRN</th>
+                        <th style="text-align: left;">Name</th>
+                        <th style="text-align: center;">Action</th>
+                    {% else %}
                     <th style="text-align: left;">Username</th>
                     <th style="text-align: left;">User Type</th>
                     <th style="text-align: center;">Actions</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
+                {% if selected_user_type == 'student' %}
+                    {% set boys = users | selectattr('gender', 'equalto', 'Male') | list %}
+                    {% set girls = users | selectattr('gender', 'equalto', 'Female') | list %}
+                    {% set unspecified = users | rejectattr('gender', 'equalto', 'Male') | rejectattr('gender', 'equalto', 'Female') | list %}
+                    {% if boys %}
+                        <tr class="table-group-divider"><td colspan="3" style="font-weight:bold; background:#f5f5f5;">Boys</td></tr>
+                        {% for user in boys %}
+                        <tr>
+                            <td style="text-align: left;">{{ user.lrn }}</td>
+                            <td style="text-align: left;">{{ user.name }}</td>
+                            <td style="text-align: center;">
+                                <a href="{{ url_for('edit_student', student_id=user.id) }}" class="btn btn-outline btn-sm" style="margin-right: 0.5em;"><i class="fas fa-edit"></i> Edit</a>
+                                <form action="{{ url_for('delete_student_admin', student_id=user.id) }}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this student?');"><i class="fas fa-trash-alt"></i> Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endif %}
+                    {% if girls %}
+                        <tr class="table-group-divider"><td colspan="3" style="font-weight:bold; background:#f5f5f5;">Girls</td></tr>
+                        {% for user in girls %}
+                        <tr>
+                            <td style="text-align: left;">{{ user.lrn }}</td>
+                            <td style="text-align: left;">{{ user.name }}</td>
+                            <td style="text-align: center;">
+                                <a href="{{ url_for('edit_student', student_id=user.id) }}" class="btn btn-outline btn-sm" style="margin-right: 0.5em;"><i class="fas fa-edit"></i> Edit</a>
+                                <form action="{{ url_for('delete_student_admin', student_id=user.id) }}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this student?');"><i class="fas fa-trash-alt"></i> Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endif %}
+                    {% if unspecified %}
+                        <tr class="table-group-divider"><td colspan="3" style="font-weight:bold; background:#f5f5f5;">Unspecified</td></tr>
+                        {% for user in unspecified %}
+                        <tr>
+                            <td style="text-align: left;">{{ user.lrn }}</td>
+                            <td style="text-align: left;">{{ user.name }}</td>
+                            <td style="text-align: center;">
+                                <a href="{{ url_for('edit_student', student_id=user.id) }}" class="btn btn-outline btn-sm" style="margin-right: 0.5em;"><i class="fas fa-edit"></i> Edit</a>
+                                <form action="{{ url_for('delete_student_admin', student_id=user.id) }}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this student?');"><i class="fas fa-trash-alt"></i> Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endif %}
+                {% else %}
                 {% for user in users %}
                 <tr>
+                    {% if selected_user_type == 'student' %}
+                        <td style="text-align: left;">{{ user.lrn }}</td>
+                        <td style="text-align: left;">{{ user.name }}</td>
+                        <td style="text-align: center;">
+                            <a href="{{ url_for('edit_student', student_id=user.id) }}" class="btn btn-outline btn-sm" style="margin-right: 0.5em;"><i class="fas fa-edit"></i> Edit</a>
+                            <form action="{{ url_for('delete_student_admin', student_id=user.id) }}" method="POST" style="display:inline;">
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this student?');"><i class="fas fa-trash-alt"></i> Delete</button>
+                            </form>
+                        </td>
+                    {% else %}
                     <td style="text-align: left;">{{ user.username }}</td>
                     <td style="text-align: left;">{{ user.user_type|capitalize }}</td>
                     <td style="text-align: center;">
@@ -72,10 +138,23 @@
                             <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this user?');"><i class="fas fa-trash-alt"></i> Delete</button>
                         </form>
                     </td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
+                {% endif %}
             </tbody>
         </table>
     </div>
 </div>
+<script>
+// Auto-submit the search form when the search box is cleared
+const searchInput = document.querySelector('input[name="search"]');
+if (searchInput) {
+    searchInput.addEventListener('input', function() {
+        if (this.value === '') {
+            this.form.submit();
+        }
+    });
+}
+</script>
 {% endblock %} 

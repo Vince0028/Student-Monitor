@@ -302,6 +302,14 @@ class Parent(db.Model):
     phone_number = db.Column(db.String(50), nullable=True)
     # created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
+# --- StudentInfo Model for Admin Read-Only Display ---
+class StudentInfo(db.Model):
+    __tablename__ = 'students_info'
+    id = db.Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = db.Column(db.String(255), nullable=False)
+    student_id_number = db.Column(db.String(255), unique=True, nullable=False)
+    gender = db.Column(db.String(10), nullable=True)
+
 @app.route('/admin/users')
 def manage_users():
     if not session.get('admin_logged_in'):
@@ -329,6 +337,20 @@ def manage_users():
                 'last_name': p.last_name
             }
             for p in parents
+        ]
+    elif user_type == 'student':
+        query = StudentInfo.query
+        if search:
+            query = query.filter(StudentInfo.name.ilike(f'%{search}%') | StudentInfo.student_id_number.ilike(f'%{search}%'))
+        students = query.order_by(StudentInfo.name.asc()).all()
+        users = [
+            {
+                'id': str(s.id),
+                'lrn': s.student_id_number,
+                'name': s.name,
+                'gender': s.gender
+            }
+            for s in students
         ]
     else:
         query = User.query
@@ -561,6 +583,39 @@ def edit_parent(parent_id):
         flash('Parent updated successfully!', 'success')
         return redirect(url_for('manage_users', user_type='parent'))
     return render_template('edit_parent_admin.html', parent=parent)
+
+@app.route('/admin/students/<student_id>/edit', methods=['GET', 'POST'])
+def edit_student(student_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    student = StudentInfo.query.get(student_id)
+    if not student:
+        flash('Student not found.', 'danger')
+        return redirect(url_for('manage_users', user_type='student'))
+    if request.method == 'POST':
+        student.name = request.form['name'].strip()
+        student.student_id_number = request.form['student_id_number'].strip()
+        db.session.commit()
+        flash('Student updated successfully!', 'success')
+        return redirect(url_for('manage_users', user_type='student'))
+    return render_template('edit_user_admin.html', user=student, is_student=True)
+
+@app.route('/admin/students/<student_id>/delete', methods=['POST'])
+def delete_student_admin(student_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    student = StudentInfo.query.get(student_id)
+    if not student:
+        flash('Student not found.', 'danger')
+        return redirect(url_for('manage_users', user_type='student'))
+    try:
+        db.session.delete(student)
+        db.session.commit()
+        flash('Student deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while deleting the student.', 'danger')
+    return redirect(url_for('manage_users', user_type='student'))
 
 if __name__ == '__main__':
     app.run(debug=True, port=5005) 
