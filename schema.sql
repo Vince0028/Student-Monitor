@@ -63,7 +63,7 @@ CREATE TABLE students_info (
     name VARCHAR(255) NOT NULL,
     student_id_number VARCHAR(255) UNIQUE NOT NULL,
     gender VARCHAR(10),
-    password_hash VARCHAR(255), -- Added for student password storage
+    password_hash VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
