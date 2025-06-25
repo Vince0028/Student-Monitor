@@ -327,7 +327,7 @@ def student_profile():
         current_password = request.form.get('current_password')
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')
-        if not check_password_hash(student.password_hash, current_password):
+        if not current_password or not check_password_hash(student.password_hash, current_password):
             flash('Current password is incorrect.', 'error')
             return redirect(url_for('student_profile'))
         if new_password:
@@ -483,17 +483,26 @@ def take_quiz(quiz_id):
             if correct:
                 total_score += pts
         print(f'Total Score: {total_score}, Total Points: {total_points}')
-        # Record completion in StudentQuizResult
-        result = StudentQuizResult(
-            student_info_id=student_id,
-            quiz_id=quiz_id,
-            score=total_score,
-            total_points=total_points
-        )
-        g.session.add(result)
-        g.session.commit()
-        print('StudentQuizResult created and committed.')
-        return redirect(url_for('view_quiz_score', quiz_id=quiz_id))
+        
+        # Record completion in StudentQuizResult with error handling
+        try:
+            result = StudentQuizResult(
+                student_info_id=student_id,
+                quiz_id=quiz_id,
+                score=total_score,
+                total_points=total_points
+            )
+            g.session.add(result)
+            g.session.commit()
+            print('StudentQuizResult created and committed.')
+            flash('Quiz submitted successfully!', 'success')
+            return redirect(url_for('view_quiz_score', quiz_id=quiz_id))
+        except Exception as e:
+            g.session.rollback()
+            print(f'Error submitting quiz: {e}')
+            flash('An error occurred while submitting your quiz. Please try again.', 'error')
+            return redirect(url_for('student_quiz'))
+    
     return render_template('student_quiz_templates/student_take_quiz.html', quiz=quiz, questions=questions)
 
 @app.route('/student/quiz/<uuid:quiz_id>/score')
