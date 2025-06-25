@@ -261,52 +261,59 @@
             </select>
             <select class="form-select attendance-subject-filter" id="subjectFilter">
                 <option value="">All Subjects</option>
-                {% for subject in records_by_subject.keys() %}
-                <option value="{{ subject }}">{{ subject }}</option>
-                {% endfor %}
+                {# Remove subject options based on records_by_subject #}
             </select>
             <button class="btn btn-outline-secondary attendance-clear-btn" id="clearFilters" type="button">Clear</button>
         </div>
     </div>
-    <!-- Attendance Table -->
-    <div class="attendance-table-card">
-        <div class="attendance-table-title">Attendance Records</div>
-        <div class="attendance-table-subtitle">Showing {{ attendance_records|length }} of {{ attendance_records|length }} records</div>
-        <div class="table-responsive">
-            <table class="table table-bordered mb-0" id="attendanceTable">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Subject</th>
-                        <th>Status</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for record in attendance_records %}
-                    <tr data-status="{{ record.status }}" data-subject="{{ subject_map.get(record.section_subject_id, 'No Subject') }}" data-notes="{{ record.notes or '' }}">
-                        <td>{{ record.attendance_date.strftime('%a, %b %d, %Y') }}</td>
-                        <td>{{ subject_map.get(record.section_subject_id, 'No Subject') }}</td>
-                        <td>
-                            {% if record.status == 'present' %}
-                                <span class="badge badge-present"><i class="fas fa-check-circle"></i> Present</span>
-                            {% elif record.status == 'absent' %}
-                                <span class="badge badge-absent"><i class="fas fa-times-circle"></i> Absent</span>
-                            {% elif record.status == 'late' %}
-                                <span class="badge badge-late"><i class="fas fa-clock"></i> Late</span>
-                            {% elif record.status == 'excused' %}
-                                <span class="badge badge-excused"><i class="fas fa-info-circle"></i> Excused</span>
-                            {% else %}
-                                <span class="badge badge-unknown">Unknown</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ record.notes or '—' }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <!-- Attendance Tables by Period -->
+    {% if records_by_period %}
+        {% for period, records in records_by_period.items() %}
+            <div class="attendance-table-card mt-4">
+                <div class="attendance-table-title">
+                    <i class="fas fa-calendar-alt"></i> {{ period }}
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Subject</th>
+                                <th>Status</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in records %}
+                            <tr>
+                                <td>{{ record.attendance_date.strftime('%a, %b %d, %Y') }}</td>
+                                <td>{{ subject_map.get(record.section_subject_id, 'N/A') }}</td>
+                                <td>
+                                    {% if record.status == 'present' %}
+                                        <span class="badge badge-present">Present</span>
+                                    {% elif record.status == 'absent' %}
+                                        <span class="badge badge-absent">Absent</span>
+                                    {% elif record.status == 'late' %}
+                                        <span class="badge badge-late">Late</span>
+                                    {% elif record.status == 'excused' %}
+                                        <span class="badge badge-excused">Excused</span>
+                                    {% else %}
+                                        <span class="badge badge-unknown">{{ record.status|capitalize }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>--</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="attendance-table-card mt-4">
+            <div class="attendance-table-title">No attendance records available.</div>
         </div>
-    </div>
+    {% endif %}
 </div>
 
 <script>

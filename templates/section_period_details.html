@@ -21,6 +21,14 @@
         </div>
     </div>
 
+    {% if section_period.period_name|lower == '2nd semester' %}
+    <form method="POST" action="{{ url_for('sync_students_from_first_sem', section_period_id=section_period.id) }}" style="display:inline;">
+        <button type="submit" class="btn btn-warning mb-3">
+            <i class="fas fa-user-friends"></i> Sync Students from 1st Semester
+        </button>
+    </form>
+    {% endif %}
+
     {% if students %}
     <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#studentListCollapse" aria-expanded="false" aria-controls="studentListCollapse">
         Show/Hide Student List
