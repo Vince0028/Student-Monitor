@@ -684,7 +684,7 @@ def teacher_section_attendance_history(section_period_id, subject_id):
                          dates=dates_query,
                          attendance_days_count=attendance_days_count)
 
-@app.route('/teacher/section_period/<uuid:section_period_id>/attendance/date/<uuid:subject_id>/<date>')
+@app.route('/teacher/section_period/<uuid:section_period_id>/attendance/date/<uuid:subject_id>/<date>', methods=['GET', 'POST'])
 @login_required
 @user_type_required('teacher', 'admin')
 def teacher_section_attendance_date(section_period_id, subject_id, date):
@@ -697,29 +697,53 @@ def teacher_section_attendance_date(section_period_id, subject_id, date):
         flash('Invalid date format.', 'error')
         return redirect(url_for('teacher_section_attendance_history', section_period_id=section_period_id, subject_id=subject_id))
 
-    # Get attendance records for the specific date
-    attendance_records = db_session.query(
-        StudentInfo,
-        Attendance
-    ).outerjoin(
-        Attendance,
-        and_(
-            Attendance.student_info_id == StudentInfo.id,
-            Attendance.attendance_date == attendance_date,
-            Attendance.section_subject_id == subject_id
-        )
-    ).filter(
+    # Get all students in the section period
+    students = db_session.query(StudentInfo).filter(
         StudentInfo.section_period_id == section_period_id
     ).order_by(StudentInfo.name).all()
 
-    # --- Compute summary statistics for this date ---
-    total_present = 0
-    total_absent = 0
-    total_late = 0
-    total_excused = 0
-    total_boys = 0
-    total_girls = 0
-    for student, attendance in attendance_records:
+    # Build a map of student_id to attendance record for this date/subject
+    attendance_map = {}
+    attendance_records = db_session.query(Attendance).filter(
+        Attendance.attendance_date == attendance_date,
+        Attendance.section_subject_id == subject_id
+    ).all()
+    for record in attendance_records:
+        attendance_map[str(record.student_info_id)] = record
+
+    # If POST, update attendance records
+    if request.method == 'POST':
+        try:
+            for student in students:
+                status = request.form.get(f'status_{student.id}')
+                if status:
+                    record = attendance_map.get(str(student.id))
+                    if record:
+                        record.status = status
+                        record.recorded_by = teacher_id
+                    else:
+                        new_attendance = Attendance(
+                            student_info_id=student.id,
+                            section_subject_id=subject_id,
+                            attendance_date=attendance_date,
+                            status=status,
+                            recorded_by=teacher_id
+                        )
+                        db_session.add(new_attendance)
+            db_session.commit()
+            flash('Attendance updated successfully!', 'success')
+            return redirect(url_for('teacher_section_attendance_date', section_period_id=section_period_id, subject_id=subject_id, date=date))
+        except Exception as e:
+            db_session.rollback()
+            flash(f'An error occurred while updating attendance: {e}', 'error')
+
+    # Prepare attendance_records for template (list of (student, attendance))
+    attendance_records = []
+    total_present = total_absent = total_late = total_excused = 0
+    total_boys = total_girls = 0
+    for student in students:
+        attendance = attendance_map.get(str(student.id))
+        attendance_records.append((student, attendance))
         if student.gender == 'Male':
             total_boys += 1
         elif student.gender == 'Female':
@@ -748,6 +772,9 @@ def teacher_section_attendance_date(section_period_id, subject_id, date):
         flash('Section period or subject not found.', 'error')
         return redirect(url_for('teacher_dashboard'))
 
+    # Show edit form if ?edit=1 in query or after POST
+    show_edit = request.method == 'POST' or request.args.get('edit') == '1'
+    ATTENDANCE_STATUSES = ['present', 'absent', 'late', 'excused']
     return render_template('date_attendance_details.html',
                          section_period=section_period,
                          subject=subject,
@@ -758,7 +785,9 @@ def teacher_section_attendance_date(section_period_id, subject_id, date):
                          total_late=total_late,
                          total_excused=total_excused,
                          total_boys=total_boys,
-                         total_girls=total_girls)
+                         total_girls=total_girls,
+                         show_edit=show_edit,
+                         attendance_statuses=ATTENDANCE_STATUSES)
 
 # --- User Profile Management ---
 @app.route('/profile', methods=['GET', 'POST'])

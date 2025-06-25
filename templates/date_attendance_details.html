@@ -33,10 +33,85 @@
     <div class="row">
         <div class="col">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Student Attendance Status</h5>
+                    {% if not show_edit %}
+                    <a href="{{ url_for('teacher_section_attendance_date', section_period_id=section_period.id, subject_id=subject.id, date=date.strftime('%Y-%m-%d'), edit=1) }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-edit"></i> Edit Attendance
+                    </a>
+                    {% endif %}
                 </div>
                 <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                    {% if show_edit %}
+                    <form method="POST">
+                        <input type="hidden" name="attendance_date" value="{{ date.strftime('%Y-%m-%d') }}">
+                        <table class="table table-bordered mb-0 student-attendance-table">
+                            <thead>
+                                <tr>
+                                    <th>Student Name</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentTableBody">
+                                {% set boys = attendance_records | selectattr('0.gender', 'equalto', 'Male') | list %}
+                                {% set girls = attendance_records | selectattr('0.gender', 'equalto', 'Female') | list %}
+                                {% set unknowns = attendance_records | rejectattr('0.gender', 'equalto', 'Male') | rejectattr('0.gender', 'equalto', 'Female') | list %}
+                                {% if boys %}
+                                <tr class="table-group-divider"><td colspan="2" style="font-weight:bold; background:#f5f5f5;">Boys</td></tr>
+                                {% for student, attendance in boys %}
+                                <tr class="student-row">
+                                    <td class="student-name">{{ student.name }}</td>
+                                    <td class="text-center">
+                                        {% for status in attendance_statuses %}
+                                        <label class="me-2">
+                                            <input type="radio" name="status_{{ student.id }}" value="{{ status }}" {% if attendance and attendance.status == status %}checked{% endif %} required>
+                                            {{ status|capitalize }}
+                                        </label>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% endif %}
+                                {% if girls %}
+                                <tr class="table-group-divider"><td colspan="2" style="font-weight:bold; background:#f5f5f5;">Girls</td></tr>
+                                {% for student, attendance in girls %}
+                                <tr class="student-row">
+                                    <td class="student-name">{{ student.name }}</td>
+                                    <td class="text-center">
+                                        {% for status in attendance_statuses %}
+                                        <label class="me-2">
+                                            <input type="radio" name="status_{{ student.id }}" value="{{ status }}" {% if attendance and attendance.status == status %}checked{% endif %} required>
+                                            {{ status|capitalize }}
+                                        </label>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% endif %}
+                                {% if unknowns %}
+                                <tr class="table-group-divider"><td colspan="2" style="font-weight:bold; background:#f5f5f5;">Unknown/Other</td></tr>
+                                {% for student, attendance in unknowns %}
+                                <tr class="student-row">
+                                    <td class="student-name">{{ student.name }}</td>
+                                    <td class="text-center">
+                                        {% for status in attendance_statuses %}
+                                        <label class="me-2">
+                                            <input type="radio" name="status_{{ student.id }}" value="{{ status }}" {% if attendance and attendance.status == status %}checked{% endif %} required>
+                                            {{ status|capitalize }}
+                                        </label>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% endif %}
+                            </tbody>
+                        </table>
+                        <div class="mt-3 d-flex justify-content-between">
+                            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save Changes</button>
+                            <a href="{{ url_for('teacher_section_attendance_date', section_period_id=section_period.id, subject_id=subject.id, date=date.strftime('%Y-%m-%d')) }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                    {% else %}
                     <table class="table table-bordered mb-0 student-attendance-table">
                         <thead>
                             <tr>
@@ -113,6 +188,7 @@
                             {% endif %}
                         </tbody>
                     </table>
+                    {% endif %}
                 </div>
             </div>
         </div>
