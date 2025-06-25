@@ -61,7 +61,8 @@ def admin_dashboard():
         return redirect(url_for('admin_login'))
     admin_user = User.query.filter_by(username=session.get('admin_username')).first()
     if admin_user:
-        admin_name = f"{admin_user.firstname} {admin_user.lastname}".strip()
+        # admin_name = f"{admin_user.firstname} {admin_user.lastname}".strip()
+        admin_name = session.get('admin_username', 'Admin')
     else:
         admin_name = session.get('admin_username', 'Admin')
     return render_template('admin_dashboard.html', admin_name=admin_name)
@@ -269,9 +270,9 @@ class User(db.Model):
     user_type = db.Column(db.String(10), nullable=False)
     specialization = db.Column(db.String(255))
     grade_level_assigned = db.Column(db.String(50))
-    firstname = db.Column(db.String(255))
-    lastname = db.Column(db.String(255))
-    middlename = db.Column(db.String(255))
+    # firstname = db.Column(db.String(255))
+    # lastname = db.Column(db.String(255))
+    # middlename = db.Column(db.String(255))
     password_hash = db.Column(db.String(255))
 
 # --- Admin Log Model ---
@@ -402,13 +403,13 @@ def add_user_admin():
         username = request.form['username'].strip()
         password = request.form['password'].strip()
         user_type = request.form['user_type']
-        firstname = request.form.get('firstname', '').strip()
-        lastname = request.form.get('lastname', '').strip()
-        middlename = request.form.get('middlename', '').strip()
+        # firstname = request.form.get('firstname', '').strip()
+        # lastname = request.form.get('lastname', '').strip()
+        # middlename = request.form.get('middlename', '').strip()
         specialization = request.form.get('specialization') or None
         grade_level_assigned = request.form.get('grade_level_assigned') or None
-        if not username or not user_type or not password or not firstname or not lastname:
-            flash('Username, password, first name, last name, and user type are required.', 'danger')
+        if not username or not user_type or not password:
+            flash('Username, password, and user type are required.', 'danger')
             return render_template('add_user_admin.html', user_type=user_type, grade_levels=grade_levels, strands=strands)
         # For students, use grade_level_assigned and specialization (strand)
         if user_type == 'student':
@@ -428,9 +429,6 @@ def add_user_admin():
                 user_type=user_type,
                 specialization=specialization,
                 grade_level_assigned=grade_level_assigned,
-                firstname=firstname,
-                lastname=lastname,
-                middlename=middlename,
                 password_hash=hashed_password
             )
             db.session.add(new_user)
@@ -506,12 +504,12 @@ def register_admin():
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password'].strip()
-        firstname = request.form.get('firstname', '').strip()
-        lastname = request.form.get('lastname', '').strip()
-        middlename = request.form.get('middlename', '').strip()
+        # firstname = request.form.get('firstname', '').strip()
+        # lastname = request.form.get('lastname', '').strip()
+        # middlename = request.form.get('middlename', '').strip()
 
-        if not all([username, password, firstname, lastname]):
-            flash('Username, password, first name, and last name are required.', 'danger')
+        if not all([username, password]):
+            flash('Username and password are required.', 'danger')
             return render_template('register_admin.html')
 
         if not username.endswith('@masteradmin.pcshs.edu.ph'):
@@ -524,9 +522,9 @@ def register_admin():
                 username=username,
                 password_hash=hashed_password,
                 user_type='admin',
-                firstname=firstname,
-                lastname=lastname,
-                middlename=middlename
+                # firstname=firstname,
+                # lastname=lastname,
+                # middlename=middlename
             )
             db.session.add(new_admin)
             db.session.commit()
@@ -564,9 +562,9 @@ def create_admin_command(username, password):
         username=username,
         password_hash=hashed_password,
         user_type='admin',
-        firstname='Admin',
-        lastname='User',
-        middlename=''
+        # firstname='Admin',
+        # lastname='User',
+        # middlename=''
     )
     db.session.add(new_admin)
     db.session.commit()
