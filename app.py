@@ -2144,12 +2144,9 @@ def delete_section_subject(section_period_id, subject_id):
     user_type = session['user_type']
     password = request.form.get('password')
 
-    if not password or not verify_current_user_password(user_id, password):
-        return jsonify({'success': False, 'message': 'Incorrect password.'})
-
-    # First, fetch the subject to delete with its section period
+    # Fetch the subject and its section period
     subject_to_delete = db_session.query(SectionSubject).options(
-        joinedload(SectionSubject.section_period)
+        joinedload(SectionSubject.section_period).joinedload(SectionPeriod.section)
     ).filter(
         SectionSubject.id == subject_id,
         SectionSubject.section_period_id == section_period_id
@@ -2163,7 +2160,13 @@ def delete_section_subject(section_period_id, subject_id):
         # For teachers: check if they are the assigned teacher for this period
         if str(subject_to_delete.section_period.assigned_teacher_id) != str(user_id):
             return jsonify({'success': False, 'message': 'You do not have permission to delete subjects from this period.'})
-    # For admin users, no additional permission checks needed since they can delete any subject
+        # Adviser password check
+        section = subject_to_delete.section_period.section
+        if not password or password != (section.adviser_password or ''):
+            return jsonify({'success': False, 'message': 'Incorrect adviser password.'})
+    else:  # admin
+        if not password or not verify_current_user_password(user_id, password):
+            return jsonify({'success': False, 'message': 'Incorrect password.'})
 
     try:
         # Delete associated records first

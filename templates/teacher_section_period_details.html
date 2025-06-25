@@ -406,7 +406,7 @@
                     <button type="button" class="btn btn-edit btn-icon-small" onclick="showSubjectPasswordModal('{{ subject.id }}')" title="Edit Subject">
                         <i class="fas fa-edit"></i> Edit
                     </button>
-                    <button type="button" class="btn btn-danger btn-icon-small subject-delete-btn-{{ subject.id }}" onclick="showSubjectDeletePasswordModal('{{ subject.id }}')" title="Delete Subject">
+                    <button type="button" class="btn btn-danger btn-icon-small subject-delete-btn-{{ subject.id }}" onclick="showSubjectDeletePasswordModal('{{ subject.id }}')" data-delete-url="{{ url_for('delete_section_subject', section_period_id=section_period.id, subject_id=subject.id) }}" title="Delete Subject">
                         <i class="fas fa-trash-alt"></i> Delete
                     </button>
                 </div>
@@ -514,15 +514,15 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="subjectDeletePasswordModalLabel-{{ subject.id }}">Enter Subject Password</h5>
+                <h5 class="modal-title" id="subjectDeletePasswordModalLabel-{{ subject.id }}">Enter Adviser Password</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="subjectDeletePasswordForm-{{ subject.id }}" autocomplete="off" onsubmit="event.preventDefault(); submitSubjectDeletePassword('{{ subject.id }}');">
                     <div class="mb-3">
-                        <label for="subject_delete_password_input-{{ subject.id }}" class="form-label">Subject Password</label>
+                        <label for="subject_delete_password_input-{{ subject.id }}" class="form-label">Adviser Password</label>
                         <input type="password" class="form-control" id="subject_delete_password_input-{{ subject.id }}" required>
-                        <div class="form-text">Please enter the subject password to continue.</div>
+                        <div class="form-text">Please enter the adviser password to continue.</div>
                         <div id="subjectDeletePasswordError-{{ subject.id }}" class="text-danger" style="display:none;"></div>
                     </div>
                     <div class="modal-footer">
@@ -634,6 +634,105 @@ function submitAdviserAddPassword() {
             document.getElementById('adviserAddPasswordError').innerText = 'Incorrect adviser password.';
             document.getElementById('adviserAddPasswordError').style.display = 'block';
         }
+    });
+}
+
+// --- Adviser Password for Subject Edit ---
+function showSubjectPasswordModal(subjectId) {
+    const modal = document.getElementById('subjectPasswordModal-' + subjectId);
+    if (modal) {
+        document.getElementById('subject_password_input-' + subjectId).value = '';
+        document.getElementById('subjectPasswordError-' + subjectId).style.display = 'none';
+        var bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+    }
+}
+function submitSubjectPassword(subjectId) {
+    const password = document.getElementById('subject_password_input-' + subjectId).value;
+    const errorDiv = document.getElementById('subjectPasswordError-' + subjectId);
+    errorDiv.style.display = 'none';
+    if (!password) {
+        errorDiv.textContent = 'Password is required.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    fetch('/api/verify_adviser_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section_id: '{{ section_period.section.id }}', password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            var pwModal = bootstrap.Modal.getInstance(document.getElementById('subjectPasswordModal-' + subjectId));
+            if (pwModal) pwModal.hide();
+            var editModal = new bootstrap.Modal(document.getElementById('editSubjectModal-' + subjectId));
+            editModal.show();
+        } else {
+            errorDiv.textContent = 'Incorrect adviser password.';
+            errorDiv.style.display = 'block';
+        }
+    })
+    .catch(() => {
+        errorDiv.textContent = 'An error occurred. Please try again.';
+        errorDiv.style.display = 'block';
+    });
+}
+// --- Adviser Password for Subject Delete ---
+function showSubjectDeletePasswordModal(subjectId) {
+    const modal = document.getElementById('subjectDeletePasswordModal-' + subjectId);
+    if (modal) {
+        document.getElementById('subject_delete_password_input-' + subjectId).value = '';
+        document.getElementById('subjectDeletePasswordError-' + subjectId).style.display = 'none';
+        var bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+    }
+}
+function submitSubjectDeletePassword(subjectId) {
+    const password = document.getElementById('subject_delete_password_input-' + subjectId).value;
+    const errorDiv = document.getElementById('subjectDeletePasswordError-' + subjectId);
+    errorDiv.style.display = 'none';
+    if (!password) {
+        errorDiv.textContent = 'Password is required.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    fetch('/api/verify_adviser_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section_id: '{{ section_period.section.id }}', password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const deleteUrl = document.querySelector('.subject-delete-btn-' + subjectId).getAttribute('data-delete-url');
+            fetch(deleteUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'password=' + encodeURIComponent(password)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    var delModal = bootstrap.Modal.getInstance(document.getElementById('subjectDeletePasswordModal-' + subjectId));
+                    if (delModal) delModal.hide();
+                    showSuccessToast(result.message || 'Subject deleted successfully!');
+                    setTimeout(function() {
+                        window.location.href = result.redirect_url || window.location.href;
+                    }, 1500);
+                } else {
+                    errorDiv.textContent = result.message || 'Failed to delete subject.';
+                    errorDiv.style.display = 'block';
+                }
+            });
+        } else {
+            errorDiv.textContent = 'Incorrect adviser password.';
+            errorDiv.style.display = 'block';
+        }
+    })
+    .catch(() => {
+        errorDiv.textContent = 'An error occurred. Please try again.';
+        errorDiv.style.display = 'block';
     });
 }
 </script>
