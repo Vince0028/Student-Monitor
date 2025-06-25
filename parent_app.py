@@ -292,40 +292,39 @@ def parent_dashboard():
     parent_id = uuid.UUID(session['parent_id'])
     # Get all students_info for this parent
     students = g.session.query(StudentInfo).filter_by(parent_id=parent_id).order_by(StudentInfo.name).all()
+    # Group by base student_id_number (before -S2)
+    children_map = {}
     for student in students:
-        name_parts = student.name.split()
-        student.first_name = name_parts[0]
-        student.last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+        base_id = student.student_id_number.split('-S2')[0]
+        if base_id not in children_map:
+            children_map[base_id] = {
+                'base_id': base_id,
+                'name': student.name,
+                'first_name': student.name.split()[0],
+                'last_name': ' '.join(student.name.split()[1:]) if len(student.name.split()) > 1 else '',
+                'periods': []
+            }
         # Fetch section, strand, grade_level
         section_period = g.session.query(SectionPeriod).filter_by(id=student.section_period_id).first()
-        if section_period:
-            section = g.session.query(Section).filter_by(id=section_period.section_id).first()
-            if section:
-                student.section_name = section.name or ''
-                # Strand
-                if section.strand_id:
-                    strand = g.session.query(Strand).filter_by(id=section.strand_id).first()
-                    student.strand_name = strand.name if strand else ''
-                else:
-                    student.strand_name = ''
-                # Grade level
-                if section.grade_level_id:
-                    grade_level = g.session.query(GradeLevel).filter_by(id=section.grade_level_id).first()
-                    student.grade_level = grade_level.name if grade_level else ''
-                else:
-                    student.grade_level = ''
-            else:
-                student.section_name = ''
-                student.strand_name = ''
-                student.grade_level = ''
-        else:
-            student.section_name = ''
-            student.strand_name = ''
-            student.grade_level = ''
-        # Set latest_grades and average_grade to None for now (unless you want to join grades)
-        student.latest_grades = []
-        student.average_grade = student.average_grade if hasattr(student, 'average_grade') else None
-    return render_template('parent_dashboard.html', students=students)
+        section = g.session.query(Section).filter_by(id=section_period.section_id).first() if section_period else None
+        strand = g.session.query(Strand).filter_by(id=section.strand_id).first() if section and section.strand_id else None
+        grade_level = g.session.query(GradeLevel).filter_by(id=section.grade_level_id).first() if section and section.grade_level_id else None
+        children_map[base_id]['periods'].append({
+            'id': student.id,
+            'student_id_number': student.student_id_number,
+            'section_name': section.name if section else '',
+            'strand_name': strand.name if strand else '',
+            'grade_level': grade_level.name if grade_level else '',
+            'period_name': section_period.period_name if section_period else '',
+            'school_year': section_period.school_year if section_period else '',
+            'average_grade': student.average_grade if hasattr(student, 'average_grade') else None
+        })
+    children_with_periods = list(children_map.values())
+    # Add overall average grade for each child
+    for child in children_with_periods:
+        grades = [p['average_grade'] for p in child['periods'] if p['average_grade'] is not None]
+        child['overall_average_grade'] = round(sum(grades) / len(grades), 2) if grades else None
+    return render_template('parent_dashboard.html', children_with_periods=children_with_periods)
 
 @app.route('/parent/student/<uuid:student_id>')
 @login_required
