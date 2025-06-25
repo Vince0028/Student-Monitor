@@ -1705,17 +1705,20 @@ def assign_parent():
         return jsonify({'success': False, 'message': 'Student or Parent not found.'})
 
     try:
-        student.parent_id = uuid.UUID(parent_id)
+        # Assign parent to all records with the same base student_id_number
+        base_id = student.student_id_number.split('-S2')[0]
+        all_student_infos = db_session.query(StudentInfo).filter(
+            StudentInfo.student_id_number.like(f"{base_id}%")
+        ).all()
+        for s in all_student_infos:
+            s.parent_id = uuid.UUID(parent_id)
         db_session.commit()
 
         # --- Improved Parent Portal Sync Logic ---
         success, message = sync_student_to_parent_portal(student, uuid.UUID(parent_id), app.logger)
         if not success:
             app.logger.error(f"Parent portal sync failed: {message}")
-            # Optionally, you can flash a message or return an error to the admin here
-            # flash(f'Parent portal sync failed: {message}', 'error')
-
-        return jsonify({'success': True, 'message': 'Parent assigned successfully!'})
+        return jsonify({'success': True, 'message': 'Parent assigned to all periods/semesters for this student!'})
     except Exception as e:
         db_session.rollback()
         app.logger.error(f"Error assigning parent: {e}")
@@ -1733,10 +1736,16 @@ def unassign_parent():
     student = db_session.query(StudentInfo).filter_by(id=student_id).first()
     if not student:
         return jsonify({'success': False, 'message': 'Student not found.'})
+    # Unassign parent from all records with the same base student_id_number
+    base_id = student.student_id_number.split('-S2')[0]
+    all_student_infos = db_session.query(StudentInfo).filter(
+        StudentInfo.student_id_number.like(f"{base_id}%")
+    ).all()
     try:
-        student.parent_id = None
+        for s in all_student_infos:
+            s.parent_id = None
         db_session.commit()
-        return jsonify({'success': True, 'message': 'Parent unassigned successfully!'})
+        return jsonify({'success': True, 'message': 'Parent unassigned from all periods/semesters for this student.'})
     except Exception as e:
         db_session.rollback()
         app.logger.error(f"Error unassigning parent: {e}")

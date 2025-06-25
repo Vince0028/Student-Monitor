@@ -8,62 +8,47 @@
     <p>Here's an overview of your children's academic progress</p>
 </div>
 
-{% if students %}
-    <div class="students-grid">
-        {% for student in students %}
+{% if children_with_periods %}
+    <div class="students-grid{% if children_with_periods|length == 1 %} center-content{% endif %}">
+        {% for child in children_with_periods %}
         <div class="student-card">
             <div class="student-header">
                 <div class="student-avatar">
                     <i class="fas fa-user-graduate"></i>
                 </div>
                 <div class="student-info">
-                    <h3>{{ student.first_name }} {{ student.last_name }}</h3>
-                    <p class="student-id">ID: {{ student.student_id_number }}</p>
-                    <p class="student-class">
-                        {{ student.grade_level }} - {{ student.section_name }}
-                        {% if student.strand_name %}
-                            ({{ student.strand_name }})
-                        {% endif %}
-                    </p>
+                    <h3>{{ child.first_name }} {{ child.last_name }}</h3>
                 </div>
             </div>
-
-            <div class="student-stats">
-                <div class="stat-item">
-                    <i class="fas fa-chart-line"></i>
-                    <div class="stat-content">
-                        <span class="stat-label">Average Grade</span>
-                        <span class="stat-value">{{ '%.2f'|format(student.average_grade) if student.average_grade is not none else 'N/A' }}</span>
-                    </div>
-                </div>
-            </div>
-
-            {% if student.latest_grades %}
-            <div class="recent-grades">
-                <h4><i class="fas fa-clock"></i> Recent Grades</h4>
-                <div class="grades-list">
-                    {% for grade in student.latest_grades[:3] %}
-                    <div class="grade-item">
-                        <span class="subject">{{ grade.subject_name }}</span>
-                        <span class="grade-value">{{ "%.2f"|format(grade.grade_value) }}</span>
-                        <span class="period">{{ grade.period_name }} {{ grade.school_year }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
+            {% if child.overall_average_grade is not none %}
+            <div style="text-align:center; margin-bottom: 0.7em;">
+                <span style="font-weight: 600; color: #357ab8;">
+                    Overall Average Grade: {{ '%.2f'|format(child.overall_average_grade) }}
+                </span>
             </div>
             {% endif %}
-
-            <div class="student-actions">
-                {# Remove the View Details button #}
-                {# <a href="{{ url_for('student_details', student_id=student.id) }}" class="btn btn-primary btn-sm">
-                    <i class="fas fa-eye"></i> View Details
-                </a> #}
-                <a href="{{ url_for('student_grades', student_id=student.id) }}" class="btn btn-secondary btn-sm">
-                    <i class="fas fa-chart-line"></i> Grades
-                </a>
-                <a href="{{ url_for('student_attendance', student_id=student.id) }}" class="btn btn-info btn-sm">
-                    <i class="fas fa-calendar-check"></i> Attendance
-                </a>
+            <div class="student-periods">
+                {% for period in child.periods %}
+                <div class="period-card" style="margin-bottom: 1em; padding: 0.7em 1em; background: #f7faff; border-radius: 8px;">
+                    <div style="font-weight: bold;">{{ period.period_name }} {{ period.school_year }}</div>
+                    <div style="font-size: 0.95em; color: #555;">
+                        ID: {{ period.student_id_number }}<br>
+                        {{ period.grade_level }} - {{ period.section_name }}{% if period.strand_name %} ({{ period.strand_name }}){% endif %}
+                    </div>
+                    <div style="margin: 0.5em 0;">
+                        <span style="font-weight: 500;">Average Grade:</span>
+                        <span>{{ '%.2f'|format(period.average_grade) if period.average_grade is not none else 'N/A' }}</span>
+                    </div>
+                    <div class="student-actions">
+                        <a href="{{ url_for('student_grades', student_id=period.id) }}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-chart-line"></i> Grades
+                        </a>
+                        <a href="{{ url_for('student_attendance', student_id=period.id) }}" class="btn btn-info btn-sm">
+                            <i class="fas fa-calendar-check"></i> Attendance
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
         {% endfor %}
