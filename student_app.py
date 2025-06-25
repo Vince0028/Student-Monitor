@@ -163,16 +163,17 @@ def index():
 @app.route('/student/login', methods=['GET', 'POST'])
 def student_login():
     if request.method == 'POST':
-        username = request.form.get('username')
+        student_id_number = request.form.get('student_id_number')
         password = request.form.get('password')
-        student = g.session.query(StudentInfo).filter_by(student_id_number=username).first()
-        if student and student.password_hash and password and check_password_hash(student.password_hash, password):
+        student = g.session.query(StudentInfo).filter_by(student_id_number=student_id_number).first()
+        # Compare password as plain text
+        if student and student.password_hash and password and student.password_hash == password:
             session.clear()
             session['student_id'] = str(student.id)
             flash('Login successful!', 'success')
             return redirect(url_for('student_dashboard'))
         else:
-            flash('Invalid username or password.', 'error')
+            flash('Invalid student ID or password.', 'error')
     return render_template('student_login.html')
 
 @app.route('/student/logout')
