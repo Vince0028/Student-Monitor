@@ -48,12 +48,12 @@ if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable is not set. Please set it in your .env file or as a system environment variable before running the app.")
 
 # --- SQLAlchemy Setup ---
+# Use the pooled connection string from Supabase (Connection Pooling tab)
 engine = create_engine(
-    DATABASE_URL,
-    pool_size=2,
+    DATABASE_URL,  # Should be the pooled connection string (starts with postgresql://...@p.db.supabase.co)
+    pool_size=1,
     max_overflow=0,
     pool_timeout=30,
-    pool_recycle=1800
 )
 Base = declarative_base()
 
@@ -3439,7 +3439,6 @@ def sync_student_to_parent_portal(student, parent_id, logger=None):
         parent_db_session.close()
 
 if __name__ == '__main__':
-    Base.metadata.create_all(engine)
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
 
 
