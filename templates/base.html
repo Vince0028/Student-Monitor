@@ -194,7 +194,9 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    window.location.href = "{{ url_for('profile') }}";
+                    setTimeout(function() {
+                        window.location.href = "{{ url_for('profile') }}";
+                    }, 300); // 300ms delay to allow session cookie to be set
                 } else {
                     errorDiv.textContent = data.message || 'Incorrect password.';
                 }
