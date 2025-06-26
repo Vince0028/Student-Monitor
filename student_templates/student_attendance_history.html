@@ -273,41 +273,41 @@
                 <div class="attendance-table-title">
                     <i class="fas fa-calendar-alt"></i> {{ period }}
                 </div>
-                <div class="table-responsive">
+        <div class="table-responsive">
                     <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Subject</th>
-                                <th>Status</th>
-                                <th>Notes</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
                             {% for record in records %}
                             <tr>
-                                <td>{{ record.attendance_date.strftime('%a, %b %d, %Y') }}</td>
+                        <td>{{ record.attendance_date.strftime('%a, %b %d, %Y') }}</td>
                                 <td>{{ subject_map.get(record.section_subject_id, 'N/A') }}</td>
-                                <td>
-                                    {% if record.status == 'present' %}
+                        <td>
+                            {% if record.status == 'present' %}
                                         <span class="badge badge-present">Present</span>
-                                    {% elif record.status == 'absent' %}
+                            {% elif record.status == 'absent' %}
                                         <span class="badge badge-absent">Absent</span>
-                                    {% elif record.status == 'late' %}
+                            {% elif record.status == 'late' %}
                                         <span class="badge badge-late">Late</span>
-                                    {% elif record.status == 'excused' %}
+                            {% elif record.status == 'excused' %}
                                         <span class="badge badge-excused">Excused</span>
-                                    {% else %}
+                            {% else %}
                                         <span class="badge badge-unknown">{{ record.status|capitalize }}</span>
-                                    {% endif %}
-                                </td>
+                            {% endif %}
+                        </td>
                                 <td>--</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
         {% endfor %}
     {% else %}
         <div class="attendance-table-card mt-4">

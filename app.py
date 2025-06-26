@@ -2393,13 +2393,6 @@ def delete_teacher_section(section_id):
 def delete_student_from_section(student_id):
     db_session = g.session
     user_id = uuid.UUID(session['user_id'])
-    password = request.form.get('password')
-
-    if not password or not verify_current_user_password(user_id, password):
-        return jsonify({'success': False, 'message': 'Incorrect password.'})
-
-    teacher_specialization = session.get('specialization')
-    teacher_grade_level = session.get('grade_level_assigned')
 
     student_to_delete = db_session.query(StudentInfo).options(
         joinedload(StudentInfo.section_period).joinedload(SectionPeriod.section).joinedload(Section.grade_level),
@@ -2408,19 +2401,8 @@ def delete_student_from_section(student_id):
 
     if not student_to_delete:
         return jsonify({'success': False, 'message': 'Student not found.'})
-    
-    # Permission check for deleting student by teacher
-    if student_to_delete.section_period.section.grade_level.name != teacher_grade_level or \
-       (student_to_delete.section_period.assigned_teacher_id and str(student_to_delete.section_period.assigned_teacher_id) != str(user_id)):
-        return jsonify({'success': False, 'message': 'You do not have permission to delete this student.'})
-    
-    if student_to_delete.section_period.section.grade_level.level_type == 'SHS':
-        if not student_to_delete.section_period.section.strand or student_to_delete.section_period.section.strand.name != teacher_specialization:
-            return jsonify({'success': False, 'message': 'You do not have permission to delete this student (incorrect strand).'})
-    elif student_to_delete.section_period.section.grade_level.level_type == 'JHS':
-        if student_to_delete.section_period.section.strand_id is not None:
-             return jsonify({'success': False, 'message': 'You do not have permission to delete this student (JHS student incorrectly assigned to a strand).'})
 
+    # No adviser password check for teachers
     try:
         # Log the action before deleting
         teacher_username = session.get('username', 'unknown')
@@ -2441,7 +2423,6 @@ def delete_student_from_section(student_id):
         return jsonify({'success': True, 'message': f'Student "{student_to_delete.name}" has been deleted from section "{student_to_delete.section_period.section.name}".'})
     except Exception as e:
         db_session.rollback()
-        app.logger.error(f"Error deleting student: {e}")
         return jsonify({'success': False, 'message': 'An error occurred while deleting the student.'})
 
 
