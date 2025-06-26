@@ -2,10 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Parent Portal - Monitor your child's academic progress">
+    <meta name="theme-color" content="#4a5568">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>{% block title %}Parent Portal - Student Monitor{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_style.css') }}?v=2">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body>
@@ -13,18 +16,18 @@
         <div class="container">
             <h1 class="parent-title">
                 <a href="{{ url_for('parent_dashboard') if session.parent_id else url_for('index') }}">
-                    <i class="fas fa-graduation-cap"></i> Parent Portal
+                    <i class="fas fa-graduation-cap"></i> <span class="nav-text">Parent Portal</span>
                 </a>
             </h1>
             <nav class="parent-nav">
                 <ul class="nav-links">
                     {% if session.parent_id %}
-                        <li><a href="{{ url_for('parent_dashboard') }}"><i class="fas fa-home"></i> Dashboard</a></li>
-                        <li><a href="{{ url_for('parent_profile') }}"><i class="fas fa-user-circle"></i> Profile</a></li>
-                        <li><a href="{{ url_for('parent_logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        <li><a href="{{ url_for('parent_dashboard') }}"><i class="fas fa-home"></i> <span class="nav-text">Dashboard</span></a></li>
+                        <li><a href="{{ url_for('parent_profile') }}"><i class="fas fa-user-circle"></i> <span class="nav-text">Profile</span></a></li>
+                        <li><a href="{{ url_for('parent_logout') }}"><i class="fas fa-sign-out-alt"></i> <span class="nav-text">Logout</span></a></li>
                     {% else %}
-                        <li><a href="{{ url_for('parent_login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
-                        <li><a href="{{ url_for('parent_register') }}"><i class="fas fa-user-plus"></i> Register</a></li>
+                        <li><a href="{{ url_for('parent_login') }}"><i class="fas fa-sign-in-alt"></i> <span class="nav-text">Login</span></a></li>
+                        <li><a href="{{ url_for('parent_register') }}"><i class="fas fa-user-plus"></i> <span class="nav-text">Register</span></a></li>
                     {% endif %}
                 </ul>
             </nav>
@@ -60,16 +63,56 @@
     </footer>
 
     <script>
-        // Auto-hide flash messages after 5 seconds
-        setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
-                alert.style.opacity = '0';
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile-specific enhancements
+            const isMobile = window.innerWidth <= 768;
+            
+            // Add touch-friendly interactions for mobile
+            if (isMobile) {
+                // Increase touch targets
+                document.querySelectorAll('.btn, .nav-links a').forEach(element => {
+                    element.style.minHeight = '44px';
+                    element.style.minWidth = '44px';
+                });
+                
+                // Auto-hide flash messages after 5 seconds on mobile
+                setTimeout(() => {
+                    const flashMessages = document.querySelectorAll('.alert');
+                    flashMessages.forEach(message => {
+                        message.style.transition = 'opacity 0.5s ease';
+                        message.style.opacity = '0';
+                        setTimeout(() => message.remove(), 500);
+                    });
+                }, 5000);
+            } else {
+                // Auto-hide flash messages after 5 seconds on desktop
                 setTimeout(function() {
-                    alert.remove();
-                }, 300);
+                    const alerts = document.querySelectorAll('.alert');
+                    alerts.forEach(function(alert) {
+                        alert.style.opacity = '0';
+                        setTimeout(function() {
+                            alert.remove();
+                        }, 300);
+                    });
+                }, 5000);
+            }
+
+            // Prevent zoom on input focus for iOS
+            const inputs = document.querySelectorAll('input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    if (isMobile) {
+                        this.style.fontSize = '16px';
+                    }
+                });
+                
+                input.addEventListener('blur', function() {
+                    if (isMobile) {
+                        this.style.fontSize = '';
+                    }
+                });
             });
-        }, 5000);
+        });
     </script>
     
     <!-- Password Toggle Functionality -->

@@ -32,79 +32,111 @@
             </div>
         </div>
 
-        <div style="margin-top: 2rem;">
+        <div class="center-profile-forms">
             <h3 style="color: #357ab8; margin-bottom: 1rem;">
                 <i class="fas fa-user-edit"></i> Update Information
             </h3>
-            
-            <form method="POST" style="margin-bottom: 2rem;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <form id="update-info-form" method="POST" style="margin-bottom: 2rem;">
+                <input type="hidden" name="form_type" value="update_info">
+                <div class="landscape-form-row">
                     <div class="form-group">
-                        <label for="first_name">
-                            <i class="fas fa-user"></i> First Name *
-                        </label>
+                        <label for="first_name"><i class="fas fa-user"></i> First Name *</label>
                         <input type="text" id="first_name" name="first_name" value="{{ parent.first_name }}" required>
                     </div>
-                    
                     <div class="form-group">
-                        <label for="last_name">
-                            <i class="fas fa-user"></i> Last Name *
-                        </label>
+                        <label for="last_name"><i class="fas fa-user"></i> Last Name *</label>
                         <input type="text" id="last_name" name="last_name" value="{{ parent.last_name }}" required>
                     </div>
+                    <div class="form-group">
+                        <label for="email"><i class="fas fa-envelope"></i> Email Address *</label>
+                        <input type="email" id="email" name="email" value="{{ parent.email }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone_number"><i class="fas fa-phone"></i> Phone Number</label>
+                        <input type="tel" id="phone_number" name="phone_number" value="{{ parent.phone_number or '' }}">
+                    </div>
                 </div>
-
-                <div class="form-group">
-                    <label for="email">
-                        <i class="fas fa-envelope"></i> Email Address *
-                    </label>
-                    <input type="email" id="email" name="email" value="{{ parent.email }}" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="phone_number">
-                        <i class="fas fa-phone"></i> Phone Number
-                    </label>
-                    <input type="tel" id="phone_number" name="phone_number" value="{{ parent.phone_number or '' }}">
-                </div>
-
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i> Update Information
-                </button>
             </form>
 
             <h3 style="color: #357ab8; margin-bottom: 1rem;">
                 <i class="fas fa-lock"></i> Change Password
             </h3>
-            
-            <form method="POST">
-                <div class="form-group">
-                    <label for="current_password">
-                        <i class="fas fa-key"></i> Current Password *
-                    </label>
-                    <input type="password" id="current_password" name="current_password" required>
+            <form id="change-password-form" method="POST">
+                <input type="hidden" name="form_type" value="change_password">
+                <div class="landscape-form-row password-form-row">
+                    <div class="form-group">
+                        <label for="current_password"><i class="fas fa-key"></i> Current Password *</label>
+                        <input type="password" id="current_password" name="current_password">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password"><i class="fas fa-lock"></i> New Password</label>
+                        <input type="password" id="new_password" name="new_password" placeholder="Leave blank if you don't want to change your password">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password"><i class="fas fa-lock"></i> Confirm New Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password">
+                    </div>
                 </div>
-
-                <div class="form-group">
-                    <label for="new_password">
-                        <i class="fas fa-lock"></i> New Password
-                    </label>
-                    <input type="password" id="new_password" name="new_password">
-                    <small style="color: #666; font-size: 0.9rem;">Leave blank if you don't want to change your password</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="confirm_password">
-                        <i class="fas fa-lock"></i> Confirm New Password
-                    </label>
-                    <input type="password" id="confirm_password" name="confirm_password">
-                </div>
-
-                <button type="submit" class="btn btn-secondary">
-                    <i class="fas fa-key"></i> Change Password
-                </button>
             </form>
+
+            <div style="text-align: center; margin-top: 2rem;">
+                <button id="save-changes-btn" class="btn btn-primary" style="min-width: 200px;" onclick="submitBothForms(event)">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
         </div>
+        <style>
+        .center-profile-forms {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+        .center-profile-forms form {
+            width: 100%;
+            max-width: 1000px;
+        }
+        .center-profile-forms .landscape-form-row {
+            justify-content: center;
+        }
+        .password-form-row {
+            flex-direction: row;
+            justify-content: center;
+            gap: 2rem;
+        }
+        @media (max-width: 900px) {
+            .password-form-row {
+                flex-direction: column;
+                align-items: center;
+                gap: 1rem;
+            }
+            .password-form-row .form-group {
+                width: 100%;
+                max-width: 350px;
+            }
+        }
+        </style>
+        <script>
+        function submitBothForms(e) {
+            e.preventDefault();
+            // Combine both forms' data into one FormData
+            const infoForm = document.getElementById('update-info-form');
+            const passForm = document.getElementById('change-password-form');
+            const formData = new FormData(infoForm);
+            // Append password fields if filled
+            for (const el of passForm.elements) {
+                if (el.name && el.value) {
+                    formData.append(el.name, el.value);
+                }
+            }
+            // Send via fetch
+            fetch(window.location.pathname, {
+                method: 'POST',
+                body: formData,
+            }).then(resp => window.location.reload());
+        }
+        </script>
 
         <div style="margin-top: 2rem; text-align: center;">
             <a href="{{ url_for('parent_dashboard') }}" class="btn btn-outline">
