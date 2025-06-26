@@ -5,16 +5,24 @@
 {% block custom_css %}
 <style>
     .grade-input {
-        width: 70px;
-        padding: 5px;
-        border-radius: 4px;
+        width: 55px;
+        padding: 2px 4px;
+        border-radius: 3px;
         border: 1px solid #ccc;
         text-align: center;
+        font-size: 0.92em;
     }
     .grade-input:focus {
         outline: none;
         border-color: #007bff;
-        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.18);
+    }
+    th.item-header, th, td {
+        padding: 2px 6px !important;
+        font-size: 0.92em;
+        min-width: 48px;
+        max-width: 120px;
+        white-space: nowrap;
     }
     th.item-header {
         position: relative;
@@ -23,24 +31,37 @@
         position: absolute;
         top: 2px;
         right: 2px;
-        font-size: 0.7rem;
-        padding: 2px 4px;
+        width: 22px;
+        height: 22px;
+        min-width: 22px;
+        min-height: 22px;
+        max-width: 22px;
+        max-height: 22px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 0.95rem;
         line-height: 1;
-        display: none; /* Hidden by default */
+        display: none;
+        align-items: center;
+        justify-content: center;
     }
     th.item-header:hover .delete-item-btn {
-        display: inline-block; /* Show on hover */
+        display: flex;
     }
-    /* Scrollable grade sheet if more than 5 students */
-    #gradeSheetScrollWrap {
-        max-height: 400px;
+    .add-item-btn-compact {
+        padding: 0.1rem 0.3rem;
+        font-size: 0.82rem;
+        border-radius: 0.4rem;
+        min-width: 0;
+        min-height: 0;
+        height: 22px;
+        line-height: 1.1;
+    }
+    .gradebook-scroll {
+        overflow-x: auto;
         overflow-y: auto;
-    }
-    #gradeSheetTable thead th {
-        position: sticky;
-        top: 0;
-        background: #f8f9fa;
-        z-index: 2;
+        max-height: 400px;
+        width: 100%;
     }
     .gradebook-table th {
         position: sticky;
@@ -65,28 +86,42 @@
     .gradebook-table {
         border-collapse: collapse;
         width: 100%;
+        font-size: 0.92em;
+    }
+    .gradebook-table th, .gradebook-table td {
+        min-width: 48px;
+        max-width: 120px;
+        padding: 2px 6px !important;
+        font-size: 0.92em;
+    }
+    .gradebook-table th.align-middle, .gradebook-table td.align-middle {
+        min-width: 80px;
+    }
+    .gradebook-table th[style*="min-width: 120px"] {
+        min-width: 80px !important;
+    }
+    .gradebook-table th[style*="min-width: 90px"] {
+        min-width: 60px !important;
+    }
+    .gradebook-table td {
+        vertical-align: middle;
+    }
+    .btn-sm, .btn-xs {
+        font-size: 0.82em !important;
+        padding: 2px 6px !important;
+    }
+    .table-group-divider td {
+        font-size: 0.95em;
     }
     .gradebook-table-container {
-        overflow-x: auto;
-        /* Do NOT set overflow-y here, let the table scroll vertically */
-        max-height: 70vh;
-    }
-    .gradebook-tbody-scroll {
-        overflow-y: auto;
-        max-height: 400px;
-    }
-    .gradebook-table th {
-        position: static;
-        background: #f8fafc;
-        z-index: 2;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-    }
-    .gradebook-table td.sticky-col, .gradebook-table th.sticky-col {
-        position: static;
-        left: unset;
-        z-index: unset;
+        width: 100%;
+        border-radius: 4px;
+        border: 1px solid #e0e0e0;
         background: #fff;
-        box-shadow: none;
+    }
+    .gradebook-scrollable {
+        max-height: 400px;
+        overflow-y: auto;
     }
 </style>
 {% endblock %}
@@ -162,114 +197,109 @@
             {% for component in components %}
                 {% set total_items = total_items + component.items|length %}
             {% endfor %}
-            <div class="table-responsive" style="overflow-x: auto;">
-                <!-- Header Table (not scrollable vertically) -->
-                <table class="gradebook-table table table-bordered table-hover" style="min-width: 100%; width: max-content; margin-bottom: 0;">
+            <div class="gradebook-table-container" style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                <table id="gradeSheetTable" class="gradebook-table table table-bordered table-hover" style="margin-bottom:0;">
                     <thead class="thead-light">
                         <tr>
-                            <th rowspan="2" class="align-middle">Student Name</th>
+                            <th rowspan="2" class="align-middle text-center" style="vertical-align: middle; min-width: 120px;">Student Name</th>
                             {% for component in components %}
-                                <th colspan="{{ component.items|length + 1 }}" class="text-center">
-                                    {{ component.name }} ({{ component.weight }}%)<br>
-                                    <button type="button" class="btn btn-success btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#addItemModal-{{ component.id }}">
-                                        <i class="fas fa-plus"></i> Add Item
-                                    </button>
+                                <th colspan="{{ component.items|length + 1 }}" class="text-center" style="white-space:nowrap; vertical-align: middle; border-right: 2px solid #e0e0e0;">
+                                    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                        <span style="font-weight: 500;">{{ component.name }} ({{ component.weight }}%)</span>
+                                        <button type="button" class="btn btn-success btn-sm add-item-btn-compact" style="padding: 2px 10px; font-size: 0.95em; min-width: 0; min-height: 0;" data-bs-toggle="modal" data-bs-target="#addItemModal-{{ component.id }}">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
                                 </th>
                             {% endfor %}
-                            <th rowspan="2" class="align-middle">Total Grade</th>
-                            <th rowspan="2" class="align-middle">Actions</th>
+                            <th rowspan="2" class="align-middle text-center" style="vertical-align: middle; min-width: 90px;">Total Grade</th>
+                            <th rowspan="2" class="align-middle text-center" style="vertical-align: middle; min-width: 90px;">Actions</th>
                         </tr>
-                        <tr>
+                        <tr style="height: 38px;">
                             {% for component in components %}
                                 {% for item in component.items %}
-                                <th class="item-header text-center" title="Max: {{ item.max_score }}">
-                                    {{ item.title }}
-                                    <button class="btn btn-danger btn-xs delete-item-btn" data-item-id="{{ item.id }}" title="Delete {{ item.title }}"><i class="fas fa-times"></i></button>
+                                <th class="item-header text-center" title="Max: {{ item.max_score }}" style="vertical-align: bottom; padding-bottom: 2px; border-right: 1px solid #e0e0e0;">
+                                    <span style="font-size: 0.98em;">{{ item.title }}</span>
+                                    <button class="btn btn-danger btn-xs delete-item-btn" style="padding: 2px 7px; font-size: 0.9em; margin-left: 2px;" data-item-id="{{ item.id }}" title="Delete {{ item.title }}"><i class="fas fa-times"></i></button>
                                 </th>
                                 {% endfor %}
-                                <!-- Empty th for component average column in the second header row -->
-                                <th class="text-center">%</th>
+                                <th class="text-center" style="vertical-align: bottom; font-size: 0.98em; border-right: 2px solid #e0e0e0;">%</th>
                             {% endfor %}
                         </tr>
                     </thead>
+                    <tbody>
+                        {# Boys group #}
+                        {% set boys = students | selectattr('gender', 'equalto', 'Male') | list %}
+                        {% set girls = students | selectattr('gender', 'equalto', 'Female') | list %}
+                        {% if boys %}
+                        <tr class="table-group-divider"><td colspan="100" style="font-weight:bold; background:#f5f5f5;">Boys</td></tr>
+                        {% for student in boys %}
+                        <tr data-student-id="{{ student.id }}">
+                            <td>{{ student.name }}</td>
+                            {% for component in components %}
+                                {% for item in component.items %}
+                                <td class="text-center">
+                                    <input type="number" 
+                                           class="form-control form-control-sm grade-input"
+                                           data-item-id="{{ item.id }}"
+                                           data-student-id="{{ student.id }}"
+                                           value="{{ scores.get(student.id, {}).get(item.id, '') }}"
+                                           max="{{ item.max_score }}"
+                                           min="0"
+                                           step="0.01">
+                                </td>
+                                {% endfor %}
+                                <td class="text-center font-weight-bold component-average-{{ student.id }}-{{ component.id }}">
+                                    {{- component_averages.get(student.id, {}).get(component.id, 'N/A') -}}
+                                </td>
+                            {% endfor %}
+                            <td class="text-center font-weight-bold total-grade-{{ student.id }}">
+                                {{- total_grades.get(student.id, 'N/A') -}}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('grade_student_for_subject', subject_id=subject.id, student_id=student.id) }}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-edit"></i> Grade
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% endif %}
+                        {# Girls group #}
+                        {% if girls %}
+                        <tr class="table-group-divider"><td colspan="100" style="font-weight:bold; background:#f5f5f5;">Girls</td></tr>
+                        {% for student in girls %}
+                        <tr data-student-id="{{ student.id }}">
+                            <td>{{ student.name }}</td>
+                            {% for component in components %}
+                                {% for item in component.items %}
+                                <td class="text-center">
+                                    <input type="number" 
+                                           class="form-control form-control-sm grade-input"
+                                           data-item-id="{{ item.id }}"
+                                           data-student-id="{{ student.id }}"
+                                           value="{{ scores.get(student.id, {}).get(item.id, '') }}"
+                                           max="{{ item.max_score }}"
+                                           min="0"
+                                           step="0.01">
+                                </td>
+                                {% endfor %}
+                                <td class="text-center font-weight-bold component-average-{{ student.id }}-{{ component.id }}">
+                                    {{- component_averages.get(student.id, {}).get(component.id, 'N/A') -}}
+                                </td>
+                            {% endfor %}
+                            <td class="text-center font-weight-bold total-grade-{{ student.id }}">
+                                {{- total_grades.get(student.id, 'N/A') -}}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('grade_student_for_subject', subject_id=subject.id, student_id=student.id) }}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-edit"></i> Grade
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% endif %}
+                    </tbody>
                 </table>
-                <!-- Body Table (scrollable vertically) -->
-                <div class="gradebook-tbody-scroll"{% if students|length > 4 %} style="overflow-y: auto; max-height: 400px;"{% endif %}>
-                    <table class="gradebook-table table table-bordered table-hover" style="min-width: 100%; width: max-content;">
-                        <tbody>
-                            {# Boys group #}
-                            {% set boys = students | selectattr('gender', 'equalto', 'Male') | list %}
-                            {% set girls = students | selectattr('gender', 'equalto', 'Female') | list %}
-                            {% if boys %}
-                            <tr class="table-group-divider"><td colspan="100" style="font-weight:bold; background:#f5f5f5;">Boys</td></tr>
-                            {% for student in boys %}
-                            <tr data-student-id="{{ student.id }}">
-                                <td>{{ student.name }}</td>
-                                {% for component in components %}
-                                    {% for item in component.items %}
-                                    <td class="text-center">
-                                        <input type="number" 
-                                               class="form-control form-control-sm grade-input"
-                                               data-item-id="{{ item.id }}"
-                                               data-student-id="{{ student.id }}"
-                                               value="{{ scores.get(student.id, {}).get(item.id, '') }}"
-                                               max="{{ item.max_score }}"
-                                               min="0"
-                                               step="0.01">
-                                    </td>
-                                    {% endfor %}
-                                    <td class="text-center font-weight-bold component-average-{{ student.id }}-{{ component.id }}">
-                                        {{- component_averages.get(student.id, {}).get(component.id, 'N/A') -}}
-                                    </td>
-                                {% endfor %}
-                                <td class="text-center font-weight-bold total-grade-{{ student.id }}">
-                                    {{- total_grades.get(student.id, 'N/A') -}}
-                                </td>
-                                <td>
-                                    <a href="{{ url_for('grade_student_for_subject', subject_id=subject.id, student_id=student.id) }}" class="btn btn-primary btn-sm">
-                                        <i class="fas fa-edit"></i> Grade
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                            {% endif %}
-                            {# Girls group #}
-                            {% if girls %}
-                            <tr class="table-group-divider"><td colspan="100" style="font-weight:bold; background:#f5f5f5;">Girls</td></tr>
-                            {% for student in girls %}
-                            <tr data-student-id="{{ student.id }}">
-                                <td>{{ student.name }}</td>
-                                {% for component in components %}
-                                    {% for item in component.items %}
-                                    <td class="text-center">
-                                        <input type="number" 
-                                               class="form-control form-control-sm grade-input"
-                                               data-item-id="{{ item.id }}"
-                                               data-student-id="{{ student.id }}"
-                                               value="{{ scores.get(student.id, {}).get(item.id, '') }}"
-                                               max="{{ item.max_score }}"
-                                               min="0"
-                                               step="0.01">
-                                    </td>
-                                    {% endfor %}
-                                    <td class="text-center font-weight-bold component-average-{{ student.id }}-{{ component.id }}">
-                                        {{- component_averages.get(student.id, {}).get(component.id, 'N/A') -}}
-                                    </td>
-                                {% endfor %}
-                                <td class="text-center font-weight-bold total-grade-{{ student.id }}">
-                                    {{- total_grades.get(student.id, 'N/A') -}}
-                                </td>
-                                <td>
-                                    <a href="{{ url_for('grade_student_for_subject', subject_id=subject.id, student_id=student.id) }}" class="btn btn-primary btn-sm">
-                                        <i class="fas fa-edit"></i> Grade
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </div>
     </div>
