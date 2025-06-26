@@ -196,13 +196,16 @@
     <!-- Remove Mobile Navigation Overlay and Menu -->
     <!-- Header Start -->
     <header class="student-header">
-        <div class="container" style="display: flex; align-items: center; justify-content: space-between;">
+        <div class="container" style="display: flex; align-items: center; justify-content: space-between; position: relative;">
             <div style="display: flex; align-items: center; gap: 1em;">
                 <img src="{{ url_for('static', filename='css/pcshs_logo.png') }}" alt="PCSHS Logo" style="height: 48px; width: auto; margin-right: 12px;">
                 <span class="student-title" style="font-size: 1.3rem; font-weight: 700; color: #fff; margin-right: 1.5em;">Student Portal</span>
             </div>
-            <nav class="student-nav" style="display: flex; align-items: center;">
-                <ul style="display: flex; gap: 1.2rem; list-style: none; margin: 0; padding: 0; align-items: center;">
+            <!-- Mobile Menu Button -->
+            <button id="mobileMenuBtn" class="mobile-menu-btn" style="display:none;">Menu</button>
+            <!-- Desktop Nav -->
+            <nav class="student-nav">
+                <ul>
                     {% if session.student_id %}
                         <li><a href="{{ url_for('student_dashboard') }}" class="{% if request.endpoint == 'student_dashboard' %}active{% endif %}">Dashboard</a></li>
                         <li><a href="{{ url_for('student_grades') }}" class="{% if request.endpoint == 'student_grades' %}active{% endif %}">Grades</a></li>
@@ -214,6 +217,20 @@
                     {% endif %}
                 </ul>
             </nav>
+            <!-- Mobile Dropdown Nav -->
+            <div id="mobileNavDropdown" class="mobile-nav-dropdown" style="display:none; position:absolute; top:100%; right:0; background:#fff; box-shadow:0 4px 16px rgba(0,0,0,0.12); border-radius:10px; min-width:160px; z-index:9999;">
+                <ul style="list-style:none; margin:0; padding:0;">
+                    {% if session.student_id %}
+                        <li><a href="{{ url_for('student_dashboard') }}">Dashboard</a></li>
+                        <li><a href="{{ url_for('student_grades') }}">Grades</a></li>
+                        <li><a href="{{ url_for('student_attendance') }}">Attendance</a></li>
+                        <li><a href="{{ url_for('student_quiz') }}">Quiz</a></li>
+                        <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin:0.5em 0;">Logout</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('student_login') }}">Login</a></li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
     </header>
     <!-- Header End -->
@@ -323,6 +340,22 @@
         }
         lastTouchEnd = now;
     }, false);
+    
+    // Mobile menu dropdown toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        var btn = document.getElementById('mobileMenuBtn');
+        var dropdown = document.getElementById('mobileNavDropdown');
+        btn && btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        });
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (dropdown && dropdown.style.display === 'block' && !dropdown.contains(e.target) && e.target !== btn) {
+                dropdown.style.display = 'none';
+            }
+        });
+    });
     </script>
 </body>
 </html>

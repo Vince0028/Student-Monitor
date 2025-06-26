@@ -1063,3 +1063,100 @@ html, body {
     display: none !important;
   }
 }
+
+/* Mobile dropdown menu styles */
+.mobile-menu-btn {
+  display: none;
+  background: #2563eb;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7em 1.2em;
+  margin-left: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+  z-index: 10001;
+}
+.mobile-menu-btn:active, .mobile-menu-btn:focus {
+  background: #174ea6;
+  outline: 2px solid #174ea6;
+}
+.mobile-nav-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  border-radius: 10px;
+  min-width: 160px;
+  z-index: 9999;
+  padding: 0.5em 0;
+}
+.mobile-nav-dropdown ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mobile-nav-dropdown li {
+  border-bottom: 1px solid #e5e7eb;
+}
+.mobile-nav-dropdown li:last-child {
+  border-bottom: none;
+}
+.mobile-nav-dropdown a, .mobile-nav-dropdown .btn-danger {
+  display: block;
+  width: 100%;
+  padding: 1em 1.2em;
+  color: #2563eb;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0;
+  transition: background 0.2s, color 0.2s;
+}
+.mobile-nav-dropdown a:hover, .mobile-nav-dropdown .btn-danger:hover {
+  background: #e0e7ff;
+  color: #174ea6;
+}
+.mobile-nav-dropdown .btn-danger {
+  color: #2563eb;
+  background: none;
+  border-radius: 0;
+  font-weight: 700;
+  text-align: left;
+  margin: 0;
+  padding: 1em 1.2em;
+  box-shadow: none;
+}
+.mobile-nav-dropdown .btn-danger:hover {
+  background: #e0e7ff;
+  color: #174ea6;
+}
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: block !important;
+  }
+  .student-nav {
+    display: none !important;
+  }
+  .mobile-nav-dropdown {
+    display: none;
+  }
+  .mobile-nav-dropdown[style*='block'] {
+    display: block !important;
+  }
+}
+@media (min-width: 769px) {
+  .mobile-menu-btn, .mobile-nav-dropdown {
+    display: none !important;
+  }
+  .student-nav {
+    display: flex !important;
+  }
+}
