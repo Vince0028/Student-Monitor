@@ -303,12 +303,27 @@ def student_attendance():
     else:
         subject_map = {}
 
-    # Group attendance records by period (semester/quarter)
-    period_map = {}
-    # Cache for section_period lookups
-    section_period_cache = {}
+    # --- Filtering logic ---
+    status_filter = request.args.get('status', '').strip().lower()
+    search = request.args.get('search', '').strip().lower()
+    subject_filter = request.args.get('subject', '').strip()
+
+    filtered_records = []
     for record in attendance_records:
-        # Get the period info from the student's section_period_id
+        if status_filter and record.status != status_filter:
+            continue
+        if subject_filter and str(record.section_subject_id) != subject_filter:
+            continue
+        if search:
+            subject_name = subject_map.get(record.section_subject_id, '').lower()
+            if search not in subject_name:
+                continue
+        filtered_records.append(record)
+
+    # Group filtered_records by period (semester/quarter)
+    period_map = {}
+    section_period_cache = {}
+    for record in filtered_records:
         student_info = next((info for info in all_student_infos if info.id == record.student_info_id), None)
         period_key = "Unknown Period"
         if student_info:
@@ -327,16 +342,16 @@ def student_attendance():
         period_map[period_key].append(record)
 
     # Calculate summary statistics for all records (can also do per period if needed)
-    present_count = sum(1 for a in attendance_records if a.status == 'present')
-    absent_count = sum(1 for a in attendance_records if a.status == 'absent')
-    late_count = sum(1 for a in attendance_records if a.status == 'late')
-    excused_count = sum(1 for a in attendance_records if a.status == 'excused')
-    total_classes = len(attendance_records)
+    present_count = sum(1 for a in filtered_records if a.status == 'present')
+    absent_count = sum(1 for a in filtered_records if a.status == 'absent')
+    late_count = sum(1 for a in filtered_records if a.status == 'late')
+    excused_count = sum(1 for a in filtered_records if a.status == 'excused')
+    total_classes = len(filtered_records)
     attendance_rate = round(((present_count + late_count) / total_classes * 100), 1) if total_classes > 0 else 0
 
     return render_template('student_attendance_history.html',
         student=student,
-        attendance_records=attendance_records,
+        attendance_records=filtered_records,
         present_count=present_count,
         absent_count=absent_count,
         late_count=late_count,

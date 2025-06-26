@@ -15,6 +15,7 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    margin-bottom: 3em;
 }
 .landing-header {
     background: #fff;
@@ -218,6 +219,21 @@
     max-width: none;
   }
 }
+.semester-attendance-scroll {
+    max-height: 300px;
+    overflow-y: auto;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    margin-bottom: 1em;
+}
+.semester-header {
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: 1.1em;
+    margin: 2em 0 1em 0;
+    letter-spacing: 1px;
+}
 </style>
 <div class="landing-card">
     <div class="landing-header">
@@ -250,64 +266,64 @@
     <!-- Filters & Search -->
     <div class="attendance-filter-card">
         <div class="attendance-filter-title"><i class="fas fa-filter"></i> Filters & Search</div>
-        <div class="attendance-filter-row">
-            <input type="text" class="form-control attendance-search" id="attendanceSearch" placeholder="Search by subject or notes...">
-            <select class="form-select attendance-status-filter" id="statusFilter">
-                <option value="">All Status</option>
-                <option value="present">Present</option>
-                <option value="absent">Absent</option>
-                <option value="late">Late</option>
-                <option value="excused">Excused</option>
-            </select>
-            <select class="form-select attendance-subject-filter" id="subjectFilter">
-                <option value="">All Subjects</option>
-                {# Remove subject options based on records_by_subject #}
-            </select>
-            <button class="btn btn-outline-secondary attendance-clear-btn" id="clearFilters" type="button">Clear</button>
-        </div>
+        <form method="get" action="{{ url_for('student_attendance') }}" class="attendance-filter-form">
+            <div class="attendance-filter-row">
+                <input type="text" name="search" placeholder="Search by subject or notes..." value="{{ request.args.get('search', '') }}" class="form-control attendance-search">
+                <select name="status" class="form-select attendance-status-filter">
+                    <option value="">All Status</option>
+                    <option value="present" {% if request.args.get('status') == 'present' %}selected{% endif %}>Present</option>
+                    <option value="absent" {% if request.args.get('status') == 'absent' %}selected{% endif %}>Absent</option>
+                    <option value="late" {% if request.args.get('status') == 'late' %}selected{% endif %}>Late</option>
+                    <option value="excused" {% if request.args.get('status') == 'excused' %}selected{% endif %}>Excused</option>
+                </select>
+                <select name="subject" class="form-select attendance-subject-filter">
+                    <option value="">All Subjects</option>
+                    {% for sid, sname in subject_map.items() %}
+                        <option value="{{ sid }}" {% if request.args.get('subject') == sid|string %}selected{% endif %}>{{ sname }}</option>
+                    {% endfor %}
+                </select>
+                <a href="{{ url_for('student_attendance') }}" class="btn btn-secondary">Clear</a>
+            </div>
+        </form>
     </div>
     <!-- Attendance Tables by Period -->
     {% if records_by_period %}
         {% for period, records in records_by_period.items() %}
-            <div class="attendance-table-card mt-4">
-                <div class="attendance-table-title">
-                    <i class="fas fa-calendar-alt"></i> {{ period }}
-                </div>
-        <div class="table-responsive">
-                    <table class="table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Subject</th>
-                        <th>Status</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                            {% for record in records %}
-                            <tr>
-                        <td>{{ record.attendance_date.strftime('%a, %b %d, %Y') }}</td>
-                                <td>{{ subject_map.get(record.section_subject_id, 'N/A') }}</td>
-                        <td>
-                            {% if record.status == 'present' %}
-                                        <span class="badge badge-present">Present</span>
-                            {% elif record.status == 'absent' %}
-                                        <span class="badge badge-absent">Absent</span>
-                            {% elif record.status == 'late' %}
-                                        <span class="badge badge-late">Late</span>
-                            {% elif record.status == 'excused' %}
-                                        <span class="badge badge-excused">Excused</span>
-                            {% else %}
-                                        <span class="badge badge-unknown">{{ record.status|capitalize }}</span>
-                            {% endif %}
-                        </td>
-                                <td>--</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+            <div class="semester-header">{{ period }}</div>
+            <div class="{% if records|length > 5 %}semester-attendance-scroll{% endif %}">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Subject</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record.attendance_date.strftime('%a, %b %d, %Y') }}</td>
+                            <td>{{ subject_map.get(record.section_subject_id, 'N/A') }}</td>
+                            <td>
+                                {% if record.status == 'present' %}
+                                    <span class="badge badge-present">Present</span>
+                                {% elif record.status == 'absent' %}
+                                    <span class="badge badge-absent">Absent</span>
+                                {% elif record.status == 'late' %}
+                                    <span class="badge badge-late">Late</span>
+                                {% elif record.status == 'excused' %}
+                                    <span class="badge badge-excused">Excused</span>
+                                {% else %}
+                                    <span class="badge badge-unknown">{{ record.status|capitalize }}</span>
+                                {% endif %}
+                            </td>
+                            <td>--</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         {% endfor %}
     {% else %}
         <div class="attendance-table-card mt-4">
@@ -318,36 +334,24 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('attendanceSearch');
-    const statusFilter = document.getElementById('statusFilter');
-    const subjectFilter = document.getElementById('subjectFilter');
-    const clearBtn = document.getElementById('clearFilters');
-    const tableRows = document.querySelectorAll('#attendanceTable tbody tr');
-
-    function filterTable() {
-        const search = searchInput.value.toLowerCase();
-        const status = statusFilter.value;
-        const subject = subjectFilter.value;
-        tableRows.forEach(row => {
-            const rowStatus = row.getAttribute('data-status');
-            const rowSubject = row.getAttribute('data-subject');
-            const rowNotes = row.getAttribute('data-notes').toLowerCase();
-            let show = true;
-            if (status && rowStatus !== status) show = false;
-            if (subject && rowSubject !== subject) show = false;
-            if (search && !(rowSubject.toLowerCase().includes(search) || rowNotes.includes(search))) show = false;
-            row.style.display = show ? '' : 'none';
+    const form = document.querySelector('.attendance-filter-form');
+    if (form) {
+        // Auto-submit on dropdown change
+        form.querySelectorAll('select').forEach(function(select) {
+            select.addEventListener('change', function() {
+                form.submit();
+            });
         });
+        // Auto-submit on Enter in search input
+        const searchInput = form.querySelector('input[name="search"]');
+        if (searchInput) {
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    form.submit();
+                }
+            });
+        }
     }
-    searchInput.addEventListener('input', filterTable);
-    statusFilter.addEventListener('change', filterTable);
-    subjectFilter.addEventListener('change', filterTable);
-    clearBtn.addEventListener('click', function() {
-        searchInput.value = '';
-        statusFilter.value = '';
-        subjectFilter.value = '';
-        filterTable();
-    });
 });
 </script>
 {% endblock %} 
