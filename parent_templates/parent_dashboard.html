@@ -3,78 +3,64 @@
 {% block title %}Dashboard - Parent Portal{% endblock %}
 
 {% block content %}
-<div class="dashboard-header">
-    <h2>Welcome, {{ session.parent_name }}!</h2>
-    <p>Here's an overview of your children's academic progress</p>
-</div>
-
-{% if children_with_periods %}
-    <div class="students-grid{% if children_with_periods|length == 1 %} center-content{% endif %}">
-        {% for child in children_with_periods %}
-        <div class="student-card">
-            <div class="student-header">
-                <div class="student-avatar">
-                    <i class="fas fa-user-graduate"></i>
-                </div>
-                <div class="student-info">
-                    <h3>{{ child.first_name }} {{ child.last_name }}</h3>
-                </div>
-            </div>
-            {% if child.overall_average_grade is not none %}
-            <div style="text-align:center; margin-bottom: 0.7em;">
-                <span style="font-weight: 600; color: #357ab8;">
-                    Overall Average Grade: {{ '%.2f'|format(child.overall_average_grade) }}
-                </span>
-            </div>
-            {% endif %}
-            <div class="student-periods">
-                {% for period in child.periods %}
-                <div class="period-card" style="margin-bottom: 1em; padding: 0.7em 1em; background: #f7faff; border-radius: 8px;">
-                    <div style="font-weight: bold;">{{ period.period_name }} {{ period.school_year }}</div>
-                    <div style="font-size: 0.95em; color: #555;">
-                        ID: {{ period.student_id_number }}<br>
-                        {{ period.grade_level }} - {{ period.section_name }}{% if period.strand_name %} ({{ period.strand_name }}){% endif %}
+    {# The welcome header is now removed after login #}
+    {% if children_with_periods %}
+        <div class="students-grid{% if children_with_periods|length == 1 %} center-content{% endif %}">
+            {% for child in children_with_periods %}
+            <div class="student-card">
+                <div class="student-header">
+                    <div class="student-avatar">
+                        <i class="fas fa-user-graduate"></i>
                     </div>
-                    <div style="margin: 0.5em 0;">
-                        <span style="font-weight: 500;">Average Grade:</span>
-                        <span>{{ '%.2f'|format(period.average_grade) if period.average_grade is not none else 'N/A' }}</span>
+                    <div class="student-info">
+                        <h3>{{ child.first_name }} {{ child.last_name }}</h3>
                     </div>
-                    <div class="student-actions">
-                        <a href="{{ url_for('student_grades', student_id=period.id) }}" class="btn btn-secondary btn-sm">
+                </div>
+                {% if child.overall_average_grade is not none %}
+                <div style="text-align:center; margin-bottom: 0.7em;">
+                    <span style="font-weight: 600; color: #357ab8;">
+                        Overall Average Grade: {{ '%.2f'|format(child.overall_average_grade) }}
+                    </span>
+                </div>
+                {% endif %}
+                <div class="student-periods">
+                  {% for period in child.periods %}
+                    <div class="period-card">
+                      <div class="period-header">
+                        <span class="period-title">{{ period.period_name }} {{ period.school_year }}</span>
+                      </div>
+                      <div class="period-details">
+                        <div class="period-meta">
+                          <span>ID: {{ period.student_id_number }}</span><br>
+                          <span>{{ period.grade_level }} - {{ period.section_name }}{% if period.strand_name %} ({{ period.strand_name }}){% endif %}</span>
+                        </div>
+                        <div class="period-grade">
+                          <span>Average Grade:</span>
+                          <span class="grade-value">{{ '%.2f'|format(period.average_grade) if period.average_grade is not none else 'N/A' }}</span>
+                        </div>
+                        <div class="period-actions">
+                          <a href="{{ url_for('student_grades', student_id=period.id) }}" class="btn btn-secondary btn-sm">
                             <i class="fas fa-chart-line"></i> Grades
-                        </a>
-                        <a href="{{ url_for('student_attendance', student_id=period.id) }}" class="btn btn-info btn-sm">
+                          </a>
+                          <a href="{{ url_for('student_attendance', student_id=period.id) }}" class="btn btn-info btn-sm">
                             <i class="fas fa-calendar-check"></i> Attendance
-                        </a>
+                          </a>
+                        </div>
+                      </div>
                     </div>
+                  {% endfor %}
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
-{% else %}
-    <div class="empty-state">
-        <div class="empty-icon">
-            <i class="fas fa-users"></i>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3>No Students Found</h3>
+            <p>It looks like no students have been linked to your account yet.</p>
+            <p>Please contact the school administration to link your children to your account.</p>
         </div>
-        <h3>No Students Found</h3>
-        <p>It looks like no students have been linked to your account yet.</p>
-        <p>Please contact the school administration to link your children to your account.</p>
-    </div>
-{% endif %}
-
-<div class="dashboard-footer">
-    <div class="quick-actions">
-        <h3>Quick Actions</h3>
-        <div class="action-buttons">
-            <a href="{{ url_for('parent_profile') }}" class="btn btn-outline">
-                <i class="fas fa-user-edit"></i> Update Profile
-            </a>
-            <a href="{{ url_for('parent_logout') }}" class="btn btn-outline">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
-        </div>
-    </div>
-</div>
+    {% endif %}
 {% endblock %} 

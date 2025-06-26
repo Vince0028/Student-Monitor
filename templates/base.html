@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4a5568">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>{% block title %}Student Monitor{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_style.css') }}">
@@ -19,16 +22,16 @@
             <nav class="main-nav">
                 <ul class="nav-links">
                     {% if session.user_id %} {# Check if user is logged in #}
-                        <li><a href="{{ url_for('profile') }}"><i class="fas fa-user-circle"></i> Profile</a></li>
+                        <li><a href="{{ url_for('profile') }}"><i class="fas fa-user-circle"></i> <span class="nav-text">Profile</span></a></li>
                         {% if session.user_type == 'admin' %}
-                            <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                            <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> <span class="nav-text">Dashboard</span></a></li>
                         {% elif session.user_type == 'teacher' %}
-                            <li><a href="{{ url_for('teacher_dashboard') }}"><i class="fas fa-chalkboard-teacher"></i> Dashboard</a></li>
+                            <li><a href="{{ url_for('teacher_dashboard') }}"><i class="fas fa-chalkboard-teacher"></i> <span class="nav-text">Dashboard</span></a></li>
                         {% endif %}
-                        <li><a href="{{ url_for('logout') }}" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        <li><a href="{{ url_for('logout') }}" class="btn-logout"><i class="fas fa-sign-out-alt"></i> <span class="nav-text">Logout</span></a></li>
                     {% else %}
-                        <li><a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
-                        <li><a href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> Register</a></li>
+                        <li><a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> <span class="nav-text">Login</span></a></li>
+                        <li><a href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> <span class="nav-text">Register</span></a></li>
                     {% endif %}
                 </ul>
             </nav>
@@ -133,6 +136,41 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Mobile-specific enhancements
+            const isMobile = window.innerWidth <= 768;
+            
+            // Add touch-friendly interactions for mobile
+            if (isMobile) {
+                // Increase touch targets
+                document.querySelectorAll('.btn, .nav-links a').forEach(element => {
+                    element.style.minHeight = '44px';
+                    element.style.minWidth = '44px';
+                });
+                
+                // Add swipe gestures for tables (if needed)
+                const tables = document.querySelectorAll('.table-responsive');
+                tables.forEach(table => {
+                    let startX = 0;
+                    let scrollLeft = 0;
+                    
+                    table.addEventListener('touchstart', (e) => {
+                        startX = e.touches[0].pageX - table.offsetLeft;
+                        scrollLeft = table.scrollLeft;
+                    });
+                    
+                    table.addEventListener('touchmove', (e) => {
+                        if (!startX) return;
+                        const x = e.touches[0].pageX - table.offsetLeft;
+                        const walk = (x - startX) * 2;
+                        table.scrollLeft = scrollLeft - walk;
+                    });
+                    
+                    table.addEventListener('touchend', () => {
+                        startX = 0;
+                    });
+                });
+            }
+
             const profileLink = document.querySelector('a[href="{{ url_for('profile') }}"]');
             if (profileLink && "{{ session.user_type }}" === "teacher") {
                 profileLink.addEventListener('click', function(event) {
@@ -178,6 +216,34 @@
                     // );
                 });
             }
+
+            // Auto-hide flash messages after 5 seconds on mobile
+            if (isMobile) {
+                setTimeout(() => {
+                    const flashMessages = document.querySelectorAll('.alert');
+                    flashMessages.forEach(message => {
+                        message.style.transition = 'opacity 0.5s ease';
+                        message.style.opacity = '0';
+                        setTimeout(() => message.remove(), 500);
+                    });
+                }, 5000);
+            }
+
+            // Prevent zoom on input focus for iOS
+            const inputs = document.querySelectorAll('input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    if (isMobile) {
+                        this.style.fontSize = '16px';
+                    }
+                });
+                
+                input.addEventListener('blur', function() {
+                    if (isMobile) {
+                        this.style.fontSize = '';
+                    }
+                });
+            });
         });
 
         function submitPassword() {
@@ -206,6 +272,28 @@
                 errorDiv.textContent = 'An error occurred. Please try again.';
             });
         }
+
+        // Add responsive table functionality
+        function makeTablesResponsive() {
+            const tables = document.querySelectorAll('.data-table');
+            tables.forEach(table => {
+                const headers = table.querySelectorAll('th');
+                const cells = table.querySelectorAll('td');
+                
+                headers.forEach((header, index) => {
+                    const headerText = header.textContent.trim();
+                    cells.forEach((cell, cellIndex) => {
+                        if (cellIndex % headers.length === index) {
+                            cell.setAttribute('data-label', headerText);
+                        }
+                    });
+                });
+            });
+        }
+
+        // Call on page load and window resize
+        document.addEventListener('DOMContentLoaded', makeTablesResponsive);
+        window.addEventListener('resize', makeTablesResponsive);
     </script>
     {% block scripts %}{% endblock %}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
