@@ -1285,3 +1285,15 @@ body {
     overflow-y: auto;
     border-radius: 8px;
 }
+
+.gradebook-tbody-scroll {
+    overflow-y: auto;
+    max-height: 400px;
+}
+.gradebook-table {
+    min-width: 100%;
+    width: max-content;
+}
+.table-responsive {
+    overflow-x: auto;
+}

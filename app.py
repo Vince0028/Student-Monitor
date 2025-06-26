@@ -988,14 +988,13 @@ def verify_password_for_profile():
 
     password = request.json.get('password')
     
-    # Using the first admin's password for verification, as requested.
-    admin = db_session.query(User).filter_by(user_type='admin').first()
-
-    if admin and check_password_hash(admin.password_hash, password):
-        session['profile_unlocked'] = True
-        return jsonify({'success': True})
-    else:
-        return jsonify({'success': False, 'message': 'Incorrect password.'})
+    # Check all admin accounts for a matching password
+    admins = db_session.query(User).filter_by(user_type='admin').all()
+    for admin in admins:
+        if check_password_hash(admin.password_hash, password):
+            session['profile_unlocked'] = True
+            return jsonify({'success': True})
+    return jsonify({'success': False, 'message': 'Incorrect password.'})
 
 # --- Admin Dashboard Routes ---
 @app.route('/admin_dashboard')

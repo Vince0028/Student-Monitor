@@ -392,6 +392,13 @@
                 }
             });
         }
+        // Auto-close student list when switching to another tab (e.g., Add New Subject)
+        const addSubjectBtn = document.getElementById('addSubjectBtn');
+        if (addSubjectBtn) {
+            addSubjectBtn.addEventListener('click', function() {
+                hideStudentList();
+            });
+        }
     });
     </script>
     {% else %}
@@ -901,6 +908,14 @@ function showSuccessToast(message) {
     var toast = new bootstrap.Toast(toastEl);
     toast.show();
 }
+</script>
+
+<script>
+// Clear student list state on page unload so it is always closed on fresh entry
+window.addEventListener('beforeunload', function() {
+    sessionStorage.removeItem('studentListVisible_{{ section_period.id }}');
+    sessionStorage.removeItem('adviserPasswordVerified_{{ section_period.id }}');
+});
 </script>
 
 {% endblock %}

@@ -260,6 +260,9 @@ def student_grades():
                 'school_year': grade.section_subject.section_period.school_year,
                 'grades': []
             }
+        # Attach the assigned teacher's name for display
+        display_teacher = grade.section_subject.assigned_teacher_name if hasattr(grade.section_subject, 'assigned_teacher_name') else 'N/A'
+        grade.display_teacher = display_teacher
         grades_by_period[period_key]['grades'].append(grade)
 
     return render_template('student_grades.html', grades_by_period=grades_by_period, overall_average=overall_average)
@@ -592,4 +595,6 @@ def view_quiz_score(quiz_id):
     return render_template('student_quiz_templates/student_quiz_results.html', quiz_title=quiz.title, score=score, total_questions=total_points)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5002)  # Different port from parent app
+    # To access on your mobile device, run with host='0.0.0.0' and your desired port (e.g., 5002):
+    # app.run(host='0.0.0.0', port=5002, debug=True)
+    app.run(debug=True, port=5002, host='0.0.0.0')  # Default: localhost only
