@@ -430,6 +430,15 @@ html, body {
 .student-main {
     -webkit-overflow-scrolling: touch;
 }
+
+.activities-scroll {
+    max-height: 220px;
+    overflow-y: auto;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    margin-top: 0.5rem;
+}
 </style>
 
 <div class="landing-card">
@@ -478,6 +487,45 @@ html, body {
                                     <td data-label="Teacher">{{ grade.display_teacher }}</td>
                                     <td data-label="School Year">{{ grade.school_year }}</td>
                                 </tr>
+                                {% set activities = activities_by_period[period][grade.section_subject.subject_name] %}
+                                {% if activities and activities|length > 0 %}
+                                <tr>
+                                    <td colspan="4" style="padding:0; background:#f9fafb;">
+                                        <div style="padding:0.5rem 1rem;">
+                                            <strong>Activities Breakdown:</strong>
+                                            {% set grouped = {} %}
+                                            {% for item in activities %}
+                                                {% set _ = grouped.setdefault(item.component, []).append(item) %}
+                                            {% endfor %}
+                                            <div class="activities-scroll">
+                                            <table style="width:100%; font-size:0.95em; background:#fff; border-radius:8px; overflow:hidden;">
+                                                <thead>
+                                                    <tr style="background:#ebf8ff; color:#2c5282;">
+                                                        <th style="width:28%;">Component</th>
+                                                        <th>Item</th>
+                                                        <th>Score</th>
+                                                        <th>Max Score</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for component, items in grouped.items() %}
+                                                        <tr style="background:#f7fafc;"><td colspan="4"><i class="fas fa-layer-group"></i> {{ component }}</td></tr>
+                                                        {% for item in items %}
+                                                        <tr>
+                                                            <td></td>
+                                                            <td><i class="fas fa-clipboard-list grade-item-icon"></i> {{ item.item_title }}</td>
+                                                            <td>{{ '%.2f'|format(item.score) }}</td>
+                                                            <td>{{ '%.2f'|format(item.max_score) }}</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endif %}
                             {% endfor %}
                         </tbody>
                     </table>

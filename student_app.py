@@ -17,6 +17,8 @@ from dotenv import load_dotenv
 # For now, we will import them here
 from app import SectionSubject, Grade, SectionPeriod
 from models import Quiz, StudentQuizResult, Base, StudentQuizAnswer
+# Add these imports for grading system models
+from app import GradingSystem, GradingComponent, GradableItem, StudentScore
 
 load_dotenv()
 
@@ -225,16 +227,12 @@ def student_grades():
         flash('Student not found.', 'error')
         return redirect(url_for('student_login'))
 
-    # Get the base student_id_number (before -S2)
     base_id = student.student_id_number.split('-S2')[0]
-
-    # Find all StudentInfo records for this base ID (1st and 2nd sem, etc)
     all_student_infos = db_session.query(StudentInfo).filter(
         StudentInfo.student_id_number.like(f"{base_id}%")
     ).all()
     all_student_ids = [info.id for info in all_student_infos]
 
-    # Fetch grades for all these student_info records
     grades = db_session.query(Grade).join(
         Grade.section_subject
     ).join(
@@ -248,10 +246,10 @@ def student_grades():
         SectionPeriod.period_name
     ).all()
 
-    # Calculate overall average grade
     overall_average = sum(float(g.grade_value) for g in grades) / len(grades) if grades else None
 
     grades_by_period = {}
+    activities_by_period = {}
     for grade in grades:
         period_key = f"{grade.section_subject.section_period.period_name} {grade.section_subject.section_period.school_year}"
         if period_key not in grades_by_period:
@@ -260,12 +258,35 @@ def student_grades():
                 'school_year': grade.section_subject.section_period.school_year,
                 'grades': []
             }
-        # Attach the assigned teacher's name for display
+            activities_by_period[period_key] = {}
         display_teacher = grade.section_subject.assigned_teacher_name if hasattr(grade.section_subject, 'assigned_teacher_name') else 'N/A'
         grade.display_teacher = display_teacher
         grades_by_period[period_key]['grades'].append(grade)
 
-    return render_template('student_grades.html', grades_by_period=grades_by_period, overall_average=overall_average)
+        # --- Fetch activities for this subject ---
+        subject = grade.section_subject
+        grading_system = db_session.query(GradingSystem).filter_by(section_subject_id=subject.id).first()
+        if not grading_system:
+            continue
+        components = db_session.query(GradingComponent).filter_by(system_id=grading_system.id).all()
+        items = db_session.query(GradableItem).join(GradingComponent).filter(GradingComponent.system_id == grading_system.id).all()
+        scores = db_session.query(StudentScore).filter_by(student_info_id=grade.student_info_id).all()
+        scores_map = {s.item_id: s.score for s in scores}
+        # Organize by component
+        subject_activities = []
+        for component in components:
+            comp_items = [i for i in items if i.component_id == component.id]
+            for item in comp_items:
+                subject_activities.append({
+                    'component': component.name,
+                    'weight': component.weight,
+                    'item_title': item.title,
+                    'max_score': float(item.max_score),
+                    'score': float(scores_map.get(item.id, 0)),
+                })
+        activities_by_period[period_key][subject.subject_name] = subject_activities
+
+    return render_template('student_grades.html', grades_by_period=grades_by_period, overall_average=overall_average, activities_by_period=activities_by_period)
 
 @app.route('/student/attendance')
 @login_required

@@ -118,13 +118,15 @@
 </style>
 
 <div class="dashboard-container">
-    <h2>{{ section_period.section.name }} ({{ section_period.period_name }} {{ section_period.school_year }} {% if section_period.section.strand %}{{ section_period.section.strand.name }}{% endif %})</h2>
-    <p class="dashboard-welcome">Manage students, subjects, and attendance for this {{ section_period.period_type | lower }}.</p>
-    {% if section_period.assigned_teacher %}
-        <p class="dashboard-welcome">You are assigned as the primary teacher for this {{ section_period.period_type | lower }}.</p>
-    {% else %}
-        <p class="dashboard-welcome text-red-600 font-semibold">Note: This {{ section_period.period_type | lower }} does not have a primary assigned teacher. Manage with caution.</p>
-    {% endif %}
+    <div style="text-align:center; margin-bottom:2rem;">
+        <h2>{{ section_period.section.name }} ({{ section_period.period_name }} {{ section_period.school_year }} {% if section_period.section.strand %}{{ section_period.section.strand.name }}{% endif %})</h2>
+        <p class="dashboard-welcome">Manage students, subjects, and attendance for this {{ section_period.period_type | lower }}.</p>
+        {% if section_period.assigned_teacher %}
+            <p class="dashboard-welcome">You are assigned as the primary teacher for this {{ section_period.period_type | lower }}.</p>
+        {% else %}
+            <p class="dashboard-welcome text-red-600 font-semibold">Note: This {{ section_period.period_type | lower }} does not have a primary assigned teacher. Manage with caution.</p>
+        {% endif %}
+    </div>
 
     <div class="dashboard-grid">
         <div class="card dashboard-option-card">
@@ -142,9 +144,11 @@
     </div>
 
     {% if students %}
-    <button class="btn btn-outline-primary mb-3" type="button" id="toggleStudentListBtn" onclick="toggleStudentListVisibility()">
-        Show/View Student List
-    </button>
+    <div style="text-align:center; margin-bottom:1.5rem;">
+        <button class="btn btn-outline-primary mb-3" type="button" id="toggleStudentListBtn" onclick="toggleStudentListVisibility()">
+            Show/View Student List
+        </button>
+    </div>
     <div id="studentListContainer" style="display:none;">
         <div class="mb-3 d-flex justify-content-between align-items-center">
             <input type="text" id="studentSearchInput" class="form-control w-50" placeholder="Search students by name or ID...">
