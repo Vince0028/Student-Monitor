@@ -1,4 +1,5 @@
 Flask
+Flask-SQLAlchemy
 SQLAlchemy>=2.0.25
 Werkzeug
 python-dotenv
