@@ -2422,6 +2422,20 @@ def delete_student_from_section(student_id):
              return jsonify({'success': False, 'message': 'You do not have permission to delete this student (JHS student incorrectly assigned to a strand).'})
 
     try:
+        # Log the action before deleting
+        teacher_username = session.get('username', 'unknown')
+        create_teacher_log(
+            db_session=db_session,
+            teacher_id=user_id,
+            teacher_username=teacher_username,
+            action_type='delete_student',
+            target_type='student',
+            target_id=student_to_delete.id,
+            target_name=student_to_delete.name,
+            details=f"Deleted student {student_to_delete.name} (ID: {student_to_delete.student_id_number}) from section {student_to_delete.section_period.section.name}",
+            section_period_id=student_to_delete.section_period_id
+        )
+        
         db_session.delete(student_to_delete)
         db_session.commit()
         return jsonify({'success': True, 'message': f'Student "{student_to_delete.name}" has been deleted from section "{student_to_delete.section_period.section.name}".'})
@@ -2961,6 +2975,11 @@ def grade_student_for_subject(subject_id, student_id):
         components = sorted(subject.grading_system.components, key=lambda c: c.name)
 
     if request.method == 'POST':
+        teacher_username = session.get('username', 'unknown')
+        teacher_id = uuid.UUID(session['user_id'])
+        updated_scores = []
+        deleted_scores = []
+        
         # Use the sorted components list to ensure we process in a predictable order
         for component in components:
             for item in component.items:
@@ -2972,10 +2991,12 @@ def grade_student_for_subject(subject_id, student_id):
                         score = g.session.query(StudentScore).filter_by(item_id=item.id, student_info_id=student.id).first()
                         if score:
                             score.score = score_value
+                            updated_scores.append((item.title, score_value))
                         else:
                             # Create new score if it doesn't exist
                             score = StudentScore(item_id=item.id, student_info_id=student.id, score=score_value)
                             g.session.add(score)
+                            updated_scores.append((item.title, score_value))
                     except (decimal.InvalidOperation, ValueError):
                         flash(f'Invalid score format for {item.title}. Please use numbers only.', 'error')
                         # We continue here to not block other valid scores from being saved
@@ -2984,9 +3005,32 @@ def grade_student_for_subject(subject_id, student_id):
                     # If score input is empty, delete the existing score from the DB
                     score = g.session.query(StudentScore).filter_by(item_id=item.id, student_info_id=student.id).first()
                     if score:
+                        deleted_scores.append(item.title)
                         g.session.delete(score)
 
         g.session.commit()
+        
+        # Log the bulk grade updates
+        if updated_scores or deleted_scores:
+            details_parts = []
+            if updated_scores:
+                details_parts.append(f"Updated scores: {', '.join([f'{title} ({score})' for title, score in updated_scores])}")
+            if deleted_scores:
+                details_parts.append(f"Deleted scores: {', '.join(deleted_scores)}")
+            
+            create_teacher_log(
+                db_session=g.session,
+                teacher_id=teacher_id,
+                teacher_username=teacher_username,
+                action_type='edit_grade',
+                target_type='grade',
+                target_id=student.id,
+                target_name=f"{student.name} - {subject.subject_name}",
+                details=f"Bulk grade update for {student.name} in {subject.subject_name}: {'; '.join(details_parts)}",
+                section_period_id=subject.section_period_id,
+                subject_id=subject.id
+            )
+        
         flash(f'Grades for {student.name} updated successfully!', 'success')
         
         # Sync the calculated total grade to the grades table

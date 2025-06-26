@@ -645,10 +645,16 @@ def delete_student_admin(student_id):
 class TeacherLog(db.Model):
     __tablename__ = 'teacher_logs'
     id = db.Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    action = db.Column(db.String(50), nullable=False)
-    target = db.Column(db.String(255), nullable=False)
-    timestamp = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    teacher_id = db.Column(PG_UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=False)
     teacher_username = db.Column(db.String(255), nullable=False)
+    action_type = db.Column(db.String(50), nullable=False)  # 'add_student', 'edit_student', 'delete_student', 'add_grade', 'edit_grade', 'delete_grade'
+    target_type = db.Column(db.String(50), nullable=False)  # 'student' or 'grade'
+    target_id = db.Column(PG_UUID(as_uuid=True), nullable=True)  # student_id or grade_id
+    target_name = db.Column(db.String(255), nullable=False)  # student name or grade description
+    details = db.Column(db.Text, nullable=True)  # Additional details about the action
+    section_period_id = db.Column(PG_UUID(as_uuid=True), db.ForeignKey('section_periods.id'), nullable=True)
+    subject_id = db.Column(PG_UUID(as_uuid=True), db.ForeignKey('section_subjects.id'), nullable=True)
+    timestamp = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
 if __name__ == '__main__':
     app.run(debug=True, port=5005) 
