@@ -25,12 +25,16 @@ body {
   padding: 1.5rem 0 1rem 0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   width: 100%;
+  min-height: 90px;
+  overflow: visible;
 }
 
 .student-header .container {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  overflow: visible;
 }
 
 .student-title {
@@ -83,15 +87,12 @@ body {
   font-size: 1.2em;
 }
 
-.student-header img {
-  height: 70px;
+.student-header img, .student-header .container img {
+  max-height: 70px;
   width: auto;
-  margin-right: 12px;
-  display: block;
+  height: auto;
   object-fit: contain;
-  background: none;
-  border-radius: 0;
-  padding: 0;
+  display: block;
 }
 
 .flash-messages {
