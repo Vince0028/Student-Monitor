@@ -23,6 +23,8 @@ body {
     color: #fff;
     padding: 15px 0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    min-height: 80px;
+    overflow: visible;
 }
 
 .app-header .container {
@@ -30,6 +32,7 @@ body {
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap; /* Allow wrapping for responsiveness */
+    overflow: visible;
 }
 
 .app-title {
