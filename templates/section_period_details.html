@@ -70,7 +70,10 @@
                         <tr>
                             <td>{{ student.name }}</td>
                             <td>{{ student.student_id_number }}</td>
-                            <td class="average-grade-cell" data-grade="{{ student.average_grade | default('N/A', true) }}"><span class="average-grade-value">{{ student.average_grade }}</span></td>
+                            <td class="average-grade-cell" data-grade="{{ student.average_grade | default('N/A', true) }}">
+                                <span class="masked-grade">***</span>
+                                <span class="average-grade-value" style="display:none;">{{ student.average_grade }}</span>
+                            </td>
                             <td>
                                 <div class="button-group">
                                     {% if student.parent %}
@@ -101,7 +104,10 @@
                         <tr>
                             <td>{{ student.name }}</td>
                             <td>{{ student.student_id_number }}</td>
-                            <td class="average-grade-cell" data-grade="{{ student.average_grade | default('N/A', true) }}"><span class="average-grade-value">{{ student.average_grade }}</span></td>
+                            <td class="average-grade-cell" data-grade="{{ student.average_grade | default('N/A', true) }}">
+                                <span class="masked-grade">***</span>
+                                <span class="average-grade-value" style="display:none;">{{ student.average_grade }}</span>
+                            </td>
                             <td>
                                 <div class="button-group">
                                     {% if student.parent %}
@@ -575,4 +581,72 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endfor %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('studentSearchInput');
+    if (!searchInput) return;
+    searchInput.addEventListener('input', function() {
+        const filter = this.value.toLowerCase();
+        const table = document.getElementById('studentTable');
+        if (!table) return;
+        const rows = table.getElementsByTagName('tr');
+        for (let i = 0; i < rows.length; i++) {
+            // Only filter actual student rows (skip group dividers)
+            if (rows[i].querySelector('.average-grade-value')) {
+                const name = rows[i].children[0].textContent.toLowerCase();
+                const id = rows[i].children[1].textContent.toLowerCase();
+                if (name.includes(filter) || id.includes(filter)) {
+                    rows[i].style.display = '';
+                } else {
+                    rows[i].style.display = 'none';
+                }
+            }
+        }
+    });
+});
+</script>
+
+<script>
+function toggleGradeVisibility() {
+    const isMasked = document.querySelector('.masked-grade') && document.querySelector('.masked-grade').style.display !== 'none';
+    const maskedGrades = document.querySelectorAll('.masked-grade');
+    const realGrades = document.querySelectorAll('.average-grade-value');
+    const eyeIcon = document.getElementById('eyeIcon');
+    if (isMasked) {
+        maskedGrades.forEach(el => el.style.display = 'none');
+        realGrades.forEach(el => el.style.display = '');
+        if (eyeIcon) {
+            eyeIcon.classList.remove('fa-eye');
+            eyeIcon.classList.add('fa-eye-slash');
+        }
+    } else {
+        maskedGrades.forEach(el => el.style.display = '');
+        realGrades.forEach(el => el.style.display = 'none');
+        if (eyeIcon) {
+            eyeIcon.classList.remove('fa-eye-slash');
+            eyeIcon.classList.add('fa-eye');
+        }
+    }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    toggleGradeVisibility(); // Mask grades on load
+    // Always mask grades and reset eye icon when student list is shown
+    var studentListCollapse = document.getElementById('studentListCollapse');
+    if (studentListCollapse) {
+        studentListCollapse.addEventListener('show.bs.collapse', function() {
+            // Always mask grades and set eye icon to 'eye' when list is shown
+            const maskedGrades = document.querySelectorAll('.masked-grade');
+            const realGrades = document.querySelectorAll('.average-grade-value');
+            const eyeIcon = document.getElementById('eyeIcon');
+            maskedGrades.forEach(el => el.style.display = '');
+            realGrades.forEach(el => el.style.display = 'none');
+            if (eyeIcon) {
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

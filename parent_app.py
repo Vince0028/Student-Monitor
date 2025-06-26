@@ -320,6 +320,28 @@ def parent_dashboard():
             'average_grade': student.average_grade if hasattr(student, 'average_grade') else None
         })
     children_with_periods = list(children_map.values())
+    # Sort periods for each child: 1st Semester before 2nd Semester, and by school year ascending
+    def period_sort_key(p):
+        # Try to sort by school_year ascending, then by period_name (1st before 2nd)
+        year = p.get('school_year', '')
+        # Extract the first year as int for sorting
+        try:
+            year_int = int(year.split('-')[0])
+        except Exception:
+            year_int = 0
+        # 1st Semester < 2nd Semester < Quarter 1 < Quarter 2 ...
+        period_order = {
+            '1st Semester': 1,
+            '2nd Semester': 2,
+            'Quarter 1': 3,
+            'Quarter 2': 4,
+            'Quarter 3': 5,
+            'Quarter 4': 6
+        }
+        period_val = period_order.get(p.get('period_name', ''), 99)
+        return (year_int, period_val)
+    for child in children_with_periods:
+        child['periods'] = sorted(child['periods'], key=period_sort_key)
     # Add overall average grade for each child
     for child in children_with_periods:
         grades = [p['average_grade'] for p in child['periods'] if p['average_grade'] is not None]
@@ -369,49 +391,68 @@ def student_grades(student_id):
         flash('Student not found.', 'error')
         return redirect(url_for('parent_dashboard'))
 
-    # --- Fetch all subjects for this student ---
+    # --- Fetch all section periods for this student (for all periods/semesters) ---
+    # For now, just use the current section_period_id
     section_period = g.session.query(SectionPeriod).filter_by(id=student.section_period_id).first()
-    section_subjects = g.session.query(SectionSubject).filter_by(section_period_id=student.section_period_id).all()
+    if not section_period:
+        flash('Section period not found.', 'error')
+        return redirect(url_for('parent_dashboard'))
 
-    # --- Fetch all grades for this student ---
-    grades = g.session.query(Grade).filter_by(student_info_id=student.id).all()
-    grades_by_subject = {}
-    for subject in section_subjects:
-        subject_grades = [g for g in grades if g.section_subject_id == subject.id]
-        grades_by_subject[subject.subject_name] = {
-            'total_grade': float(subject_grades[0].grade_value) if subject_grades else None,
-            'grades': subject_grades
-        }
+    # Find all section periods for this student (by student_id_number)
+    all_student_periods = g.session.query(StudentInfo).filter_by(student_id_number=student.student_id_number, parent_id=parent_id).all()
+    period_ids = [s.section_period_id for s in all_student_periods]
+    section_periods = g.session.query(SectionPeriod).filter(SectionPeriod.id.in_(period_ids)).all()
+    period_map = {str(p.id): p for p in section_periods}
 
-    # --- Fetch grading system and items for each subject ---
-    detailed_grades = {}
-    for subject in section_subjects:
-        grading_system = g.session.query(GradingSystem).filter_by(section_subject_id=subject.id).first()
-        if not grading_system:
+    # --- Fetch all grades for this student across all periods ---
+    all_grades = g.session.query(Grade).filter(Grade.student_info_id.in_([s.id for s in all_student_periods])).all()
+    all_section_subjects = g.session.query(SectionSubject).filter(SectionSubject.section_period_id.in_(period_ids)).all()
+    all_section_subjects_map = {str(s.id): s for s in all_section_subjects}
+
+    # --- Build nested structure: periods -> subjects -> details ---
+    periods = {}
+    for s in all_student_periods:
+        period = period_map.get(str(s.section_period_id))
+        if not period:
             continue
-        components = g.session.query(GradingComponent).filter_by(system_id=grading_system.id).all()
-        items = g.session.query(GradableItem).join(GradingComponent).filter(GradingComponent.system_id == grading_system.id).all()
-        # Fetch scores for this student for all items in this subject
-        scores = g.session.query(StudentScore).filter_by(student_info_id=student.id).all()
-        scores_map = {s.item_id: s.score for s in scores}
-        # Organize by component
-        subject_detail = []
-        for component in components:
-            comp_items = [i for i in items if i.component_id == component.id]
-            for item in comp_items:
-                subject_detail.append({
-                    'component': component.name,
-                    'weight': component.weight,
-                    'item_title': item.title,
-                    'max_score': float(item.max_score),
-                    'score': float(scores_map.get(item.id, 0)),
-                })
-        detailed_grades[subject.subject_name] = {
-            'details': subject_detail,
-            'total_grade': grades_by_subject[subject.subject_name]['total_grade']
-        }
+        period_key = (period.period_name, period.school_year)
+        if period_key not in periods:
+            periods[period_key] = {'subjects': {}}
+        # Get all subjects for this period
+        section_subjects = [subj for subj in all_section_subjects if subj.section_period_id == period.id]
+        grades = [g for g in all_grades if g.student_info_id == s.id]
+        for subject in section_subjects:
+            subject_grades = [g for g in grades if g.section_subject_id == subject.id]
+            # Fetch grading system and items for this subject
+            grading_system = g.session.query(GradingSystem).filter_by(section_subject_id=subject.id).first()
+            if not grading_system:
+                continue
+            components = g.session.query(GradingComponent).filter_by(system_id=grading_system.id).all()
+            items = g.session.query(GradableItem).join(GradingComponent).filter(GradingComponent.system_id == grading_system.id).all()
+            # Fetch scores for this student for all items in this subject
+            scores = g.session.query(StudentScore).filter_by(student_info_id=s.id).all()
+            scores_map = {sc.item_id: sc.score for sc in scores}
+            # Organize by component
+            subject_detail = []
+            for component in components:
+                comp_items = [i for i in items if i.component_id == component.id]
+                for item in comp_items:
+                    subject_detail.append({
+                        'component': component.name,
+                        'weight': component.weight,
+                        'item_title': item.title,
+                        'max_score': float(item.max_score),
+                        'score': float(scores_map.get(item.id, 0)),
+                    })
+            periods[period_key]['subjects'][subject.subject_name] = {
+                'total_grade': float(subject_grades[0].grade_value) if subject_grades else None,
+                'details': subject_detail
+            }
 
-    return render_template('student_grades.html', student=student, detailed_grades=detailed_grades)
+    # Sort periods by school year and period name
+    sorted_periods = sorted(periods.items(), key=lambda x: (x[0][1], x[0][0]), reverse=True)
+
+    return render_template('student_grades.html', student=student, periods=sorted_periods)
 
 @app.route('/parent/student/<uuid:student_id>/attendance')
 @login_required
