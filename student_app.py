@@ -592,4 +592,6 @@ def view_quiz_score(quiz_id):
     return render_template('student_quiz_templates/student_quiz_results.html', quiz_title=quiz.title, score=score, total_questions=total_points)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5002)  # Different port from parent app
+    # To access on your mobile device, run with host='0.0.0.0' and your desired port (e.g., 5002):
+    # app.run(host='0.0.0.0', port=5002, debug=True)
+    app.run(debug=True, port=5002, host='0.0.0.0')  # Default: localhost only

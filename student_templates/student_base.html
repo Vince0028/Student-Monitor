@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>{% block title %}Student Portal - Student Monitor{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
@@ -10,31 +13,228 @@
     html, body {
         height: 100%;
         min-height: 100vh;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
     }
     body {
         display: flex;
         flex-direction: column;
         min-height: 100vh;
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
     main.student-main {
         flex: 1 0 auto;
+        width: 100%;
     }
     .student-footer {
-        width: 100vw;
+        width: 100%;
         background: #1769c4;
         color: #fff;
         text-align: center;
         padding: 0.7rem 0 0.5rem 0;
-        font-size: 1rem;
+        font-size: 0.9rem;
         z-index: 10;
+        flex-shrink: 0;
+    }
+    
+    /* Mobile Navigation Styles */
+    .mobile-nav-toggle {
+        display: none;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+    }
+    
+    .mobile-nav-toggle:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .mobile-nav-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 998;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .mobile-nav-overlay.active {
+        opacity: 1;
+    }
+    
+    .mobile-nav-menu {
+        position: fixed;
+        top: 0;
+        right: -280px;
+        width: 280px;
+        height: 100%;
+        background: white;
+        z-index: 999;
+        transition: right 0.3s ease;
+        box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+    }
+    
+    .mobile-nav-menu.active {
+        right: 0;
+    }
+    
+    .mobile-nav-header {
+        background: linear-gradient(135deg, #4a90e2, #357ab8);
+        color: white;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .mobile-nav-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+    }
+    
+    .mobile-nav-items {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .mobile-nav-items li {
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .mobile-nav-items a {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        color: #333;
+        text-decoration: none;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+    
+    .mobile-nav-items a:hover,
+    .mobile-nav-items a.active {
+        background-color: #f8f9fa;
+        color: #2563eb;
+    }
+    
+    .mobile-nav-items a i {
+        margin-right: 0.75rem;
+        width: 20px;
+        text-align: center;
+    }
+    
+    .mobile-nav-items .logout-item {
+        border-top: 2px solid #e5e7eb;
+        margin-top: 1rem;
+    }
+    
+    .mobile-nav-items .logout-item a {
+        color: #dc2626;
+    }
+    
+    @media (max-width: 768px) {
+        .mobile-nav-toggle {
+            display: block;
+        }
+        
+        .student-nav {
+            display: none;
+        }
+        
+        .student-header .container {
+            justify-content: space-between;
+        }
+        
+        .student-title {
+            font-size: 1.2rem !important;
+        }
+        
+        .student-header img {
+            height: 50px !important;
+            width: auto !important;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .student-title {
+            font-size: 1rem !important;
+        }
+        
+        .student-header img {
+            height: 40px !important;
+        }
+        
+        .mobile-nav-menu {
+            width: 100%;
+            right: -100%;
+        }
     }
     </style>
 </head>
 <body {% if request.endpoint == 'student_login' %}class="no-scroll-page login-page"{% elif request.endpoint in ['student_dashboard', 'student_assignments'] %}class="no-scroll-page"{% endif %}>
-    <!-- Header Start (matching master admin style) -->
+    <!-- Mobile Navigation Overlay -->
+    <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+    
+    <!-- Mobile Navigation Menu -->
+    <div class="mobile-nav-menu" id="mobileNavMenu">
+        <div class="mobile-nav-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <img src="{{ url_for('static', filename='css/pcshs_logo.png') }}" alt="PCSHS Logo" style="height: 40px; width: auto;">
+                <span style="font-weight: 600; font-size: 1.1rem;">Student Portal</span>
+            </div>
+            <button class="mobile-nav-close" id="mobileNavClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <ul class="mobile-nav-items">
+            {% if session.student_id %}
+                <li><a href="{{ url_for('student_dashboard') }}" class="{% if request.endpoint == 'student_dashboard' %}active{% endif %}">
+                    <i class="fas fa-home"></i> Dashboard
+                </a></li>
+                <li><a href="{{ url_for('student_grades') }}" class="{% if request.endpoint == 'student_grades' %}active{% endif %}">
+                    <i class="fas fa-graduation-cap"></i> Grades
+                </a></li>
+                <li><a href="{{ url_for('student_attendance') }}" class="{% if request.endpoint == 'student_attendance' %}active{% endif %}">
+                    <i class="fas fa-calendar-check"></i> Attendance
+                </a></li>
+                <li><a href="{{ url_for('student_quiz') }}" class="{% if request.endpoint == 'student_quiz' %}active{% endif %}">
+                    <i class="fas fa-question-circle"></i> Quiz
+                </a></li>
+                <li class="logout-item">
+                    <a href="{{ url_for('student_logout') }}">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </li>
+            {% else %}
+                <li><a href="{{ url_for('student_login') }}">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a></li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <!-- Header Start -->
     <header class="student-header">
         <div class="container" style="display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 1em;">
@@ -45,6 +245,13 @@
                     </a>
                 </h1>
             </div>
+            
+            <!-- Mobile Navigation Toggle -->
+            <button class="mobile-nav-toggle" id="mobileNavToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <!-- Desktop Navigation -->
             <nav class="student-nav">
                 <ul>
                     {% if session.student_id %}
@@ -61,6 +268,7 @@
         </div>
     </header>
     <!-- Header End -->
+    
     <main class="student-main{% if request.endpoint in ['student_assignments', 'student_assignments_upcoming', 'student_assignments_completed', 'student_assignments_past_due'] %} assignments-main{% endif %}">
         <div class="container">
             <div class="flash-messages" style="position: fixed; top: 130px; left: 50%; transform: translateX(-50%); z-index: 9999; width: auto; max-width: 90vw; pointer-events: none;">
@@ -78,10 +286,74 @@
             {% block content %}{% endblock %}
         </div>
     </main>
+    
     <footer class="student-footer">
         <p>&copy; 2024 Student Monitor - Student Portal. All rights reserved.</p>
     </footer>
+    
     <script>
+    // Mobile Navigation Toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const mobileNavToggle = document.getElementById('mobileNavToggle');
+        const mobileNavClose = document.getElementById('mobileNavClose');
+        const mobileNavMenu = document.getElementById('mobileNavMenu');
+        const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+        
+        function openMobileNav() {
+            mobileNavMenu.classList.add('active');
+            mobileNavOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeMobileNav() {
+            mobileNavMenu.classList.remove('active');
+            mobileNavOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        mobileNavToggle.addEventListener('click', openMobileNav);
+        mobileNavClose.addEventListener('click', closeMobileNav);
+        mobileNavOverlay.addEventListener('click', closeMobileNav);
+        
+        // Close mobile nav when clicking on a link (always reload, even if same page)
+        const mobileNavLinks = mobileNavMenu.querySelectorAll('a');
+        mobileNavLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Close the menu and overlay
+                if (mobileNavMenu && mobileNavOverlay) {
+                    mobileNavMenu.classList.remove('active');
+                    mobileNavOverlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+                // Always reload, even if same page
+                setTimeout(function() {
+                    window.location.href = link.href;
+                }, 10);
+            });
+        });
+        
+        // Close mobile nav on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && mobileNavMenu.classList.contains('active')) {
+                closeMobileNav();
+            }
+        });
+    });
+    
+    // Force full page reload on ALL header, desktop nav, and mobile nav links
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('header a, .student-nav a, .mobile-nav-menu a').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                // Only handle left-clicks and no modifier keys
+                if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+                    e.preventDefault();
+                    window.location.href = link.href;
+                }
+            });
+        });
+    });
+    
     // Auto-fade flash messages after 3 seconds
     window.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
@@ -92,6 +364,16 @@
             });
         }, 3000);
     });
+    
+    // Prevent zoom on double tap (iOS)
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+        const now = (new Date()).getTime();
+        if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, false);
     </script>
 </body>
 </html>
