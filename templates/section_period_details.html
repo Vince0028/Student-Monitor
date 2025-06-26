@@ -4,9 +4,11 @@
 
 {% block content %}
 <div class="dashboard-container">
-    <h2>{{ section_period.section.name }} ({{ section_period.period_name }} {{ section_period.school_year }})</h2>
-    <p class="dashboard-welcome">Manage students and subjects for this specific {{ section_period.period_type | lower }}.</p>
-    <p class="dashboard-welcome">Assigned Account: <strong>{{ section_period.assigned_teacher.username if section_period.assigned_teacher else 'Not Assigned' }}</strong></p>
+    <div style="text-align:center; margin-bottom:2rem;">
+        <h2>{{ section_period.section.name }} ({{ section_period.period_name }} {{ section_period.school_year }})</h2>
+        <p class="dashboard-welcome">Manage students and subjects for this specific {{ section_period.period_type | lower }}.</p>
+        <p class="dashboard-welcome">Assigned Account: <strong>{{ section_period.assigned_teacher.username if section_period.assigned_teacher else 'Not Assigned' }}</strong></p>
+    </div>
 
     <div class="dashboard-grid">
         <div class="card dashboard-option-card">
@@ -30,14 +32,14 @@
     {% endif %}
 
     {% if students %}
-    <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#studentListCollapse" aria-expanded="false" aria-controls="studentListCollapse">
-        Show/Hide Student List
-    </button>
-    {% if session.user_type == 'teacher' %}
-    <button class="btn btn-info mb-3 ms-2" type="button" id="syncAverageGradesBtn">
-        <i class="fas fa-sync-alt"></i> Sync Average Grades
-    </button>
+    <div style="text-align:center; margin-bottom:1.5rem;">
+        <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#studentListCollapse" aria-expanded="false" aria-controls="studentListCollapse">
+            Show/Hide Student List
+        </button>
+    </div>
     {% endif %}
+
+    {% if students %}
     <div class="collapse" id="studentListCollapse">
     <div class="card mt-40">
         <h3>Student List</h3>
@@ -129,87 +131,6 @@
         </div>
     </div>
     </div>
-    <script>
-    // Set the default state to hidden (eye on, grades masked)
-    document.addEventListener('DOMContentLoaded', function() {
-        setGradeVisibility(false); // Start with grades hidden
-        const syncBtn = document.getElementById('syncAverageGradesBtn');
-        if (syncBtn) {
-            syncBtn.addEventListener('click', function() {
-                if (confirm('This will sync the average grades for all students in this period. Continue?')) {
-                    fetch(`/section_period/{{ section_period.id }}/sync-average-grades`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert(data.message);
-                            location.reload();
-                        } else {
-                            alert('Error: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        alert('An error occurred while syncing average grades.');
-                    });
-                }
-            });
-        }
-        // Student search filter
-        const searchInput = document.getElementById('studentSearchInput');
-        const studentTable = document.getElementById('studentTable');
-        if (searchInput && studentTable) {
-            searchInput.addEventListener('input', function() {
-                const filter = searchInput.value.toLowerCase();
-                const rows = studentTable.querySelectorAll('tbody tr');
-                rows.forEach(row => {
-                    // Skip group divider rows
-                    if (row.classList.contains('table-group-divider')) {
-                        return;
-                    }
-                    const nameCell = row.querySelector('td:nth-child(1)');
-                    const idCell = row.querySelector('td:nth-child(2)');
-                    if (nameCell && idCell) {
-                        const name = nameCell.textContent.toLowerCase();
-                        const id = idCell.textContent.toLowerCase();
-                        if (name.includes(filter) || id.includes(filter)) {
-                            row.style.display = '';
-                        } else {
-                            row.style.display = 'none';
-                        }
-                    }
-                });
-            });
-        }
-    });
-
-    function toggleGradeVisibility() {
-        const eyeIcon = document.getElementById('eyeIcon');
-        // Toggle based on the current state represented by the icon's class
-        const currentlyVisible = eyeIcon.classList.contains('fa-eye-slash');
-        setGradeVisibility(!currentlyVisible);
-    }
-
-    function setGradeVisibility(visible) {
-        const gradeCells = document.querySelectorAll('.average-grade-cell');
-        const eyeIcon = document.getElementById('eyeIcon');
-
-        gradeCells.forEach(cell => {
-            const gradeValue = cell.getAttribute('data-grade');
-            if (visible) {
-                // To prevent re-adding span, we just set the text content
-                cell.textContent = gradeValue;
-            } else {
-                cell.textContent = '***';
-            }
-        });
-
-        if (eyeIcon) {
-            eyeIcon.className = visible ? 'fas fa-eye-slash' : 'fas fa-eye';
-        }
-    }
-    </script>
     {% else %}
     <p class="no-data-message mt-40">No students added to this period yet. Start by adding one!</p>
     {% endif %}
