@@ -260,6 +260,9 @@ def student_grades():
                 'school_year': grade.section_subject.section_period.school_year,
                 'grades': []
             }
+        # Attach the assigned teacher's name for display
+        display_teacher = grade.section_subject.assigned_teacher_name if hasattr(grade.section_subject, 'assigned_teacher_name') else 'N/A'
+        grade.display_teacher = display_teacher
         grades_by_period[period_key]['grades'].append(grade)
 
     return render_template('student_grades.html', grades_by_period=grades_by_period, overall_average=overall_average)

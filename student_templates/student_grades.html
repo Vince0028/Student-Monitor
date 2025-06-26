@@ -475,7 +475,7 @@ html, body {
                                 <tr>
                                     <td data-label="Subject" class="subject-name">{{ grade.section_subject.subject_name }}</td>
                                     <td data-label="Grade" class="grade-value">{{ '%.2f'|format(grade.grade_value) }}</td>
-                                    <td data-label="Teacher">{{ grade.teacher.username if grade.teacher else 'N/A' }}</td>
+                                    <td data-label="Teacher">{{ grade.display_teacher }}</td>
                                     <td data-label="School Year">{{ grade.school_year }}</td>
                                 </tr>
                             {% endfor %}

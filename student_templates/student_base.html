@@ -197,12 +197,14 @@
     <!-- Header Start -->
     <header class="student-header">
         <div class="container" style="display: flex; align-items: center; justify-content: space-between; position: relative;">
-            <div style="display: flex; align-items: center; gap: 1em;">
-                <img src="{{ url_for('static', filename='css/pcshs_logo.png') }}" alt="PCSHS Logo" style="height: 48px; width: auto; margin-right: 12px;">
-                <span class="student-title" style="font-size: 1.3rem; font-weight: 700; color: #fff; margin-right: 1.5em;">Student Portal</span>
+            <div style="display: flex; align-items: center; gap: 1.5em;">
+                <img src="{{ url_for('static', filename='css/pcshs_logo.png') }}" alt="PCSHS Logo" style="height: 64px; width: auto; margin-right: 18px;">
+                <span class="student-title" style="font-size: 2rem; font-weight: 800; color: #fff; margin-right: 2em; letter-spacing: -0.5px;">Student Portal</span>
             </div>
             <!-- Mobile Menu Button -->
+            {% if session.student_id %}
             <button id="mobileMenuBtn" class="mobile-menu-btn" style="display:none;">Menu</button>
+            {% endif %}
             <!-- Desktop Nav -->
             <nav class="student-nav">
                 <ul>
@@ -212,7 +214,7 @@
                         <li><a href="{{ url_for('student_attendance') }}" class="{% if request.endpoint == 'student_attendance' %}active{% endif %}">Attendance</a></li>
                         <li><a href="{{ url_for('student_quiz') }}" class="{% if request.endpoint == 'student_quiz' %}active{% endif %}">Quiz</a></li>
                         <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin-left: 1em;">Logout</a></li>
-                    {% else %}
+                    {% elif request.endpoint != 'student_login' %}
                         <li><a href="{{ url_for('student_login') }}">Login</a></li>
                     {% endif %}
                 </ul>

@@ -42,6 +42,52 @@
         background: #f8f9fa;
         z-index: 2;
     }
+    .gradebook-table th {
+        position: sticky;
+        top: 0;
+        background: #f8fafc;
+        z-index: 2;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    .gradebook-table th.sticky-col {
+        left: 0;
+        z-index: 3;
+        background: #fff;
+        box-shadow: 2px 0 4px rgba(0,0,0,0.04);
+    }
+    .gradebook-table td.sticky-col {
+        position: sticky;
+        left: 0;
+        background: #fff;
+        z-index: 1;
+        box-shadow: 2px 0 4px rgba(0,0,0,0.04);
+    }
+    .gradebook-table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    .gradebook-table-container {
+        overflow-x: auto;
+        /* Do NOT set overflow-y here, let the table scroll vertically */
+        max-height: 70vh;
+    }
+    .gradebook-tbody-scroll {
+        overflow-y: auto;
+        max-height: 400px;
+    }
+    .gradebook-table th {
+        position: static;
+        background: #f8fafc;
+        z-index: 2;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    .gradebook-table td.sticky-col, .gradebook-table th.sticky-col {
+        position: static;
+        left: unset;
+        z-index: unset;
+        background: #fff;
+        box-shadow: none;
+    }
 </style>
 {% endblock %}
 
@@ -111,36 +157,45 @@
             <div class="mb-3">
                 <input type="text" id="studentSearch" class="form-control" placeholder="Search student by name...">
             </div>
-            <div class="table-responsive">
-                <div id="gradeSheetScrollWrap" style="max-height: 400px; overflow-y: auto;">
-                    <table id="gradeSheetTable" class="table table-bordered table-hover">
-                        <thead class="thead-light">
-                            <tr>
-                                <th rowspan="2" class="align-middle">Student Name</th>
-                                {% for component in components %}
-                                    <th colspan="{{ component.items|length + 1 }}" class="text-center">
-                                        {{ component.name }} ({{ component.weight }}%)<br>
-                                        <button type="button" class="btn btn-success btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#addItemModal-{{ component.id }}">
-                                            <i class="fas fa-plus"></i> Add Item
-                                        </button>
-                                    </th>
+            {# Calculate total_items for all grading components #}
+            {% set total_items = 0 %}
+            {% for component in components %}
+                {% set total_items = total_items + component.items|length %}
+            {% endfor %}
+            <div class="table-responsive" style="overflow-x: auto;">
+                <!-- Header Table (not scrollable vertically) -->
+                <table class="gradebook-table table table-bordered table-hover" style="min-width: 100%; width: max-content; margin-bottom: 0;">
+                    <thead class="thead-light">
+                        <tr>
+                            <th rowspan="2" class="align-middle">Student Name</th>
+                            {% for component in components %}
+                                <th colspan="{{ component.items|length + 1 }}" class="text-center">
+                                    {{ component.name }} ({{ component.weight }}%)<br>
+                                    <button type="button" class="btn btn-success btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#addItemModal-{{ component.id }}">
+                                        <i class="fas fa-plus"></i> Add Item
+                                    </button>
+                                </th>
+                            {% endfor %}
+                            <th rowspan="2" class="align-middle">Total Grade</th>
+                            <th rowspan="2" class="align-middle">Actions</th>
+                        </tr>
+                        <tr>
+                            {% for component in components %}
+                                {% for item in component.items %}
+                                <th class="item-header text-center" title="Max: {{ item.max_score }}">
+                                    {{ item.title }}
+                                    <button class="btn btn-danger btn-xs delete-item-btn" data-item-id="{{ item.id }}" title="Delete {{ item.title }}"><i class="fas fa-times"></i></button>
+                                </th>
                                 {% endfor %}
-                                <th rowspan="2" class="align-middle">Total Grade</th>
-                                <th rowspan="2" class="align-middle">Actions</th>
-                            </tr>
-                            <tr>
-                                {% for component in components %}
-                                    {% for item in component.items %}
-                                    <th class="item-header text-center" title="Max: {{ item.max_score }}">
-                                        {{ item.title }}
-                                        <button class="btn btn-danger btn-xs delete-item-btn" data-item-id="{{ item.id }}" title="Delete {{ item.title }}"><i class="fas fa-times"></i></button>
-                                    </th>
-                                    {% endfor %}
-                                    <!-- Empty th for component average column in the second header row -->
-                                    <th class="text-center">%</th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
+                                <!-- Empty th for component average column in the second header row -->
+                                <th class="text-center">%</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                </table>
+                <!-- Body Table (scrollable vertically) -->
+                <div class="gradebook-tbody-scroll"{% if students|length > 4 %} style="overflow-y: auto; max-height: 400px;"{% endif %}>
+                    <table class="gradebook-table table table-bordered table-hover" style="min-width: 100%; width: max-content;">
                         <tbody>
                             {# Boys group #}
                             {% set boys = students | selectattr('gender', 'equalto', 'Male') | list %}
