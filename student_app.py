@@ -233,6 +233,12 @@ def student_grades():
     ).all()
     all_student_ids = [info.id for info in all_student_infos]
 
+    # Fetch all section periods for this student (1st and 2nd Sem, etc)
+    section_periods = db_session.query(SectionPeriod).join(StudentInfo, SectionPeriod.id == StudentInfo.section_period_id).filter(
+        StudentInfo.id.in_(all_student_ids)
+    ).order_by(SectionPeriod.school_year.desc(), SectionPeriod.period_name).all()
+
+    # Fetch all grades for all periods for this student
     grades = db_session.query(Grade).join(
         Grade.section_subject
     ).join(
@@ -246,8 +252,7 @@ def student_grades():
         SectionPeriod.period_name
     ).all()
 
-    overall_average = sum(float(g.grade_value) for g in grades) / len(grades) if grades else None
-
+    # Group grades by period (only if grades exist for that period)
     grades_by_period = {}
     activities_by_period = {}
     for grade in grades:
@@ -285,6 +290,21 @@ def student_grades():
                     'score': float(scores_map.get(item.id, 0)),
                 })
         activities_by_period[period_key][subject.subject_name] = subject_activities
+
+    # For each section period, if there are no grades, add an empty entry for the template
+    for period in section_periods:
+        period_key = f"{period.period_name} {period.school_year}"
+        if period_key not in grades_by_period:
+            grades_by_period[period_key] = {
+                'period_name': period.period_name,
+                'school_year': period.school_year,
+                'grades': []
+            }
+            activities_by_period[period_key] = {}
+
+    # Calculate overall average only from actual grades
+    all_grade_values = [float(g.grade_value) for g in grades]
+    overall_average = sum(all_grade_values) / len(all_grade_values) if all_grade_values else None
 
     return render_template('student_grades.html', grades_by_period=grades_by_period, overall_average=overall_average, activities_by_period=activities_by_period)
 

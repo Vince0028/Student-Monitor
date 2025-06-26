@@ -21,6 +21,9 @@
             </div>
             <div style="display: flex; align-items: center; gap: 1em;">
                 {% block nav %}{% endblock %}
+                <button id="darkModeToggle" class="btn btn-outline-secondary" title="Toggle dark mode" style="margin-right: 1em;">
+                    <i id="darkModeIcon" class="fas fa-moon"></i>
+                </button>
                 <a href="{{ url_for('admin_logout') }}" class="btn btn-danger" style="margin-left: 1em;"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </div>
         </div>
@@ -64,6 +67,29 @@
                 }, 300);
             });
         }, 5000);
+
+        // Dark mode toggle logic
+        function setDarkMode(enabled) {
+            if (enabled) {
+                document.body.classList.add('dark-mode');
+                document.getElementById('darkModeIcon').classList.remove('fa-moon');
+                document.getElementById('darkModeIcon').classList.add('fa-sun');
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.getElementById('darkModeIcon').classList.remove('fa-sun');
+                document.getElementById('darkModeIcon').classList.add('fa-moon');
+            }
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load preference
+            const darkMode = localStorage.getItem('darkMode') === 'true';
+            setDarkMode(darkMode);
+            document.getElementById('darkModeToggle').addEventListener('click', function() {
+                const enabled = !document.body.classList.contains('dark-mode');
+                setDarkMode(enabled);
+                localStorage.setItem('darkMode', enabled);
+            });
+        });
     </script>
 </body>
 </html> 

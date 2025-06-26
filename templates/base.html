@@ -15,7 +15,7 @@
     <!-- jQuery (for pages that use $) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
-<body>
+<body data-user-type="{{ session.user_type }}">
     <header class="app-header">
         <div class="container">
             <h1 class="app-title"><a href="{{ url_for('dashboard') if session.user_id else url_for('index') }}">Student Monitor</a></h1>
@@ -29,6 +29,11 @@
                             <li><a href="{{ url_for('teacher_dashboard') }}"><i class="fas fa-chalkboard-teacher"></i> <span class="nav-text">Dashboard</span></a></li>
                         {% endif %}
                         <li><a href="{{ url_for('logout') }}" class="btn-logout"><i class="fas fa-sign-out-alt"></i> <span class="nav-text">Logout</span></a></li>
+                        <li>
+                            <button id="darkModeToggle" class="btn btn-outline-secondary" title="Toggle dark mode" style="margin-left: 0.5em;">
+                                <i id="darkModeIcon" class="fas fa-moon"></i>
+                            </button>
+                        </li>
                     {% else %}
                         <li><a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> <span class="nav-text">Login</span></a></li>
                         <li><a href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> <span class="nav-text">Register</span></a></li>
@@ -171,8 +176,8 @@
                 });
             }
 
-            const profileLink = document.querySelector('a[href="{{ url_for('profile') }}"]');
-            if (profileLink && "{{ session.user_type }}" === "teacher") {
+            const profileLink = document.querySelector('.nav-links a[href*="profile"]');
+            if (profileLink && document.body.dataset.userType === "teacher") {
                 profileLink.addEventListener('click', function(event) {
                     event.preventDefault();
                     const passwordModal = new bootstrap.Modal(document.getElementById('passwordConfirmModal'));
@@ -204,10 +209,8 @@
                 reassignTeachersBtn.addEventListener('click', function() {
                     // TODO: Implement reassign_period_teachers route
                     alert('This feature is not yet implemented.');
-                    {# const reassignUrl = '{{ url_for("reassign_period_teachers") }}'; #}
                     const redirectUrl = '{{ url_for("admin_dashboard") }}'; // Updated to use admin_dashboard
                     const message = 'This action will attempt to assign registered teacher accounts to periods that are currently unassigned based on their grade level and specialization.';
-                    
                     // showUniversalConfirmationModal(
                     //     reassignUrl, 
                     //     redirectUrl, 
@@ -297,151 +300,83 @@
     </script>
     {% block scripts %}{% endblock %}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
     <!-- Password Toggle Functionality -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Function to create password toggle button
             function createPasswordToggle(passwordInput) {
-                // Check if toggle already exists
                 if (passwordInput.parentElement.classList.contains('password-field-container')) {
                     return;
                 }
-                
-                // Create container
                 const container = document.createElement('div');
                 container.className = 'password-field-container';
-                
-                // Move the input into the container
                 passwordInput.parentNode.insertBefore(container, passwordInput);
                 container.appendChild(passwordInput);
-                
-                // Create toggle button
                 const toggleBtn = document.createElement('button');
                 toggleBtn.type = 'button';
                 toggleBtn.className = 'password-toggle-btn';
                 toggleBtn.textContent = passwordInput.type === 'password' ? 'Show' : 'Hide';
                 toggleBtn.setAttribute('aria-label', 'Toggle password visibility');
                 toggleBtn.style.display = passwordInput.value ? '' : 'none';
-                
-                // Add button to container
                 container.appendChild(toggleBtn);
-                
-                // Add click event
                 toggleBtn.addEventListener('click', function() {
                     const isPassword = passwordInput.type === 'password';
                     passwordInput.type = isPassword ? 'text' : 'password';
                     toggleBtn.textContent = isPassword ? 'Hide' : 'Show';
                     toggleBtn.classList.toggle('show', isPassword);
                 });
-
-                // Show/hide button based on input value, but do NOT reset field type or button state
                 passwordInput.addEventListener('input', function() {
                     toggleBtn.style.display = passwordInput.value ? '' : 'none';
                 });
             }
-            
-            // Find all password inputs and add toggle buttons
             const passwordInputs = document.querySelectorAll('input[type="password"], input[type="text"]');
             passwordInputs.forEach(function(input) {
-                // Only add toggle to password fields or text fields that were toggled from password
                 if (input.type === 'password' || (input.type === 'text' && input.name && input.name.toLowerCase().includes('password'))) {
                     createPasswordToggle(input);
                 }
             });
-            
-            // Watch for dynamically added password fields (for modals, etc.)
             const observer = new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
                     mutation.addedNodes.forEach(function(node) {
-                        if (node.nodeType === 1) { // Element node
+                        if (node.nodeType === 1) {
                             const newPasswordInputs = node.querySelectorAll ? node.querySelectorAll('input[type="password"], input[type="text"]') : [];
                             newPasswordInputs.forEach(function(input) {
                                 if (input.type === 'password' || (input.type === 'text' && input.name && input.name.toLowerCase().includes('password'))) {
                                     createPasswordToggle(input);
                                 }
                             });
-                            // Check if the node itself is a password input
-                            if ((node.tagName === 'INPUT') && (node.type === 'password' || (node.type === 'text' && node.name && node.name.toLowerCase().includes('password')))) {
-                                createPasswordToggle(node);
-                            }
                         }
                     });
                 });
             });
-            
-            // Start observing
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
+            observer.observe(document.body, { childList: true, subtree: true });
         });
     </script>
+    <!-- Dark mode toggle logic -->
     <script>
-        // Auto-dismiss flash messages after 5 seconds
-        setTimeout(function() {
-            $('.alert').fadeOut('slow');
-        }, 5000); // 5000 milliseconds = 5 seconds
-    </script>
-
-    <!-- Initialize tooltips for all elements with data-bs-toggle="tooltip" -->
-    <script>
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
+        function setDarkMode(enabled) {
+            if (enabled) {
+                document.body.classList.add('dark-mode');
+                document.getElementById('darkModeIcon').classList.remove('fa-moon');
+                document.getElementById('darkModeIcon').classList.add('fa-sun');
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.getElementById('darkModeIcon').classList.remove('fa-sun');
+                document.getElementById('darkModeIcon').classList.add('fa-moon');
+            }
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            const darkMode = localStorage.getItem('darkMode') === 'true';
+            setDarkMode(darkMode);
+            const toggleBtn = document.getElementById('darkModeToggle');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function() {
+                    const enabled = !document.body.classList.contains('dark-mode');
+                    setDarkMode(enabled);
+                    localStorage.setItem('darkMode', enabled);
+                });
+            }
         });
-    </script>
-
-    <!-- Universal confirmation modal logic -->
-    <script>
-        const universalConfirmModal = document.getElementById('universalConfirmModal');
-        if (universalConfirmModal) {
-            let form = universalConfirmModal.querySelector('form');
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const url = form.getAttribute('action');
-                const redirect = universalConfirmModal.dataset.redirect;
-                const password = form.querySelector('input[type="password"]').value;
-                if (!password) {
-                    alert("Password is required.");
-                    return;
-                }
-                fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: 'password=' + encodeURIComponent(password)
-                }).then(response => response.json())
-                  .then(data => {
-                      if (data.success) {
-                          alert(data.message || 'Action successful!');
-                          window.location.href = redirect;
-                      } else {
-                          alert(data.message || 'An error occurred.');
-                      }
-                  }).catch(error => {
-                      console.error('Error:', error);
-                      alert('An unexpected error occurred.');
-                  });
-            });
-        }
-          
-        const reassignTeachersBtn = document.getElementById('reassignTeachersBtn');
-        if (reassignTeachersBtn) {
-            reassignTeachersBtn.addEventListener('click', function() {
-                // TODO: Implement reassign_period_teachers route
-                alert('This feature is not yet implemented.');
-                {# const reassignUrl = '{{ url_for("reassign_period_teachers") }}'; #}
-                const redirectUrl = '{{ url_for("admin_dashboard") }}'; // Updated to use admin_dashboard
-                const message = 'This action will attempt to assign registered teacher accounts to periods that are currently unassigned based on their grade level and specialization.';
-                
-                // showUniversalConfirmationModal(
-                //     reassignUrl, 
-                //     redirectUrl, 
-                //     message, 
-                //     'Reassign' // Button text
-                // );
-            });
-        }
     </script>
 </body>
 </html>

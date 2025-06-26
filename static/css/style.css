@@ -1297,3 +1297,278 @@ body {
 .table-responsive {
     overflow-x: auto;
 }
+
+/* Dark Mode Styles */
+.dark-mode {
+    background: #181a1b !important;
+    color: #e3e6eb !important;
+}
+.dark-mode body,
+.dark-mode .app-header,
+.dark-mode .dashboard-container,
+.dark-mode .card,
+.dark-mode .main,
+.dark-mode .container,
+.dark-mode .student-list-scrollable,
+.dark-mode .data-table,
+.dark-mode .table,
+.dark-mode .modal-content {
+    background: #23272e !important;
+    color: #e3e6eb !important;
+}
+.dark-mode .app-header {
+    background: #23272e !important;
+    color: #f5f6fa !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.7) !important;
+}
+.dark-mode .card,
+.dark-mode .dashboard-option-card,
+.dark-mode .list-container,
+.dark-mode .table,
+.dark-mode .data-table {
+    background: #262b32 !important;
+    color: #e3e6eb !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.7) !important;
+}
+.dark-mode .btn,
+.dark-mode .btn-block {
+    background: #31363b !important;
+    color: #e3e6eb !important;
+    border-color: #444950 !important;
+}
+.dark-mode .btn-primary {
+    background: #2563eb !important;
+    color: #fff !important;
+    border-color: #2563eb !important;
+}
+.dark-mode .btn-primary:hover {
+    background: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+}
+.dark-mode .btn-danger {
+    background: #e11d48 !important;
+    color: #fff !important;
+    border-color: #e11d48 !important;
+}
+.dark-mode .btn-danger:hover {
+    background: #be123c !important;
+    border-color: #be123c !important;
+}
+.dark-mode .btn-outline-secondary {
+    background: transparent !important;
+    color: #e3e6eb !important;
+    border-color: #444950 !important;
+}
+.dark-mode .btn-outline-secondary:hover {
+    background: #31363b !important;
+    color: #fff !important;
+}
+.dark-mode .alert {
+    background: #23272e !important;
+    color: #e3e6eb !important;
+    border: 1px solid #31363b !important;
+}
+.dark-mode .modal-content {
+    background: #23272e !important;
+    color: #e3e6eb !important;
+    border: 1px solid #31363b !important;
+}
+.dark-mode .form-control,
+.dark-mode input,
+.dark-mode select,
+.dark-mode textarea {
+    background: #181a1b !important;
+    color: #e3e6eb !important;
+    border: 1px solid #31363b !important;
+}
+.dark-mode .data-table th,
+.dark-mode .data-table td {
+    background: #23272e !important;
+    color: #e3e6eb !important;
+    border-color: #31363b !important;
+}
+.dark-mode .table-group-divider {
+    border-color: #31363b !important;
+}
+.dark-mode .app-footer, .dark-mode .parent-footer {
+    background: #181a1b !important;
+    color: #b0b3b8 !important;
+    border-top: 1px solid #31363b !important;
+}
+
+/* Move dark mode toggle to the right of the logout button */
+.main-nav ul.nav-links {
+    display: flex;
+    align-items: center;
+}
+#darkModeToggle {
+    margin-left: 0.5em !important;
+    margin-right: 0 !important;
+    order: 99;
+}
+
+/* Hide default focus outline for toggle, use custom */
+#darkModeToggle:focus {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+/* --- Enhanced Dark Mode Text and Button Contrast --- */
+.dark-mode .card,
+.dark-mode .dashboard-container,
+.dark-mode .list-item,
+.dark-mode .list-item span,
+.dark-mode .card h3,
+.dark-mode .dashboard-container h2 {
+    color: #f3f6fa !important;
+}
+.dark-mode .btn,
+.dark-mode .btn-block,
+.dark-mode .btn-icon,
+.dark-mode .btn-icon-small {
+    color: #fff !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+.dark-mode .btn-primary,
+.dark-mode .btn-block.btn-primary {
+    background: linear-gradient(90deg, #2563eb 60%, #1e40af 100%) !important;
+    color: #fff !important;
+    border: none !important;
+}
+.dark-mode .btn-primary:hover {
+    background: linear-gradient(90deg, #1d4ed8 60%, #1e3a8a 100%) !important;
+    box-shadow: 0 0 8px #2563eb99;
+}
+.dark-mode .btn-view {
+    background: linear-gradient(90deg, #805ad5 60%, #5b21b6 100%) !important;
+    color: #fff !important;
+    border: none !important;
+}
+.dark-mode .btn-view:hover {
+    background: linear-gradient(90deg, #6b46c1 60%, #4c1d95 100%) !important;
+    box-shadow: 0 0 8px #805ad599;
+}
+.dark-mode .btn-edit {
+    background: linear-gradient(90deg, #38a169 60%, #166534 100%) !important;
+    color: #fff !important;
+    border: none !important;
+}
+.dark-mode .btn-edit:hover {
+    background: linear-gradient(90deg, #2f855a 60%, #14532d 100%) !important;
+    box-shadow: 0 0 8px #38a16999;
+}
+.dark-mode .btn-danger {
+    background: linear-gradient(90deg, #e11d48 60%, #be123c 100%) !important;
+    color: #fff !important;
+    border: none !important;
+}
+.dark-mode .btn-danger:hover {
+    background: linear-gradient(90deg, #be123c 60%, #881337 100%) !important;
+    box-shadow: 0 0 8px #e11d4899;
+}
+.dark-mode .btn-outline-secondary {
+    color: #e3e6eb !important;
+    border-color: #444950 !important;
+    background: transparent !important;
+}
+.dark-mode .btn-outline-secondary:hover {
+    background: #31363b !important;
+    color: #fff !important;
+    box-shadow: 0 0 8px #2563eb55;
+}
+.dark-mode .card h3,
+.dark-mode .dashboard-container h2 {
+    color: #fff !important;
+    font-weight: 800 !important;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+.dark-mode .card p,
+.dark-mode .card .description,
+.dark-mode .card label {
+    color: #b6c2d1 !important;
+    font-weight: 500;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+.dark-mode .dashboard-welcome,
+.dark-mode .card p,
+.dark-mode .card .description,
+.dark-mode .card label {
+    color: #fff !important;
+    font-weight: 500;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+.dark-mode .auth-container,
+.dark-mode .form-page-container,
+.dark-mode .card {
+    background: #23272e !important;
+    color: #fff !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.7) !important;
+}
+.dark-mode .modal-content,
+.dark-mode .modal-header,
+.dark-mode .modal-body,
+.dark-mode .modal-footer {
+    background: #23272e !important;
+    color: #fff !important;
+    border: 1px solid #31363b !important;
+}
+.dark-mode .modal-header,
+.dark-mode .modal-footer {
+    border-bottom: 1px solid #31363b !important;
+}
+.dark-mode .modal-footer {
+    border-top: 1px solid #31363b !important;
+}
+.dark-mode .modal-content table,
+.dark-mode .modal-content th,
+.dark-mode .modal-content td {
+    background: #23272e !important;
+    color: #fff !important;
+    border-color: #31363b !important;
+}
+.dark-mode .form-page-container .alert,
+.dark-mode .form-page-container .info-box,
+.dark-mode .form-page-container .form-description,
+.dark-mode .form-page-container .form-control[readonly] {
+    background: #23272e !important;
+    color: #fff !important;
+    border: 1px solid #31363b !important;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.18);
+}
+.dark-mode .form-page-container {
+    background: #23272e !important;
+    color: #fff !important;
+    border: 1px solid #31363b !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.7) !important;
+}
+.dark-mode .form-page-container h2,
+.dark-mode .form-page-container .form-subheading {
+    color: #fff !important;
+}
+.dark-mode .form-page-container .form-subheading,
+.dark-mode .form-page-container .form-description {
+    background: #31343a !important;
+    color: #fff !important;
+    border: 1px solid #23272e !important;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+    display: block;
+}
+.dark-mode .profile-card .alert,
+.dark-mode .profile-card .alert-danger,
+.dark-mode .profile-card .alert-warning {
+    background: #31343a !important;
+    color: #fff !important;
+    border: 1px solid #23272e !important;
+    border-radius: 6px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+    display: block;
+}
+.dark-mode .card-header.bg-light {
+    background: #31343a !important;
+    color: #fff !important;
+    border-bottom: 1px solid #23272e !important;
+}

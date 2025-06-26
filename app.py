@@ -1175,23 +1175,36 @@ def grade_level_details(grade_level_id):
             teacher_query = teacher_query.filter(User.specialization.is_(None))
         elif grade_level.level_type == 'SHS' and section.strand:
             teacher_query = teacher_query.filter(User.specialization == section.strand.name)
-            
+        
         section.available_accounts = teacher_query.order_by(User.username).all()
 
         # --- Add average_grade calculation for admin ---
+        section.section_period_averages = []
         section_periods = db_session.query(SectionPeriod).filter_by(section_id=section.id).all()
-        period_ids = [p.id for p in section_periods]
-        student_ids = db_session.query(StudentInfo.id).filter(StudentInfo.section_period_id.in_(period_ids)).all()
-        student_ids = [s.id for s in student_ids]
-        total_grades_sum = 0
-        total_grades_count = 0
-        if student_ids:
-            all_grades_summary = db_session.query(func.sum(Grade.grade_value), func.count(Grade.grade_value)).\
-                filter(Grade.student_info_id.in_(student_ids)).one_or_none()
-            if all_grades_summary and all_grades_summary[0] is not None and all_grades_summary[1] > 0:
-                total_grades_sum = float(all_grades_summary[0])
-                total_grades_count = all_grades_summary[1]
-        section.average_grade = round(total_grades_sum / total_grades_count, 2) if total_grades_count > 0 else None
+        for period in section_periods:
+            student_ids = db_session.query(StudentInfo.id).filter(StudentInfo.section_period_id == period.id).all()
+            student_ids = [s.id for s in student_ids]
+            total_grades_sum = 0
+            total_grades_count = 0
+            if student_ids:
+                all_grades_summary = db_session.query(func.sum(Grade.grade_value), func.count(Grade.grade_value)).\
+                    filter(Grade.student_info_id.in_(student_ids),
+                           Grade.semester == period.period_name,
+                           Grade.school_year == period.school_year).one_or_none()
+                if all_grades_summary and all_grades_summary[0] is not None and all_grades_summary[1] > 0:
+                    total_grades_sum = float(all_grades_summary[0])
+                    total_grades_count = all_grades_summary[1]
+            avg = round(total_grades_sum / total_grades_count, 2) if total_grades_count > 0 else None
+            section.section_period_averages.append({
+                'period_name': period.period_name,
+                'school_year': period.school_year,
+                'average': avg
+            })
+        # For backward compatibility, set section.average_grade to the most recent period's average (if any)
+        if section.section_period_averages:
+            section.average_grade = section.section_period_averages[0]['average']
+        else:
+            section.average_grade = None
 
     strands = []
     if grade_level.level_type == 'SHS':
@@ -1333,19 +1346,32 @@ def strand_details(strand_id):
         section.assigned_user_id = section.assigned_user_id
 
         # --- Add average_grade calculation for admin ---
+        section.section_period_averages = []
         section_periods = db_session.query(SectionPeriod).filter_by(section_id=section.id).all()
-        period_ids = [p.id for p in section_periods]
-        student_ids = db_session.query(StudentInfo.id).filter(StudentInfo.section_period_id.in_(period_ids)).all()
-        student_ids = [s.id for s in student_ids]
-        total_grades_sum = 0
-        total_grades_count = 0
-        if student_ids:
-            all_grades_summary = db_session.query(func.sum(Grade.grade_value), func.count(Grade.grade_value)).\
-                filter(Grade.student_info_id.in_(student_ids)).one_or_none()
-            if all_grades_summary and all_grades_summary[0] is not None and all_grades_summary[1] > 0:
-                total_grades_sum = float(all_grades_summary[0])
-                total_grades_count = all_grades_summary[1]
-        section.average_grade = round(total_grades_sum / total_grades_count, 2) if total_grades_count > 0 else None
+        for period in section_periods:
+            student_ids = db_session.query(StudentInfo.id).filter(StudentInfo.section_period_id == period.id).all()
+            student_ids = [s.id for s in student_ids]
+            total_grades_sum = 0
+            total_grades_count = 0
+            if student_ids:
+                all_grades_summary = db_session.query(func.sum(Grade.grade_value), func.count(Grade.grade_value)).\
+                    filter(Grade.student_info_id.in_(student_ids),
+                           Grade.semester == period.period_name,
+                           Grade.school_year == period.school_year).one_or_none()
+                if all_grades_summary and all_grades_summary[0] is not None and all_grades_summary[1] > 0:
+                    total_grades_sum = float(all_grades_summary[0])
+                    total_grades_count = all_grades_summary[1]
+            avg = round(total_grades_sum / total_grades_count, 2) if total_grades_count > 0 else None
+            section.section_period_averages.append({
+                'period_name': period.period_name,
+                'school_year': period.school_year,
+                'average': avg
+            })
+        # For backward compatibility, set section.average_grade to the most recent period's average (if any)
+        if section.section_period_averages:
+            section.average_grade = section.section_period_averages[0]['average']
+        else:
+            section.average_grade = None
 
     return render_template('strand_details.html',
                            strand=strand,
@@ -1665,29 +1691,15 @@ def section_period_details(section_period_id):
         ).filter(SectionPeriod.id == section_period_id).one()
 
         # --- Data Sync Logic ---
-        student_display_period_id = section_period_id
-        subject_display_period_id = section_period_id
-
-        # For JHS and SHS, find the master period (first period in the school year)
-        if section_period.period_type in ['Quarter', 'Semester']:
-            master_period = db_session.query(SectionPeriod).filter(
-                SectionPeriod.section_id == section_period.section_id,
-                SectionPeriod.school_year == section_period.school_year
-            ).order_by(SectionPeriod.period_name).first()
-            
-            if master_period:
-                # Always sync students to the master period
-                student_display_period_id = master_period.id
-                # Only sync subjects for JHS (Quarters)
-                if section_period.period_type == 'Quarter':
-                    subject_display_period_id = master_period.id
-        # --- End Sync Logic ---
-
-        # Fetch students from the correct (master) period
-        students = db_session.query(StudentInfo).options(joinedload(StudentInfo.parent)).filter(StudentInfo.section_period_id == student_display_period_id).order_by(StudentInfo.name).all()
+        # For SHS/semesters, only show students for the current period
+        students = db_session.query(StudentInfo).options(joinedload(StudentInfo.parent)).filter(StudentInfo.section_period_id == section_period_id).order_by(StudentInfo.name).all()
         for student in students:
-            # Note: This is a simple average calculation. A more complex one might be needed later.
-            grades = db_session.query(Grade.grade_value).filter(Grade.student_info_id == student.id).all()
+            # Only average grades for the current period (semester and school year)
+            grades = db_session.query(Grade.grade_value).filter(
+                Grade.student_info_id == student.id,
+                Grade.semester == section_period.period_name,
+                Grade.school_year == section_period.school_year
+            ).all()
             if grades:
                 student.average_grade = sum(g[0] for g in grades) / len(grades)
             else:
@@ -3680,6 +3692,69 @@ def sync_student_to_parent_portal(student, parent_id, logger=None):
         return False, str(e)
     finally:
         parent_db_session.close()
+
+@app.route('/section_period/<uuid:section_period_id>/sync_students_from_first_sem', methods=['POST'])
+@login_required
+@user_type_required('admin')
+def sync_students_from_first_sem(section_period_id):
+    db_session = g.session
+    try:
+        section_period = db_session.query(SectionPeriod).filter_by(id=section_period_id).first()
+        if not section_period:
+            flash('Section period not found.', 'danger')
+            return redirect(url_for('section_period_details', section_period_id=section_period_id))
+
+        # Only allow for 2nd Semester, SHS
+        if section_period.period_type != 'Semester' or section_period.period_name.strip().lower() != '2nd semester':
+            flash('Sync is only allowed for 2nd Semester periods.', 'warning')
+            return redirect(url_for('section_period_details', section_period_id=section_period_id))
+
+        # Find the 1st Semester for the same section and school year
+        first_sem = db_session.query(SectionPeriod).filter_by(
+            section_id=section_period.section_id,
+            school_year=section_period.school_year,
+            period_type='Semester',
+            period_name='1st Semester'
+        ).first()
+        if not first_sem:
+            flash('1st Semester period not found for this section and school year.', 'warning')
+            return redirect(url_for('section_period_details', section_period_id=section_period_id))
+
+        # Get all students in 1st Semester
+        first_sem_students = db_session.query(StudentInfo).filter_by(section_period_id=first_sem.id).all()
+        # Get all student_id_numbers already in 2nd Semester
+        second_sem_students = db_session.query(StudentInfo).filter_by(section_period_id=section_period_id).all()
+        second_sem_id_numbers = {s.student_id_number for s in second_sem_students}
+
+        added = 0
+        for student in first_sem_students:
+            # Always append -S2 for 2nd Sem student_id_number
+            base_id = student.student_id_number
+            if not base_id.endswith('-S2'):
+                new_id = f"{base_id}-S2"
+            else:
+                new_id = base_id
+            if new_id not in second_sem_id_numbers:
+                new_student = StudentInfo(
+                    section_period_id=section_period_id,
+                    name=student.name,
+                    student_id_number=new_id,
+                    gender=student.gender,
+                    parent_id=student.parent_id,
+                    password_hash=student.password_hash
+                )
+                db_session.add(new_student)
+                added += 1
+        db_session.commit()
+        if added:
+            flash(f'Successfully synced {added} students from 1st Semester.', 'success')
+        else:
+            flash('No new students to sync from 1st Semester.', 'info')
+    except Exception as e:
+        db_session.rollback()
+        app.logger.error(f"Error syncing students from 1st Semester: {e}")
+        flash('An error occurred while syncing students.', 'danger')
+    return redirect(url_for('section_period_details', section_period_id=section_period_id))
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
