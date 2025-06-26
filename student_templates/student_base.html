@@ -193,75 +193,24 @@
     </style>
 </head>
 <body {% if request.endpoint == 'student_login' %}class="no-scroll-page login-page"{% elif request.endpoint in ['student_dashboard', 'student_assignments'] %}class="no-scroll-page"{% endif %}>
-    <!-- Mobile Navigation Overlay -->
-    <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
-    
-    <!-- Mobile Navigation Menu -->
-    <div class="mobile-nav-menu" id="mobileNavMenu">
-        <div class="mobile-nav-header">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <img src="{{ url_for('static', filename='css/pcshs_logo.png') }}" alt="PCSHS Logo" style="height: 40px; width: auto;">
-                <span style="font-weight: 600; font-size: 1.1rem;">Student Portal</span>
-            </div>
-            <button class="mobile-nav-close" id="mobileNavClose">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <ul class="mobile-nav-items">
-            {% if session.student_id %}
-                <li><a href="{{ url_for('student_dashboard') }}" class="{% if request.endpoint == 'student_dashboard' %}active{% endif %}">
-                    <i class="fas fa-home"></i> Dashboard
-                </a></li>
-                <li><a href="{{ url_for('student_grades') }}" class="{% if request.endpoint == 'student_grades' %}active{% endif %}">
-                    <i class="fas fa-graduation-cap"></i> Grades
-                </a></li>
-                <li><a href="{{ url_for('student_attendance') }}" class="{% if request.endpoint == 'student_attendance' %}active{% endif %}">
-                    <i class="fas fa-calendar-check"></i> Attendance
-                </a></li>
-                <li><a href="{{ url_for('student_quiz') }}" class="{% if request.endpoint == 'student_quiz' %}active{% endif %}">
-                    <i class="fas fa-question-circle"></i> Quiz
-                </a></li>
-                <li class="logout-item">
-                    <a href="{{ url_for('student_logout') }}">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </li>
-            {% else %}
-                <li><a href="{{ url_for('student_login') }}">
-                    <i class="fas fa-sign-in-alt"></i> Login
-                </a></li>
-            {% endif %}
-        </ul>
-    </div>
-
+    <!-- Remove Mobile Navigation Overlay and Menu -->
     <!-- Header Start -->
     <header class="student-header">
         <div class="container" style="display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 1em;">
-                <img src="{{ url_for('static', filename='css/pcshs_logo.png') }}" alt="PCSHS Logo" style="height: 70px; width: auto; margin-right: 12px;">
-                <h1 class="student-title" style="margin-bottom: 0;">
-                    <a href="{{ url_for('student_dashboard') if session.student_id else url_for('student_login') }}">
-                        Student Portal
-                    </a>
-                </h1>
+                <img src="{{ url_for('static', filename='css/pcshs_logo.png') }}" alt="PCSHS Logo" style="height: 48px; width: auto; margin-right: 12px;">
+                <span class="student-title" style="font-size: 1.3rem; font-weight: 700; color: #fff; margin-right: 1.5em;">Student Portal</span>
             </div>
-            
-            <!-- Mobile Navigation Toggle -->
-            <button class="mobile-nav-toggle" id="mobileNavToggle">
-                <i class="fas fa-bars"></i>
-            </button>
-            
-            <!-- Desktop Navigation -->
-            <nav class="student-nav">
-                <ul>
+            <nav class="student-nav" style="display: flex; align-items: center;">
+                <ul style="display: flex; gap: 1.2rem; list-style: none; margin: 0; padding: 0; align-items: center;">
                     {% if session.student_id %}
-                        <li><a href="{{ url_for('student_dashboard') }}" class="{% if request.endpoint == 'student_dashboard' %}active{% endif %}"><i class="fas fa-home"></i> Dashboard</a></li>
-                        <li><a href="{{ url_for('student_grades') }}" class="{% if request.endpoint == 'student_grades' %}active{% endif %}"><i class="fas fa-graduation-cap"></i> Grades</a></li>
-                        <li><a href="{{ url_for('student_attendance') }}" class="{% if request.endpoint == 'student_attendance' %}active{% endif %}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
-                        <li><a href="{{ url_for('student_quiz') }}" class="{% if request.endpoint == 'student_quiz' %}active{% endif %}"><i class="fas fa-question-circle"></i> Quiz</a></li>
-                        <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin-left: 1em;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        <li><a href="{{ url_for('student_dashboard') }}" class="{% if request.endpoint == 'student_dashboard' %}active{% endif %}">Dashboard</a></li>
+                        <li><a href="{{ url_for('student_grades') }}" class="{% if request.endpoint == 'student_grades' %}active{% endif %}">Grades</a></li>
+                        <li><a href="{{ url_for('student_attendance') }}" class="{% if request.endpoint == 'student_attendance' %}active{% endif %}">Attendance</a></li>
+                        <li><a href="{{ url_for('student_quiz') }}" class="{% if request.endpoint == 'student_quiz' %}active{% endif %}">Quiz</a></li>
+                        <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin-left: 1em;">Logout</a></li>
                     {% else %}
-                        <li><a href="{{ url_for('student_login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
+                        <li><a href="{{ url_for('student_login') }}">Login</a></li>
                     {% endif %}
                 </ul>
             </nav>
