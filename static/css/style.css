@@ -1642,3 +1642,31 @@ body {
 .dark-mode .table-hover tbody tr:hover {
     background: #31363b !important;
 }
+
+.dark-mode #toggleStudentListBtn,
+.dark-mode .btn-outline-primary,
+.dark-mode .btn-info,
+.dark-mode .btn-edit {
+    background: linear-gradient(90deg, #2563eb 60%, #1e40af 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    box-shadow: 0 2px 8px #2563eb33;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+.dark-mode #toggleStudentListBtn:hover,
+.dark-mode .btn-outline-primary:hover,
+.dark-mode .btn-info:hover,
+.dark-mode .btn-edit:hover {
+    background: linear-gradient(90deg, #1d4ed8 60%, #1e3a8a 100%) !important;
+    box-shadow: 0 0 8px #2563eb99;
+}
+
+.dark-mode .average-grade-cell {
+    background: #1e293b !important;
+    color: #38bdf8 !important;
+    font-weight: 800 !important;
+    border-radius: 6px;
+    box-shadow: 0 1px 6px #2563eb22;
+}
