@@ -458,17 +458,17 @@ body {
 
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 25px;
-    margin-top: 30px;
+    align-items: stretch;
 }
 
 .dashboard-option-card {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
-    padding: 30px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    min-height: 220px;
 }
 
 .dashboard-option-card.full-width {
@@ -1617,4 +1617,10 @@ body {
 .dark-mode .form-select:focus {
     outline: 2px solid #2563eb !important;
     box-shadow: 0 0 0 2px #2563eb55 !important;
+}
+
+@media (max-width: 900px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
 }
