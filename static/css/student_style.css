@@ -162,7 +162,8 @@ body.dark-mode .attendance-summary,
 body.dark-mode .filters-container,
 body.dark-mode .stat-card,
 body.dark-mode .table,
-body.dark-mode .table-bordered {
+body.dark-mode .table-bordered,
+body.dark-mode .empty-state {
   background: #23272b !important;
   color: #fff !important;
   border-color: #232b3b !important;
@@ -193,6 +194,59 @@ body.dark-mode .table th {
   background: #273447 !important;
   color: #fff !important;
   border-bottom: 2px solid #2b3a55 !important;
+}
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  background: #23272b !important;
+  color: #fff !important;
+  border-color: #232b3b !important;
+}
+
+/* --- DARK MODE PATCH FOR ATTENDANCE CARDS & FILTERS --- */
+body.dark-mode .summary-card,
+body.dark-mode .attendance-summary-cards,
+body.dark-mode .attendance-filter-card,
+body.dark-mode .attendance-table-card {
+  background: #23272b !important;
+  color: #fff !important;
+  border-color: #232b3b !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18) !important;
+}
+body.dark-mode .summary-label,
+body.dark-mode .summary-percent {
+  color: #b0b8c1 !important;
+}
+body.dark-mode .attendance-filter-title,
+body.dark-mode .attendance-table-title,
+body.dark-mode .attendance-table-subtitle {
+  color: #7db4ff !important;
+}
+body.dark-mode .attendance-search,
+body.dark-mode .attendance-status-filter,
+body.dark-mode .attendance-subject-filter,
+body.dark-mode .attendance-clear-btn {
+  background: #181a1b !important;
+  color: #fff !important;
+  border-color: #232b3b !important;
+}
+
+/* --- DARK MODE PATCH FOR ATTENDANCE TABLE HEADERS --- */
+body.dark-mode th,
+body.dark-mode .attendance-table-card th,
+body.dark-mode .attendance-table th {
+  background: #232b3b !important;
+  color: #fff !important;
+  border-bottom: 2px solid #2b3a55 !important;
+}
+
+/* --- DARK MODE PATCH FOR TABLE ROW/CELL HOVER & FOCUS --- */
+body.dark-mode tr:hover,
+body.dark-mode tr:focus,
+body.dark-mode td:focus,
+body.dark-mode th:focus {
+  background: #2a3240 !important;
+  color: #fff !important;
 }
 
 .container {
