@@ -382,6 +382,24 @@ def student_attendance():
             period_map[period_key] = []
         period_map[period_key].append(record)
 
+    # --- Sort periods so 1st semester is on top, 2nd semester below ---
+    def period_sort_key(period):
+        # Example: '1ST SEMESTER 2025-2026'
+        import re
+        match = re.match(r"(\d)(ST|ND|RD|TH) SEMESTER (\d{4}-\d{4})", period.upper())
+        if match:
+            num = int(match.group(1))
+            year = match.group(3)
+            # Lower num (1st) should come first
+            return (year, num)
+        # Fallback: sort by year descending, then name
+        parts = period.rsplit(' ', 1)
+        if len(parts) == 2:
+            return (parts[1], parts[0])
+        return (period,)
+    sorted_period_items = sorted(period_map.items(), key=lambda x: period_sort_key(x[0]), reverse=False)
+    sorted_period_map = dict(sorted_period_items)
+
     # Calculate summary statistics for all records (can also do per period if needed)
     present_count = sum(1 for a in filtered_records if a.status == 'present')
     absent_count = sum(1 for a in filtered_records if a.status == 'absent')
@@ -399,7 +417,7 @@ def student_attendance():
         excused_count=excused_count,
         total_classes=total_classes,
         attendance_rate=attendance_rate,
-        records_by_period=period_map,
+        records_by_period=sorted_period_map,
         subject_map=subject_map)
 
 @app.route('/student/profile', methods=['GET', 'POST'])
