@@ -1701,3 +1701,82 @@ body {
     background: linear-gradient(90deg, #1d4ed8 60%, #1e3a8a 100%) !important;
     box-shadow: 0 0 8px #2563eb99;
 }
+
+.dark-mode .attendance-options label input[type="radio"]:checked + span,
+.dark-mode .attendance-options label.selected,
+.dark-mode .attendance-options input[type="radio"]:checked + label {
+    background: #2563eb !important;
+    color: #fff !important;
+    border-radius: 6px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px #2563eb33;
+}
+
+.dark-mode .attendance-options label {
+    background: #23272e;
+    color: #b6c2d1;
+    border-radius: 6px;
+    padding: 6px 14px;
+    margin: 0 2px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.dark-mode .attendance-options input[type="radio"]:checked + label.attendance-status-present {
+    background: #38a169 !important;
+}
+.dark-mode .attendance-options input[type="radio"]:checked + label.attendance-status-absent {
+    background: #e53e3e !important;
+}
+.dark-mode .attendance-options input[type="radio"]:checked + label.attendance-status-late {
+    background: #f6ad55 !important;
+    color: #23272e !important;
+}
+.dark-mode .attendance-options input[type="radio"]:checked + label.attendance-status-excused {
+    background: #3182ce !important;
+}
+
+/* For label-wrapped radio (label > input[type=radio]) */
+.dark-mode .attendance-options label input[type="radio"]:checked + span,
+.dark-mode .attendance-options label input[type="radio"]:checked + label,
+.dark-mode .attendance-options label input[type="radio"]:checked ~ span,
+.dark-mode .attendance-options label input[type="radio"]:checked ~ label {
+    background: #2563eb !important;
+    color: #fff !important;
+    border-radius: 6px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px #2563eb33;
+}
+
+/* For Bootstrap .btn-check + label.btn-outline-* pattern */
+.dark-mode .btn-check:checked + .btn-outline-success {
+    background-color: #38a169 !important;
+    color: #fff !important;
+    border-color: #38a169 !important;
+}
+.dark-mode .btn-check:checked + .btn-outline-danger {
+    background-color: #e53e3e !important;
+    color: #fff !important;
+    border-color: #e53e3e !important;
+}
+.dark-mode .btn-check:checked + .btn-outline-warning {
+    background-color: #f6ad55 !important;
+    color: #23272e !important;
+    border-color: #f6ad55 !important;
+}
+.dark-mode .btn-check:checked + .btn-outline-info {
+    background-color: #3182ce !important;
+    color: #fff !important;
+    border-color: #3182ce !important;
+}
+
+.dark-mode .btn-outline-success,
+.dark-mode .btn-outline-danger,
+.dark-mode .btn-outline-warning,
+.dark-mode .btn-outline-info {
+    background: #23272e !important;
+    color: #b6c2d1 !important;
+    border-radius: 6px;
+    border-width: 2px;
+    font-weight: 600;
+    transition: background 0.2s, color 0.2s;
+}
