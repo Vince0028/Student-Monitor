@@ -213,12 +213,12 @@
                         <li><a href="{{ url_for('student_grades') }}" class="{% if request.endpoint == 'student_grades' %}active{% endif %}">Grades</a></li>
                         <li><a href="{{ url_for('student_attendance') }}" class="{% if request.endpoint == 'student_attendance' %}active{% endif %}">Attendance</a></li>
                         <li><a href="{{ url_for('student_quiz') }}" class="{% if request.endpoint == 'student_quiz' %}active{% endif %}">Quiz</a></li>
+                        <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin-left: 1em;">Logout</a></li>
                         <li>
                           <button id="darkModeToggle" title="Toggle dark mode" style="background:none;border:none;color:#fff;font-size:1.2em;cursor:pointer;margin-left:0.5em;vertical-align:middle;">
                             <i id="darkModeIcon" class="fas fa-moon"></i>
                           </button>
                         </li>
-                        <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin-left: 1em;">Logout</a></li>
                     {% elif request.endpoint != 'student_login' %}
                         <li><a href="{{ url_for('student_login') }}">Login</a></li>
                     {% endif %}
@@ -232,12 +232,12 @@
                         <li><a href="{{ url_for('student_grades') }}">Grades</a></li>
                         <li><a href="{{ url_for('student_attendance') }}">Attendance</a></li>
                         <li><a href="{{ url_for('student_quiz') }}">Quiz</a></li>
+                        <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin:0.5em 0;">Logout</a></li>
                         <li>
                           <button id="darkModeToggleMobile" title="Toggle dark mode" style="background:none;border:none;color:#222;font-size:1.2em;cursor:pointer;margin-left:0.5em;vertical-align:middle;">
                             <i id="darkModeIconMobile" class="fas fa-moon"></i>
                           </button>
                         </li>
-                        <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin:0.5em 0;">Logout</a></li>
                     {% else %}
                         <li><a href="{{ url_for('student_login') }}">Login</a></li>
                     {% endif %}

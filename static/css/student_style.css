@@ -249,6 +249,11 @@ body.dark-mode th:focus {
   color: #fff !important;
 }
 
+/* --- DARK MODE PATCH FOR SUMMARY VALUE COLOR --- */
+body.dark-mode .summary-value {
+  color: #fff !important;
+}
+
 .container {
   max-width: 1200px;
   margin: 0 auto;
