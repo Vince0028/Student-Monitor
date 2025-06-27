@@ -1603,3 +1603,18 @@ body {
     font-weight: 500;
     text-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
+
+.dark-mode select,
+.dark-mode .form-select,
+.dark-mode select option,
+.dark-mode .form-select option {
+    background: #23272e !important;
+    color: #fff !important;
+    border: 1px solid #31363b !important;
+}
+
+.dark-mode select:focus,
+.dark-mode .form-select:focus {
+    outline: 2px solid #2563eb !important;
+    box-shadow: 0 0 0 2px #2563eb55 !important;
+}
