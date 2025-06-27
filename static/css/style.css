@@ -1670,3 +1670,34 @@ body {
     border-radius: 6px;
     box-shadow: 0 1px 6px #2563eb22;
 }
+
+.average-grade-cell {
+    font-weight: 800;
+    font-size: 1.08em;
+    letter-spacing: 0.5px;
+}
+
+.average-grade-cell .real-grade {
+    color: #2563eb;
+    font-size: 1.15em;
+    font-weight: 900;
+    background: linear-gradient(90deg, #38bdf8 0%, #2563eb 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-fill-color: transparent;
+}
+
+.btn-edit {
+    background: linear-gradient(90deg, #2563eb 60%, #1e40af 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    box-shadow: 0 2px 8px #2563eb33;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+.btn-edit:hover {
+    background: linear-gradient(90deg, #1d4ed8 60%, #1e3a8a 100%) !important;
+    box-shadow: 0 0 8px #2563eb99;
+}
