@@ -1780,3 +1780,20 @@ body {
     font-weight: 600;
     transition: background 0.2s, color 0.2s;
 }
+
+.dark-mode .card,
+.dark-mode .attendance-summary,
+.dark-mode .attendance-summary-card,
+.dark-mode .list-group-item {
+    background: #23272e !important;
+    color: #fff !important;
+    border-color: #31363b !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.7) !important;
+}
+
+.dark-mode .attendance-summary .card-header,
+.dark-mode .attendance-summary-card .card-header {
+    background: #181a1b !important;
+    color: #b6c2d1 !important;
+    border-bottom: 1px solid #31363b !important;
+}
