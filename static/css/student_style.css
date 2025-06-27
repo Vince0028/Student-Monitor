@@ -1392,3 +1392,14 @@ html, body {
     display: flex !important;
   }
 }
+
+/* --- DARK MODE PATCH FOR LOGIN PAGE --- */
+body.dark-mode.login-page,
+body.dark-mode .login-bg {
+  background: #181a1b !important;
+}
+body.dark-mode .login-card {
+  background: #23272b !important;
+  color: #fff !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18) !important;
+}

@@ -214,9 +214,12 @@
         <label for="student_id_number" class="login-label">Student ID Number</label>
         <input type="text" id="student_id_number" name="student_id_number" class="login-input" placeholder="Enter your student ID number" required autofocus>
       </div>
-      <div class="form-group">
+      <div class="form-group" style="position: relative;">
         <label for="password" class="login-label">Password</label>
         <input type="password" id="password" name="password" class="login-input" placeholder="Enter your password" required autocomplete="current-password">
+        <button type="button" id="togglePassword" aria-label="Show password" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; color:#2563eb; font-size:0.98em; cursor:pointer; padding:0 6px; font-weight:600;">
+          <span id="togglePasswordText">Show</span>
+        </button>
       </div>
       <button type="submit" class="login-btn">
         <i class="fas fa-sign-in-alt"></i> Sign In
@@ -224,4 +227,20 @@
     </form>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const passwordInput = document.getElementById('password');
+  const togglePassword = document.getElementById('togglePassword');
+  const togglePasswordText = document.getElementById('togglePasswordText');
+  if (togglePassword && passwordInput) {
+    togglePassword.addEventListener('click', function() {
+      const isPassword = passwordInput.type === 'password';
+      passwordInput.type = isPassword ? 'text' : 'password';
+      togglePasswordText.textContent = isPassword ? 'Hide' : 'Show';
+      togglePassword.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+    });
+  }
+});
+</script>
 {% endblock %} 

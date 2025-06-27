@@ -342,6 +342,11 @@ body {
     color: #2d3748;
 }
 
+/* Fix: Make login form labels white in dark mode */
+.dark-mode .auth-form label {
+    color: #fff !important;
+}
+
 .auth-form input[type="text"],
 .auth-form input[type="password"],
 .auth-form input[type="email"],
