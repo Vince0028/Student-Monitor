@@ -1624,3 +1624,21 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+.dark-mode .student-list-scrollable,
+.dark-mode .table,
+.dark-mode .table th,
+.dark-mode .table td {
+    background: #23272e !important;
+    color: #fff !important;
+    border-color: #31363b !important;
+}
+
+.dark-mode .table-group-divider {
+    background: #181a1b !important;
+    color: #b6c2d1 !important;
+}
+
+.dark-mode .table-hover tbody tr:hover {
+    background: #31363b !important;
+}
