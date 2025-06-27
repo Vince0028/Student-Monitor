@@ -213,6 +213,11 @@
                         <li><a href="{{ url_for('student_grades') }}" class="{% if request.endpoint == 'student_grades' %}active{% endif %}">Grades</a></li>
                         <li><a href="{{ url_for('student_attendance') }}" class="{% if request.endpoint == 'student_attendance' %}active{% endif %}">Attendance</a></li>
                         <li><a href="{{ url_for('student_quiz') }}" class="{% if request.endpoint == 'student_quiz' %}active{% endif %}">Quiz</a></li>
+                        <li>
+                          <button id="darkModeToggle" title="Toggle dark mode" style="background:none;border:none;color:#fff;font-size:1.2em;cursor:pointer;margin-left:0.5em;vertical-align:middle;">
+                            <i id="darkModeIcon" class="fas fa-moon"></i>
+                          </button>
+                        </li>
                         <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin-left: 1em;">Logout</a></li>
                     {% elif request.endpoint != 'student_login' %}
                         <li><a href="{{ url_for('student_login') }}">Login</a></li>
@@ -227,6 +232,11 @@
                         <li><a href="{{ url_for('student_grades') }}">Grades</a></li>
                         <li><a href="{{ url_for('student_attendance') }}">Attendance</a></li>
                         <li><a href="{{ url_for('student_quiz') }}">Quiz</a></li>
+                        <li>
+                          <button id="darkModeToggleMobile" title="Toggle dark mode" style="background:none;border:none;color:#222;font-size:1.2em;cursor:pointer;margin-left:0.5em;vertical-align:middle;">
+                            <i id="darkModeIconMobile" class="fas fa-moon"></i>
+                          </button>
+                        </li>
                         <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin:0.5em 0;">Logout</a></li>
                     {% else %}
                         <li><a href="{{ url_for('student_login') }}">Login</a></li>
@@ -358,6 +368,37 @@
             }
         });
     });
+    </script>
+    <script>
+    // Dark mode toggle logic
+    (function() {
+      function setDarkMode(enabled) {
+        document.body.classList.toggle('dark-mode', enabled);
+        var icon = document.getElementById('darkModeIcon');
+        var iconMobile = document.getElementById('darkModeIconMobile');
+        if (icon) icon.className = enabled ? 'fas fa-sun' : 'fas fa-moon';
+        if (iconMobile) iconMobile.className = enabled ? 'fas fa-sun' : 'fas fa-moon';
+      }
+      function getPref() {
+        return localStorage.getItem('studentDarkMode') === 'true';
+      }
+      function setPref(val) {
+        localStorage.setItem('studentDarkMode', val ? 'true' : 'false');
+      }
+      document.addEventListener('DOMContentLoaded', function() {
+        var darkMode = getPref();
+        setDarkMode(darkMode);
+        var btn = document.getElementById('darkModeToggle');
+        var btnMobile = document.getElementById('darkModeToggleMobile');
+        function toggle() {
+          var enabled = !document.body.classList.contains('dark-mode');
+          setDarkMode(enabled);
+          setPref(enabled);
+        }
+        if (btn) btn.onclick = toggle;
+        if (btnMobile) btnMobile.onclick = toggle;
+      });
+    })();
     </script>
 </body>
 </html>

@@ -22,6 +22,179 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+body.dark-mode {
+  background: #181a1b !important;
+  color: #e3e3e3 !important;
+}
+body.dark-mode .student-header {
+  background: linear-gradient(135deg, #232b3b, #1a2233) !important;
+  color: #fff !important;
+}
+body.dark-mode .student-title,
+body.dark-mode .student-header .container span,
+body.dark-mode .student-header .container a {
+  color: #fff !important;
+}
+body.dark-mode .student-nav a,
+body.dark-mode .student-nav a.active,
+body.dark-mode .student-nav a:focus,
+body.dark-mode .student-nav a:hover {
+  color: #fff !important;
+  background: rgba(255,255,255,0.08) !important;
+}
+body.dark-mode .feature-card,
+body.dark-mode .welcome-section > div {
+  background: #23272b !important;
+  color: #e3e3e3 !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18) !important;
+  border-color: #232b3b !important;
+}
+body.dark-mode .feature-card-title,
+body.dark-mode .feature-card-desc,
+body.dark-mode .feature-card-stats {
+  color: #e3e3e3 !important;
+}
+body.dark-mode .dashboard-header h3,
+body.dark-mode .welcome-section h1 {
+  color: #7db4ff !important;
+}
+body.dark-mode .student-footer {
+  background: #232b3b !important;
+  color: #b0b8c1 !important;
+}
+body.dark-mode .alert {
+  background: #23272b !important;
+  color: #7db4ff !important;
+  border-left-color: #2563eb !important;
+}
+body.dark-mode .alert-success {
+  background: #1e2a22 !important;
+  color: #34d399 !important;
+  border-left-color: #10b981 !important;
+}
+body.dark-mode .alert-error {
+  background: #2a1e1e !important;
+  color: #f87171 !important;
+  border-left-color: #ef4444 !important;
+}
+body.dark-mode .alert-warning {
+  background: #2a261e !important;
+  color: #fbbf24 !important;
+  border-left-color: #f59e0b !important;
+}
+body.dark-mode .alert-info {
+  background: #1e2330 !important;
+  color: #60a5fa !important;
+  border-left-color: #3b82f6 !important;
+}
+body.dark-mode .landing-card,
+body.dark-mode .landing-header,
+body.dark-mode .overall-average-card,
+body.dark-mode .period-section,
+body.dark-mode .grades-table,
+body.dark-mode .grades-table th,
+body.dark-mode .grades-table td,
+body.dark-mode .empty-state,
+body.dark-mode .feature-card,
+body.dark-mode .welcome-section > div {
+  background: #23272b !important;
+  color: #fff !important;
+  border-color: #232b3b !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18) !important;
+}
+body.dark-mode .grades-table th,
+body.dark-mode .grades-mode .grades-table td {
+  color: #fff !important;
+}
+body.dark-mode .grades-table tbody tr:nth-child(even),
+body.dark-mode .grades-table tbody tr:hover {
+  background: #232b3b !important;
+}
+body.dark-mode .landing-header h2,
+body.dark-mode .overall-average-card h3,
+body.dark-mode .period-title,
+body.dark-mode .grade-value,
+body.dark-mode .subject-name {
+  color: #7db4ff !important;
+}
+body.dark-mode .period-average,
+body.dark-mode .landing-header .subtitle {
+  color: #b0b8c1 !important;
+}
+body.dark-mode .btn,
+body.dark-mode .btn-danger,
+body.dark-mode .btn-primary,
+body.dark-mode .btn-success {
+  filter: brightness(1.1) saturate(1.2);
+  color: #fff !important;
+}
+body.dark-mode .btn-danger { background: #ef4444 !important; border-color: #ef4444 !important; }
+body.dark-mode .btn-primary { background: #2563eb !important; border-color: #2563eb !important; }
+body.dark-mode .btn-success { background: #10b981 !important; border-color: #10b981 !important; }
+body.dark-mode .btn:hover,
+body.dark-mode .btn-danger:hover,
+body.dark-mode .btn-primary:hover,
+body.dark-mode .btn-success:hover {
+  filter: brightness(1.3) saturate(1.4);
+}
+body.dark-mode .alert,
+body.dark-mode .alert-success,
+body.dark-mode .alert-error,
+body.dark-mode .alert-warning,
+body.dark-mode .alert-info {
+  color: #fff !important;
+}
+body.dark-mode .period-header {
+  background: #22304a !important;
+  color: #fff !important;
+  border-bottom: 2px solid #2b3a55 !important;
+}
+body.dark-mode .grades-table th {
+  background: #273447 !important;
+  color: #7db4ff !important;
+  border-bottom: 2px solid #2b3a55 !important;
+}
+body.dark-mode .grade-value {
+  color: #38bdf8 !important; /* cyan/teal for grades */
+}
+body.dark-mode .form-page-container,
+body.dark-mode .attendance-summary,
+body.dark-mode .filters-container,
+body.dark-mode .stat-card,
+body.dark-mode .table,
+body.dark-mode .table-bordered {
+  background: #23272b !important;
+  color: #fff !important;
+  border-color: #232b3b !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18) !important;
+}
+body.dark-mode .table th,
+body.dark-mode .table td {
+  background: #232b3b !important;
+  color: #fff !important;
+}
+body.dark-mode .stat-card .stat-value {
+  color: #38bdf8 !important;
+}
+body.dark-mode .stat-card .stat-label {
+  color: #b0b8c1 !important;
+}
+body.dark-mode .stat-card {
+  background: #232b3b !important;
+  color: #fff !important;
+  border-color: #232b3b !important;
+}
+body.dark-mode .filters-container {
+  background: #232b3b !important;
+  color: #fff !important;
+  border-color: #232b3b !important;
+}
+body.dark-mode .table th {
+  background: #273447 !important;
+  color: #fff !important;
+  border-bottom: 2px solid #2b3a55 !important;
+}
+
 .container {
   max-width: 1200px;
   margin: 0 auto;
