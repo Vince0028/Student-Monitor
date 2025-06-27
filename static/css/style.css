@@ -1678,14 +1678,24 @@ body {
 }
 
 .average-grade-cell .real-grade {
-    color: #2563eb;
+    color: #111;
     font-size: 1.15em;
-    font-weight: 900;
+    font-weight: 400;
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    -webkit-text-fill-color: initial !important;
+    background-clip: initial !important;
+    text-fill-color: initial !important;
+}
+
+.dark-mode .average-grade-cell .real-grade {
+    color: #38bdf8;
     background: linear-gradient(90deg, #38bdf8 0%, #2563eb 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     text-fill-color: transparent;
+    font-weight: 400;
 }
 
 .btn-edit {
