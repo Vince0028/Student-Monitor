@@ -373,7 +373,29 @@ def sync_total_grade_to_database(db_session, student_id, subject_id, teacher_id,
         ).all()
         
         if not scores_query:
-            return  # No scores yet
+            # No scores yet, set grade to 0
+            total_grade_value = 0.0
+            existing_grade = db_session.query(Grade).filter(
+                Grade.student_info_id == student_id,
+                Grade.section_subject_id == subject_id,
+                Grade.semester == section_period.period_name,
+                Grade.school_year == section_period.school_year
+            ).first()
+            if existing_grade:
+                existing_grade.grade_value = total_grade_value
+                existing_grade.teacher_id = teacher_id
+            else:
+                new_grade = Grade(
+                    student_info_id=student_id,
+                    section_subject_id=subject_id,
+                    teacher_id=teacher_id,
+                    grade_value=total_grade_value,
+                    semester=section_period.period_name,
+                    school_year=section_period.school_year
+                )
+                db_session.add(new_grade)
+            db_session.commit()
+            return
         
         # Create a map of scores
         student_scores_map = {s.item_id: s.score for s in scores_query}
@@ -3524,7 +3546,20 @@ def sync_total_grades_for_subject(subject_id):
             except Exception as e:
                 app.logger.error(f"Error syncing grade for student {student.id}: {e}")
                 continue
-        
+        # --- NEW: Update average_grade in students_info for each student ---
+        for student in students:
+            # Get all grades for this student in this section period
+            grades = g.session.query(Grade).join(SectionSubject).filter(
+                Grade.student_info_id == student.id,
+                SectionSubject.section_period_id == subject.section_period_id
+            ).all()
+            if grades:
+                avg = round(sum(float(g.grade_value) for g in grades) / len(grades), 3)
+                student.average_grade = avg
+            else:
+                student.average_grade = None
+        g.session.commit()
+        # --- END NEW ---
         return jsonify({
             'success': True, 
             'message': f'Successfully synced total grades for {synced_count} students.'

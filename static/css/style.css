@@ -1851,3 +1851,31 @@ body {
     box-shadow: 0 0 8px #16c55a55;
     color: #fff !important;
 }
+
+body.dark-mode input[type="date"] {
+  background: #2d2f36 !important;
+  color: #fff !important;
+  border: 1.5px solid #888 !important;
+}
+body.dark-mode input[type="date"]::-webkit-input-placeholder {
+  color: #bbb !important;
+}
+body.dark-mode input[type="date"]::-moz-placeholder {
+  color: #bbb !important;
+}
+body.dark-mode input[type="date"]:-ms-input-placeholder {
+  color: #bbb !important;
+}
+body.dark-mode input[type="date"]::placeholder {
+  color: #bbb !important;
+}
+
+body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(2);
+}
+body.dark-mode input[type="date"]::-ms-input-placeholder {
+  color: #bbb !important;
+}
+body.dark-mode input[type="date"]::placeholder {
+  color: #bbb !important;
+}
