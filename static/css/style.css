@@ -1807,3 +1807,42 @@ body {
     color: #b6c2d1 !important;
     border-bottom: 1px solid #31363b !important;
 }
+
+.btn-create-quiz, .btn-create-quiz:visited {
+    background: linear-gradient(90deg, #22c55e 60%, #16a34a 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    font-weight: 600;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    box-shadow: 0 2px 8px #22c55e33;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+.btn-create-quiz:hover {
+    background: linear-gradient(90deg, #16a34a 60%, #166534 100%) !important;
+    box-shadow: 0 0 8px #16a34a55;
+    color: #fff !important;
+}
+
+.dark-mode .btn-create-quiz {
+    background: linear-gradient(90deg, #22e57b 60%, #16c55a 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 2px 8px #22e57b33;
+}
+.dark-mode .btn-create-quiz:hover {
+    background: linear-gradient(90deg, #16c55a 60%, #15803d 100%) !important;
+    box-shadow: 0 0 8px #16c55a55;
+    color: #fff !important;
+}
+
+.dark-mode .btn-success, .dark-mode a.btn-success, .dark-mode button.btn-success {
+    background: linear-gradient(90deg, #22e57b 60%, #16c55a 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 2px 8px #22e57b33;
+}
+.dark-mode .btn-success:hover, .dark-mode a.btn-success:hover, .dark-mode button.btn-success:hover {
+    background: linear-gradient(90deg, #16c55a 60%, #15803d 100%) !important;
+    box-shadow: 0 0 8px #16c55a55;
+    color: #fff !important;
+}
