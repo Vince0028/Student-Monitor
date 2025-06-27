@@ -1572,3 +1572,34 @@ body {
     color: #fff !important;
     border-bottom: 1px solid #23272e !important;
 }
+
+.dark-mode .dashboard-container,
+.dark-mode .card,
+.dark-mode .info-card,
+.dark-mode .dashboard-option-card,
+.dark-mode .auth-container,
+.dark-mode .form-page-container,
+.dark-mode .hero-section {
+    background: #23272e !important;
+    color: #fff !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.7) !important;
+    border: 1px solid #31363b !important;
+}
+
+.dark-mode .dashboard-option-card h3,
+.dark-mode .info-card h3,
+.dark-mode .dashboard-container h2,
+.dark-mode .hero-content h2 {
+    color: #fff !important;
+    font-weight: 800 !important;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+
+.dark-mode .dashboard-option-card p,
+.dark-mode .info-card p,
+.dark-mode .dashboard-welcome,
+.dark-mode .hero-content p {
+    color: #b6c2d1 !important;
+    font-weight: 500;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
