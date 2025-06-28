@@ -287,7 +287,7 @@ html, body {
 <div class="dashboard-container">
     <div class="welcome-section">
         <div>
-            <h1>Welcome, {{ session.student_name.title() if session.student_name else 'Student' }}!</h1>
+            <h1>Welcome, {{ student.name.title() if student and student.name else 'Student' }}!</h1>
         </div>
     </div>
     

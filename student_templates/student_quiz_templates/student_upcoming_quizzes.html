@@ -12,6 +12,9 @@
                 <div class="feature-card card-quiz-upcoming">
                     <div class="feature-card-icon"><i class="fas fa-hourglass-start"></i></div>
                     <div class="feature-card-title">{{ quiz.title }}</div>
+                    {% if quiz.subject_name %}
+                    <div style="color:#888; font-size:0.98rem; margin-bottom:0.2rem;">Subject: <strong>{{ quiz.subject_name }}</strong></div>
+                    {% endif %}
                     <div class="feature-card-desc">{{ quiz.description or 'Take this quiz now.' }}</div>
                 </div>
             </a>

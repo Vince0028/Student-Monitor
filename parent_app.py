@@ -16,7 +16,7 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 from dotenv import load_dotenv
-from app import GradingSystem, GradingComponent, GradableItem, StudentScore
+from models import Base, StudentInfo, Parent, Grade, SectionSubject, Attendance, SectionPeriod, Section, Strand, GradeLevel, GradingSystem, GradingComponent, GradableItem, StudentScore
 
 load_dotenv()
 
@@ -38,139 +38,6 @@ engine = create_engine(
     max_overflow=0, # Allow 1 extra connection for short spikes
     pool_timeout=30,
 )
-Base = declarative_base()
-
-# --- Parent and Student Models ---
-class Parent(Base):
-    __tablename__ = 'parents'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    username = Column(String(255), unique=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
-    email = Column(String(255), unique=True, nullable=False)
-    first_name = Column(String(255), nullable=False)
-    last_name = Column(String(255), nullable=False)
-    phone_number = Column(String(50), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Relationship to students
-    students = relationship('Student', back_populates='parent')
-
-    def __repr__(self):
-        return f"<Parent(id={self.id}, username='{self.username}', email='{self.email}')>"
-
-class Student(Base):
-    __tablename__ = 'students'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    parent_id = Column(PG_UUID(as_uuid=True), ForeignKey('parents.id'), nullable=False)
-    student_id_number = Column(String(255), unique=True, nullable=False)  # Links to main app's StudentInfo
-    first_name = Column(String(255), nullable=False)
-    last_name = Column(String(255), nullable=False)
-    grade_level = Column(String(50), nullable=False)  # e.g., 'Grade 7', 'Grade 11'
-    section_name = Column(String(255), nullable=False)  # e.g., 'A', 'B'
-    strand_name = Column(String(255), nullable=True)  # For SHS students
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Relationships
-    parent = relationship('Parent', back_populates='students')
-    grades = relationship('StudentGrade', back_populates='student', cascade='all, delete-orphan')
-    attendance_records = relationship('StudentAttendance', back_populates='student', cascade='all, delete-orphan')
-
-    def __repr__(self):
-        return f"<Student(id={self.id}, name='{self.first_name} {self.last_name}', student_id='{self.student_id_number}')>"
-
-class StudentGrade(Base):
-    __tablename__ = 'student_grades'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    student_id = Column(PG_UUID(as_uuid=True), ForeignKey('students.id'), nullable=False)
-    subject_name = Column(String(255), nullable=False)
-    grade_value = Column(Numeric(5, 2), nullable=False)
-    period_name = Column(String(50), nullable=False)  # e.g., '1st Sem', 'Q1'
-    school_year = Column(String(50), nullable=False)
-    teacher_name = Column(String(255), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    student = relationship('Student', back_populates='grades')
-
-    def __repr__(self):
-        return f"<StudentGrade(subject='{self.subject_name}', grade={self.grade_value}, period='{self.period_name}')>"
-
-class StudentAttendance(Base):
-    __tablename__ = 'student_attendance'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    student_id = Column(PG_UUID(as_uuid=True), ForeignKey('students.id'), nullable=False)
-    subject_name = Column(String(255), nullable=False)
-    attendance_date = Column(Date, nullable=False)
-    status = Column(String(50), nullable=False)  # 'present', 'absent', 'late', 'excused'
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    student = relationship('Student', back_populates='attendance_records')
-
-    def __repr__(self):
-        return f"<StudentAttendance(date={self.attendance_date}, status='{self.status}', subject='{self.subject_name}')>"
-
-# --- Add StudentInfo model for direct access to students_info ---
-class StudentInfo(Base):
-    __tablename__ = 'students_info'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    section_period_id = Column(PG_UUID(as_uuid=True))
-    name = Column(String(255), nullable=False)
-    student_id_number = Column(String(255), unique=True, nullable=False)
-    gender = Column(String(10), nullable=True)
-    parent_id = Column(PG_UUID(as_uuid=True), nullable=True)
-    average_grade = Column(Numeric(5, 2), nullable=True)
-    # Add more fields if needed
-
-# --- Add minimal models for SectionPeriod, Section, Strand, GradeLevel ---
-class SectionPeriod(Base):
-    __tablename__ = 'section_periods'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True)
-    section_id = Column(PG_UUID(as_uuid=True))
-    period_name = Column(String(50))
-    school_year = Column(String(50))
-
-class Section(Base):
-    __tablename__ = 'sections'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True)
-    name = Column(String(255))
-    strand_id = Column(PG_UUID(as_uuid=True))
-    grade_level_id = Column(PG_UUID(as_uuid=True))
-
-class Strand(Base):
-    __tablename__ = 'strands'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True)
-    name = Column(String(255))
-
-class GradeLevel(Base):
-    __tablename__ = 'grade_levels'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True)
-    name = Column(String(50))
-
-# --- Add minimal models for Grade, SectionSubject, Attendance ---
-class Grade(Base):
-    __tablename__ = 'grades'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True)
-    student_info_id = Column(PG_UUID(as_uuid=True))
-    section_subject_id = Column(PG_UUID(as_uuid=True))
-    grade_value = Column(Numeric(5, 2))
-    semester = Column(String(50))
-    school_year = Column(String(50))
-
-class SectionSubject(Base):
-    __tablename__ = 'section_subjects'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True)
-    section_period_id = Column(PG_UUID(as_uuid=True))
-    subject_name = Column(String(255))
-
-class Attendance(Base):
-    __tablename__ = 'attendance'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True)
-    student_info_id = Column(PG_UUID(as_uuid=True))
-    section_subject_id = Column(PG_UUID(as_uuid=True))
-    attendance_date = Column(Date)
-    status = Column(String(50))
-
-# Create tables
-Base.metadata.create_all(engine)
 
 Session = sessionmaker(bind=engine)
 

@@ -15,6 +15,9 @@
                         <span style="color:#2563eb; font-size:0.95rem; font-weight:600; margin-left:0.5rem;">[Score Pending]</span>
                     {% endif %}
                 </div>
+                {% if quiz.subject_name %}
+                <div style="text-align:center; color:#888; font-size:1.05rem; font-weight:bold; margin-bottom:0.2rem;">{{ quiz.subject_name }}</div>
+                {% endif %}
                 <div class="feature-card-desc">You scored <strong>{{ quiz.score }}</strong> out of <strong>{{ quiz.total_points }}</strong>.</div>
             </a>
             {% endfor %}

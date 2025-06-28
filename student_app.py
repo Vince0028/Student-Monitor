@@ -16,9 +16,7 @@ from dotenv import load_dotenv
 # This is a circular dependency, so it's better to move models to a separate file
 # For now, we will import them here
 from app import SectionSubject, Grade, SectionPeriod
-from models import Quiz, StudentQuizResult, Base, StudentQuizAnswer
-# Add these imports for grading system models
-from app import GradingSystem, GradingComponent, GradableItem, StudentScore
+from models import Quiz, StudentQuizResult, Base, StudentQuizAnswer, StudentInfo, Parent, Section, GradingSystem, GradingComponent, GradableItem, StudentScore, Attendance
 
 load_dotenv()
 
@@ -93,33 +91,6 @@ class StudentAttendance(Base):
 
     def __repr__(self):
         return f"<StudentAttendance(date={self.attendance_date}, status='{self.status}', subject='{self.subject_name}')>"
-
-class StudentInfo(Base):
-    __tablename__ = 'students_info'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    section_period_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_periods.id'), nullable=False)
-    name = Column(String(255), nullable=False)
-    student_id_number = Column(String(255), unique=True, nullable=False)
-    password_hash = Column(String(255), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    # Relationships omitted for brevity
-    def __repr__(self):
-        return f"<StudentInfo(id={self.id}, name='{self.name}', student_id_number='{self.student_id_number}')>"
-
-class Attendance(Base):
-    __tablename__ = 'attendance'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    student_info_id = Column(PG_UUID(as_uuid=True), ForeignKey('students_info.id'), nullable=False)
-    section_subject_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_subjects.id'), nullable=False)
-    attendance_date = Column(Date, nullable=False)
-    status = Column(String(50), nullable=False)
-    recorded_by = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    __table_args__ = (UniqueConstraint('student_info_id', 'section_subject_id', 'attendance_date'),)
-    # Relationships omitted for brevity
-    def __repr__(self):
-        return f"<Attendance(id={self.id}, student_info_id={self.student_info_id}, date={self.attendance_date}, status='{self.status}')>"
 
 Session = sessionmaker(bind=engine)
 
@@ -528,14 +499,21 @@ def student_upcoming_quizzes():
     db_session = g.session
     student_id = session.get('student_id')
     student = db_session.query(StudentInfo).filter_by(id=student_id).first()
-    # Get all quizzes for this student's section_period
     all_quizzes = db_session.query(Quiz).filter_by(section_period_id=student.section_period_id).all()
-    # Get quiz IDs the student has completed
     completed_quiz_ids = set(
         r.quiz_id for r in db_session.query(StudentQuizResult).filter_by(student_info_id=student_id)
     )
-    # Filter quizzes the student has not taken
-    upcoming_quizzes = [q for q in all_quizzes if q.id not in completed_quiz_ids]
+    # Fetch subject names for each quiz
+    from models import SectionSubject
+    upcoming_quizzes = []
+    for q in all_quizzes:
+        if q.id not in completed_quiz_ids:
+            subject_name = None
+            if q.subject_id:
+                subj = db_session.query(SectionSubject).filter_by(id=q.subject_id).first()
+                subject_name = subj.subject_name if subj else None
+            q.subject_name = subject_name
+            upcoming_quizzes.append(q)
     return render_template('student_quiz_templates/student_upcoming_quizzes.html', upcoming_quizzes=upcoming_quizzes)
 
 @app.route('/student/quiz/completed')
@@ -543,17 +521,20 @@ def student_upcoming_quizzes():
 def student_completed_quizzes():
     db_session = g.session
     student_id = session.get('student_id')
-    # Get all completed quiz results for this student
     completed_results = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id).all()
     completed_quizzes = []
     import json
-    from models import StudentQuizAnswer
+    from models import StudentQuizAnswer, SectionSubject
     def format_number(n):
         return int(n) if n == int(n) else round(float(n), 1)
     for result in completed_results:
         quiz = db_session.query(Quiz).filter_by(id=result.quiz_id).first()
         is_essay_pending = False
+        subject_name = None
         if quiz:
+            if quiz.subject_id:
+                subj = db_session.query(SectionSubject).filter_by(id=quiz.subject_id).first()
+                subject_name = subj.subject_name if subj else None
             questions = json.loads(quiz.questions_json or '[]')
             essay_qids = [str(q['id']) for q in questions if q.get('type') == 'essay_type']
             if essay_qids:
@@ -569,7 +550,8 @@ def student_completed_quizzes():
                 'title': quiz.title,
                 'score': format_number(result.score),
                 'total_points': format_number(result.total_points),
-                'is_essay_pending': is_essay_pending
+                'is_essay_pending': is_essay_pending,
+                'subject_name': subject_name
             })
     return render_template('student_quiz_templates/student_completed_quizzes.html', completed_quizzes=completed_quizzes)
 
@@ -596,11 +578,12 @@ def take_quiz(quiz_id):
         print('Form data:', dict(request.form))
         total_score = 0
         total_points = 0
-        essay_answers = []
+        answers_to_store = []
         for question in questions:
             qid = str(question['id'])
             correct = False
             answer = request.form.get(f'answer-{qid}')
+            pts = float(question.get('points', 1))
             if question['type'] == 'multiple_choice':
                 if question.get('allowMultiple'):
                     selected = request.form.getlist(f'answer-{qid}[]')
@@ -614,14 +597,28 @@ def take_quiz(quiz_id):
                     print(f'SINGLE: answer={answer}, correct_index={correct_index}')
                     if answer is not None and correct_index is not None and int(answer) == correct_index:
                         correct = True
+                answer_score = pts if correct else 0
+                answers_to_store.append({
+                    'question_id': qid,
+                    'answer_text': json.dumps(request.form.getlist(f'answer-{qid}[]')) if question.get('allowMultiple') else answer,
+                    'score': answer_score
+                })
             elif question['type'] == 'essay_type':
                 # Always require teacher to check, do not auto-score
-                essay_answers.append({'question_id': qid, 'answer_text': answer})
-                correct = False
+                answers_to_store.append({
+                    'question_id': qid,
+                    'answer_text': answer,
+                    'score': None
+                })
             elif question['type'] == 'true_false':
                 if answer == (question.get('correctAnswer') or '').lower():
                     correct = True
-            pts = int(question.get('points', 1))
+                answer_score = pts if correct else 0
+                answers_to_store.append({
+                    'question_id': qid,
+                    'answer_text': answer,
+                    'score': answer_score
+                })
             total_points += pts
             if correct:
                 total_score += pts
@@ -636,17 +633,17 @@ def take_quiz(quiz_id):
             )
             g.session.add(result)
             g.session.flush()  # Get result.id for answers
-            # Store essay answers
-            for ans in essay_answers:
-                essay = StudentQuizAnswer(
+            # Store all answers (auto and essay)
+            for ans in answers_to_store:
+                answer_obj = StudentQuizAnswer(
                     student_quiz_result_id=result.id,
                     question_id=ans['question_id'],
                     answer_text=ans['answer_text'],
-                    score=None
+                    score=ans['score']
                 )
-                g.session.add(essay)
+                g.session.add(answer_obj)
             g.session.commit()
-            print('StudentQuizResult and essay answers created and committed.')
+            print('StudentQuizResult and all answers created and committed.')
             flash('Quiz submitted successfully!', 'success')
             return redirect(url_for('view_quiz_score', quiz_id=quiz_id))
         except Exception as e:

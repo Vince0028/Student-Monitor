@@ -3,7 +3,6 @@
 {% block content %}
 <div class="container" style="max-width:900px; margin:2rem auto;">
     <h2>Manage Quiz for {{ student.name }}</h2>
-    <p class="text-muted">Section Period: {{ section_period_id }} | Subject: {{ subject_id }}</p>
     <hr>
     <h4>Quizzes & Attempts</h4>
     <table class="table table-bordered" style="width:100%;">
@@ -27,7 +26,7 @@
                 </td>
                 <td>
                     {% if row.attempt %}
-                        {{ row.attempt.score }} / {{ row.attempt.total_points }}
+                        {{ row.attempt.score|int if row.attempt.score == row.attempt.score|int else row.attempt.score }} / {{ row.attempt.total_points|int if row.attempt.total_points == row.attempt.total_points|int else row.attempt.total_points }}
                     {% else %}
                         —
                     {% endif %}
@@ -42,8 +41,10 @@
                     {% endif %}
                 </td>
                 <td>
-                    {% if row.status == 'pending' %}
-                        <a href="#essay-quiz-{{ row.quiz.id }}" class="btn btn-primary btn-sm">Check Essay</a>
+                    {% if row.essay_questions and row.attempt %}
+                        <a href="{{ url_for('score_student_essay', section_period_id=section_period_id, subject_id=subject_id, student_id=student.id, quiz_id=row.quiz.id) }}" class="btn btn-primary btn-sm">
+                            {% if row.status == 'pending' %}Check Essay{% else %}Edit Scores{% endif %}
+                        </a>
                     {% else %}
                         —
                     {% endif %}
@@ -57,36 +58,7 @@
 
     {% for row in quiz_rows %}
         {% if row.essay_questions %}
-        <div id="essay-quiz-{{ row.quiz.id }}" style="margin-top:2.5rem; padding:1.5rem; background:#f8f9ff; border-radius:1rem; border:1.5px solid #e2e8f0;">
-            <h5 style="font-weight:700; color:#2563eb;">Manual Scoring: {{ row.quiz.title }}</h5>
-            <form method="POST" action="{{ url_for('score_student_essay', section_period_id=section_period_id, subject_id=subject_id, student_id=student.id, quiz_id=row.quiz.id) }}">
-                <table class="table" style="margin-top:1rem;">
-                    <thead>
-                        <tr>
-                            <th>Question</th>
-                            <th>Student Answer</th>
-                            <th>Score</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for q in row.essay_questions %}
-                        <tr>
-                            <td>{{ q.text }}</td>
-                            <td>
-                                {% set ans = (row.essay_answers | selectattr('question_id', 'equalto', q.id|string) | list | first) %}
-                                {{ ans.answer_text if ans else '' }}
-                            </td>
-                            <td>
-                                <input type="number" name="score_{{ q.id }}" min="0" max="{{ q.points or 1 }}" value="{{ ans.score if ans and ans.score is not none else '' }}" style="width:70px;">
-                                <span style="color:#6b7280; font-size:0.95rem;">/ {{ q.points or 1 }}</span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <button type="submit" class="btn btn-success">Save Scores</button>
-            </form>
-        </div>
+        <!-- Removed inline essay scoring form. Now handled by dedicated page. -->
         {% endif %}
     {% endfor %}
 </div>

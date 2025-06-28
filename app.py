@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import uuid
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, timezone
 import re # For school year validation
 import decimal
 import bcrypt
@@ -24,6 +24,9 @@ load_dotenv()
 
 # Import the Quiz model from models.py
 from models import Quiz
+from models import (
+    Base, User, GradeLevel, Strand, Section, SectionPeriod, SectionSubject, Attendance, Grade, GradingSystem, GradingComponent, GradableItem, StudentScore, TeacherLog, StudentInfo, Parent, Session
+)
 
 # --- Flask App Configuration ---
 app = Flask(__name__)
@@ -39,7 +42,7 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 def make_session_permanent():
     session.permanent = True
 
-# Database connection details
+# Database connection details   
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 print(f"DEBUG: DATABASE_URL being used: {DATABASE_URL}")
@@ -55,401 +58,9 @@ engine = create_engine(
     max_overflow=0, # Allow 1 extra connection for short spikes
     pool_timeout=30,
 )
-Base = declarative_base()
 
 # Define SQLAlchemy Models (including Parent for relationship)
-class Parent(Base):
-    __tablename__ = 'parents'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True)
-    username = Column(String)
-    first_name = Column(String)
-    last_name = Column(String)
-    email = Column(String)
-    # This model is only for relationship loading, so we don't need all fields.
-    # The parent_app.py manages the full Parent model.
-    students = relationship("StudentInfo", back_populates="parent")
-
-class User(Base):
-    __tablename__ = 'users'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    username = Column(String(255), unique=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
-    user_type = Column(String(10), nullable=False) # 'admin' or 'teacher'
-    specialization = Column(String(255), nullable=True) # For teachers: STEM, ICT, ABM, HUMSS, GAS, HE (for SHS), NULL for JHS
-    grade_level_assigned = Column(String(50), nullable=True) # e.g., 'Grade 7', 'Grade 11'. Null for admin.
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Relationships for Admin
-    created_grade_levels = relationship('GradeLevel', back_populates='creator', cascade='all, delete-orphan', foreign_keys='GradeLevel.created_by')
-    created_strands_admin = relationship('Strand', back_populates='creator', cascade='all, delete-orphan', foreign_keys='Strand.created_by')
-    created_sections_admin = relationship('Section', back_populates='creator', cascade='all, delete-orphan', foreign_keys='Section.created_by')
-    created_section_periods_admin = relationship('SectionPeriod', back_populates='creator_admin', cascade='all, delete-orphan', foreign_keys='SectionPeriod.created_by_admin')
-    
-    # Relationships for Teachers
-    sections_periods_assigned_teacher = relationship('SectionPeriod', back_populates='assigned_teacher', foreign_keys='SectionPeriod.assigned_teacher_id')
-    # Updated relationship: creator_teacher now refers to who created the SectionSubject record
-    created_section_subjects = relationship('SectionSubject', back_populates='creator_teacher', cascade='all, delete-orphan', foreign_keys='SectionSubject.created_by_teacher_id')
-    # No longer a direct relationship for 'assigned_section_subjects' as it's a string field
-    recorded_attendance = relationship('Attendance', back_populates='recorder_user')
-    assigned_grades = relationship('Grade', back_populates='teacher')
-
-    def __repr__(self):
-        return f"<User(id={self.id}, username='{self.username}', user_type='{self.user_type}', specialization='{self.specialization}', grade_level_assigned='{self.grade_level_assigned}')>"
-
-class GradeLevel(Base):
-    __tablename__ = 'grade_levels'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(50), unique=True, nullable=False) # e.g., 'Grade 7', 'Grade 11'
-    level_type = Column(String(10), nullable=False) # 'JHS' or 'SHS'
-    created_by = Column(PG_UUID(as_uuid=True), ForeignKey('users.id')) # Admin who created it
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    creator = relationship('User', back_populates='created_grade_levels')
-    sections = relationship('Section', back_populates='grade_level', cascade='all, delete-orphan')
-    strands = relationship('Strand', back_populates='grade_level', cascade='all, delete-orphan') # Strands belong to specific grade levels (11, 12)
-
-    def __repr__(self):
-        return f"<GradeLevel(id={self.id}, name='{self.name}', type='{self.level_type}')>"
-
-class Strand(Base):
-    __tablename__ = 'strands'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(255), nullable=False) # e.g., 'STEM', 'ICT'
-    grade_level_id = Column(PG_UUID(as_uuid=True), ForeignKey('grade_levels.id'), nullable=False) # Only for SHS grades (11/12)
-    created_by = Column(PG_UUID(as_uuid=True), ForeignKey('users.id')) # Admin who created it
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    __table_args__ = (
-        UniqueConstraint('name', 'grade_level_id'),
-    )
-
-    creator = relationship('User', back_populates='created_strands_admin')
-    grade_level = relationship('GradeLevel', back_populates='strands')
-    sections = relationship('Section', back_populates='strand', cascade='all, delete-orphan') # NEW: Strand now has sections
-
-    def __repr__(self):
-        return f"<Strand(id={self.id}, name='{self.name}', grade_level_id={self.grade_level_id})>"
-
-class Section(Base):
-    __tablename__ = 'sections'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(255), nullable=False)
-    grade_level_id = Column(PG_UUID(as_uuid=True), ForeignKey('grade_levels.id'), nullable=False)
-    strand_id = Column(PG_UUID(as_uuid=True), ForeignKey('strands.id'), nullable=True)
-    adviser_name = Column(String(255), nullable=True)
-    section_password = Column(String(255), nullable=True)
-    assigned_user_id = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
-    adviser_password = Column(String(255), nullable=True)  # NEW FIELD
-    created_by = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    __table_args__ = (
-        UniqueConstraint('name', 'grade_level_id', 'strand_id'), # Updated unique constraint
-    )
-
-    grade_level = relationship('GradeLevel', back_populates='sections', lazy='joined')
-    strand = relationship('Strand', back_populates='sections', foreign_keys=[strand_id]) # NEW relationship
-    creator = relationship('User', back_populates='created_sections_admin', foreign_keys=[created_by])
-    section_periods = relationship('SectionPeriod', back_populates='section', cascade='all, delete-orphan')
-
-    def __repr__(self):
-        return f"<Section(id={self.id}, name='{self.name}', grade_level_id={self.grade_level_id}, strand_id={self.strand_id})>"
-
-class SectionPeriod(Base): # Renamed from SectionSemester
-    __tablename__ = 'section_periods'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    section_id = Column(PG_UUID(as_uuid=True), ForeignKey('sections.id'), nullable=False)
-    period_type = Column(String(50), nullable=False) # 'Semester' or 'Quarter'
-    period_name = Column(String(50), nullable=False) # e.g., '1st Sem', 'Q1'
-    school_year = Column(String(50), nullable=False) # e.g., '2025-2026'
-    assigned_teacher_id = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=True) # Teacher dynamically assigned or chosen
-    created_by_admin = Column(PG_UUID(as_uuid=True), ForeignKey('users.id')) # Admin
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    __table_args__ = (
-        UniqueConstraint('section_id', 'period_name', 'school_year'), # Updated unique constraint
-    )
-
-    section = relationship('Section', back_populates='section_periods')
-    assigned_teacher = relationship('User', back_populates='sections_periods_assigned_teacher', foreign_keys=[assigned_teacher_id])
-    creator_admin = relationship('User', back_populates='created_section_periods_admin', foreign_keys=[created_by_admin])
-
-    students_in_period = relationship('StudentInfo', back_populates='section_period', cascade='all, delete-orphan')
-    section_subjects = relationship('SectionSubject', back_populates='section_period', cascade='all, delete-orphan')
-
-    def __repr__(self):
-        return f"<SectionPeriod(id={self.id}, section_id={self.section_id}, period='{self.period_name}', type='{self.period_type}', year='{self.school_year}', assigned_teacher_id='{self.assigned_teacher_id}')>"
-
-
-class StudentInfo(Base):
-    __tablename__ = 'students_info'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    section_period_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_periods.id'), nullable=False)
-    name = Column(String(255), nullable=False)
-    student_id_number = Column(String(255), unique=True, nullable=False)
-    gender = Column(String(10), nullable=True)  # NEW FIELD
-    password_hash = Column(String(255), nullable=True)
-    parent_id = Column(PG_UUID(as_uuid=True), ForeignKey('parents.id'), nullable=True) # NEW FIELD
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    section_period = relationship('SectionPeriod', back_populates='students_in_period')
-    parent = relationship('Parent', back_populates='students') # NEW RELATIONSHIP
-    attendance_records = relationship('Attendance', back_populates='student_info', cascade='all, delete-orphan')
-    grades = relationship('Grade', back_populates='student_info', cascade='all, delete-orphan')
-    scores = relationship('StudentScore', back_populates='student', cascade='all, delete-orphan')
-    average_grade = Column(Numeric(5, 2), nullable=True)
-
-    def __repr__(self):
-        return f"<StudentInfo(id={self.id}, name='{self.name}', student_id_number='{self.student_id_number}', gender='{self.gender}')>"
-
-class SectionSubject(Base):
-    __tablename__ = 'section_subjects'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    section_period_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_periods.id'), nullable=False) # Links to SectionPeriod
-    subject_name = Column(String(255), nullable=False)
-    # The teacher account who created this subject record (e.g., the g12ict account)
-    created_by_teacher_id = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=False) 
-    # NEW: The name of the human teacher assigned to this subject (free text)
-    assigned_teacher_name = Column(String(255), nullable=False) 
-    # NEW: Password for accessing gradebook
-    subject_password = Column(String(255), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    __table_args__ = (
-        UniqueConstraint('section_period_id', 'subject_name'),
-    )
-
-    section_period = relationship('SectionPeriod', back_populates='section_subjects')
-    creator_teacher = relationship('User', foreign_keys=[created_by_teacher_id], back_populates='created_section_subjects')
-    # No direct relationship for assigned_teacher_for_subject anymore as it's a string
-    grades = relationship('Grade', back_populates='section_subject', cascade='all, delete-orphan')
-    grading_system = relationship('GradingSystem', back_populates='section_subject', uselist=False, cascade='all, delete-orphan')
-    attendance_records = relationship('Attendance', back_populates='section_subject', cascade='all, delete-orphan')  # NEW: Relationship with Attendance
-
-    def __repr__(self):
-        return f"<SectionSubject(id={self.id}, subject_name='{self.subject_name}')>"
-
-class Attendance(Base):
-    __tablename__ = 'attendance'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    student_info_id = Column(PG_UUID(as_uuid=True), ForeignKey('students_info.id'), nullable=False)
-    section_subject_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_subjects.id'), nullable=False)  # NEW: Link to specific subject
-    attendance_date = Column(Date, nullable=False)
-    status = Column(String(50), nullable=False) # 'present', 'absent', 'late', 'excused'
-    recorded_by = Column(PG_UUID(as_uuid=True), ForeignKey('users.id')) # The specific teacher account that recorded this attendance
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    __table_args__ = (
-        UniqueConstraint('student_info_id', 'section_subject_id', 'attendance_date'),  # Updated unique constraint
-    )
-
-    student_info = relationship('StudentInfo', back_populates='attendance_records')
-    section_subject = relationship('SectionSubject', back_populates='attendance_records')  # NEW: Relationship with SectionSubject
-    recorder_user = relationship('User', back_populates='recorded_attendance')
-
-    def __repr__(self):
-        return f"<Attendance(id={self.id}, student_info_id={self.student_info_id}, date={self.attendance_date}, status='{self.status}')>"
-
-class Grade(Base):
-    __tablename__ = 'grades'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    student_info_id = Column(PG_UUID(as_uuid=True), ForeignKey('students_info.id'), nullable=False)
-    section_subject_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_subjects.id'), nullable=False)
-    teacher_id = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=False) # The specific teacher account that assigned this grade
-    grade_value = Column(Numeric(5, 2), nullable=False)
-    semester = Column(String(50), nullable=True) # Will be derived from SectionPeriod.period_name if period_type is 'Semester'
-    school_year = Column(String(50), nullable=False) # Will be derived from SectionPeriod.school_year
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
-    __table_args__ = (
-        UniqueConstraint('student_info_id', 'section_subject_id', 'semester', 'school_year'), # Keep for now
-    )
-
-    student_info = relationship('StudentInfo', back_populates='grades')
-    section_subject = relationship('SectionSubject', back_populates='grades')
-    teacher = relationship('User', back_populates='assigned_grades')
-
-    def __repr__(self):
-        return f"<Grade(id={self.id}, student_info_id={self.student_info_id}, subject='{self.section_subject.subject_name}', grade={self.grade_value}')>"
-
-
-# --- New Grading System Models ---
-
-class GradingSystem(Base):
-    __tablename__ = 'grading_systems'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    section_subject_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_subjects.id'), unique=True, nullable=False)
-    teacher_id = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=False) # The user (teacher or admin) who owns this system
-
-    section_subject = relationship('SectionSubject', back_populates='grading_system')
-    components = relationship('GradingComponent', back_populates='system', cascade='all, delete-orphan')
-
-    def __repr__(self):
-        return f"<GradingSystem(id={self.id}, section_subject_id={self.section_subject_id})>"
-
-class GradingComponent(Base):
-    __tablename__ = 'grading_components'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    system_id = Column(PG_UUID(as_uuid=True), ForeignKey('grading_systems.id'), nullable=False)
-    name = Column(String(100), nullable=False) # e.g., "Quizzes", "Exams", "Behavior"
-    weight = Column(Integer, nullable=False) # Percentage, e.g., 20 for 20%
-
-    system = relationship('GradingSystem', back_populates='components')
-    items = relationship('GradableItem', back_populates='component', cascade='all, delete-orphan')
-
-    def __repr__(self):
-        return f"<GradingComponent(name='{self.name}', weight={self.weight}%)>"
-
-class GradableItem(Base):
-    __tablename__ = 'gradable_items'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    component_id = Column(PG_UUID(as_uuid=True), ForeignKey('grading_components.id'), nullable=False)
-    title = Column(String(255), nullable=False) # e.g., "Quiz 1: Chapters 1-3"
-    max_score = Column(Numeric(10, 2), nullable=False, default=100)
-
-    component = relationship('GradingComponent', back_populates='items')
-    scores = relationship('StudentScore', back_populates='item', cascade='all, delete-orphan')
-
-    def __repr__(self):
-        return f"<GradableItem(title='{self.title}', max_score={self.max_score})>"
-
-class StudentScore(Base):
-    __tablename__ = 'student_scores'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    item_id = Column(PG_UUID(as_uuid=True), ForeignKey('gradable_items.id'), nullable=False)
-    student_info_id = Column(PG_UUID(as_uuid=True), ForeignKey('students_info.id'), nullable=False)
-    score = Column(Numeric(10, 2), nullable=False)
-    
-    __table_args__ = (UniqueConstraint('item_id', 'student_info_id'),)
-
-    item = relationship('GradableItem', back_populates='scores')
-    student = relationship('StudentInfo', back_populates='scores')
-
-    def __repr__(self):
-        return f"<StudentScore(id={self.id}, item_id={self.item_id}, student_info_id={self.student_info_id}, score={self.score})>"
-
 # --- Teacher Log Model for Tracking Teacher Actions ---
-class TeacherLog(Base):
-    __tablename__ = 'teacher_logs'
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    teacher_id = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
-    teacher_username = Column(String(255), nullable=False)
-    action_type = Column(String(50), nullable=False)  # 'add_student', 'edit_student', 'delete_student', 'add_grade', 'edit_grade', 'delete_grade'
-    target_type = Column(String(50), nullable=False)  # 'student' or 'grade'
-    target_id = Column(PG_UUID(as_uuid=True), nullable=True)  # student_id or grade_id
-    target_name = Column(String(255), nullable=False)  # student name or grade description
-    details = Column(Text, nullable=True)  # Additional details about the action
-    section_period_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_periods.id'), nullable=True)
-    subject_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_subjects.id'), nullable=True)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Relationships
-    teacher = relationship('User')
-    section_period = relationship('SectionPeriod')
-    subject = relationship('SectionSubject')
-
-    def __repr__(self):
-        return f"<TeacherLog(id={self.id}, teacher='{self.teacher_username}', action='{self.action_type}', target='{self.target_name}')>"
-
-Session = sessionmaker(bind=engine)
-
-# Helper function to sync calculated total grades to the grades table
-def sync_total_grade_to_database(db_session, student_id, subject_id, teacher_id, section_period):
-    """
-    Calculate the total grade from the new grading system and save it to the grades table.
-    This ensures the total grade is available in the database for other parts of the system.
-    """
-    try:
-        # Get the grading system for this subject
-        grading_system = db_session.query(GradingSystem).filter_by(section_subject_id=subject_id).first()
-        if not grading_system:
-            return  # No grading system set up yet
-        
-        # Get all scores for this student in this subject
-        scores_query = db_session.query(StudentScore).join(GradableItem).join(GradingComponent).filter(
-            GradingComponent.system_id == grading_system.id,
-            StudentScore.student_info_id == student_id
-        ).all()
-        
-        if not scores_query:
-            # No scores yet, set grade to 0
-            total_grade_value = 0.0
-            existing_grade = db_session.query(Grade).filter(
-                Grade.student_info_id == student_id,
-                Grade.section_subject_id == subject_id,
-                Grade.semester == section_period.period_name,
-                Grade.school_year == section_period.school_year
-            ).first()
-            if existing_grade:
-                existing_grade.grade_value = total_grade_value
-                existing_grade.teacher_id = teacher_id
-            else:
-                new_grade = Grade(
-                    student_info_id=student_id,
-                    section_subject_id=subject_id,
-                    teacher_id=teacher_id,
-                    grade_value=total_grade_value,
-                    semester=section_period.period_name,
-                    school_year=section_period.school_year
-                )
-                db_session.add(new_grade)
-            db_session.commit()
-            return
-        
-        # Create a map of scores
-        student_scores_map = {s.item_id: s.score for s in scores_query}
-        
-        # Calculate total grade using the same logic as in the gradebook
-        student_total_grade = decimal.Decimal('0.0')
-        for component in grading_system.components:
-            component_items = component.items
-            if not component_items:
-                continue
-            
-            comp_student_sum = sum((decimal.Decimal(student_scores_map.get(i.id, 0)) for i in component_items), decimal.Decimal(0))
-            comp_max_sum = sum((i.max_score for i in component_items), decimal.Decimal(0))
-
-            if comp_max_sum > 0:
-                average = comp_student_sum / comp_max_sum
-                weight = decimal.Decimal(component.weight) / decimal.Decimal('100.0')
-                student_total_grade += average * weight
-        
-        # Convert to percentage and round to 2 decimal places
-        total_grade_value = float(student_total_grade * 100)
-        
-        # Check if a grade record already exists for this student, subject, and period
-        existing_grade = db_session.query(Grade).filter(
-            Grade.student_info_id == student_id,
-            Grade.section_subject_id == subject_id,
-            Grade.semester == section_period.period_name,
-            Grade.school_year == section_period.school_year
-        ).first()
-        
-        if existing_grade:
-            # Update existing grade
-            existing_grade.grade_value = total_grade_value
-            existing_grade.teacher_id = teacher_id
-        else:
-            # Create new grade record
-            new_grade = Grade(
-                student_info_id=student_id,
-                section_subject_id=subject_id,
-                teacher_id=teacher_id,
-                grade_value=total_grade_value,
-                semester=section_period.period_name,
-                school_year=section_period.school_year
-            )
-            db_session.add(new_grade)
-        
-        # Commit the changes
-        db_session.commit()
-        
-    except Exception as e:
-        db_session.rollback()
-        app.logger.error(f"Error syncing total grade to database: {e}")
-        # Don't raise the exception - we don't want to break the main functionality
-
 def create_teacher_log(db_session, teacher_id, teacher_username, action_type, target_type, target_id, target_name, details=None, section_period_id=None, subject_id=None):
     """
     Helper function to create teacher log entries
@@ -3676,18 +3287,6 @@ def sync_student_to_parent_portal(student, parent_id, logger=None):
     parent_db_session = ParentSession()
     ParentPortalBase = ParentDeclarativeBase()
 
-    class ParentPortalStudent(ParentPortalBase):
-        __tablename__ = 'students'
-        id = Column(PG_UUID(as_uuid=True), primary_key=True)
-        parent_id = Column(PG_UUID(as_uuid=True), ForeignKey('parents.id'), nullable=False)
-        student_id_number = Column(String(255), unique=True, nullable=False)
-        first_name = Column(String(255), nullable=False)
-        last_name = Column(String(255), nullable=False)
-        grade_level = Column(String(50), nullable=False)
-        section_name = Column(String(255), nullable=False)
-        strand_name = Column(String(255), nullable=True)
-        created_at = Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
-
     try:
         ParentPortalBase.metadata.create_all(parent_engine)
         portal_student = parent_db_session.query(ParentPortalStudent).filter_by(student_id_number=student.student_id_number).first()
@@ -3798,6 +3397,292 @@ def get_student_password(student_id):
     if not student:
         return {'success': False, 'message': 'Student not found.'}, 404
     return {'success': True, 'password': student.password_hash or ''}
+
+@app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/quiz/dashboard')
+@login_required
+@user_type_required('teacher')
+def quiz_dashboard(section_period_id, subject_id):
+    return render_template('quiz/quiz_dashboard.html', section_period_id=section_period_id, subject_id=subject_id)
+
+@app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/quiz/manager')
+@login_required
+@user_type_required('teacher')
+def manage_quiz(section_period_id, subject_id):
+    db_session = g.session
+    
+    # Fetch the subject to verify it exists and teacher has access
+    subject = db_session.query(SectionSubject).filter_by(id=subject_id, section_period_id=section_period_id).first()
+    if not subject:
+        flash('Subject not found.', 'error')
+        return redirect(url_for('teacher_section_period_view', section_period_id=section_period_id))
+    
+    # Get all students in this section_period
+    students = db_session.query(StudentInfo).filter_by(section_period_id=section_period_id).order_by(StudentInfo.name).all()
+    
+    # Get all quizzes for this subject
+    quizzes = db_session.query(Quiz).filter_by(subject_id=subject_id).order_by(Quiz.created_at.desc()).all()
+    
+    # Calculate quiz statistics
+    total_students = len(students)
+    total_quizzes = len(quizzes)
+    
+    # Calculate class average and recent activity
+    class_average = "N/A"
+    recent_activity = 0
+    
+    if total_quizzes > 0 and total_students > 0:
+        # Get all quiz results for this subject
+        from models import StudentQuizResult
+        all_results = db_session.query(StudentQuizResult).join(Quiz).filter(Quiz.subject_id == subject_id).all()
+        
+        if all_results:
+            # Calculate class average
+            total_scores = sum(result.score for result in all_results)
+            total_possible = sum(result.total_points for result in all_results)
+            if total_possible > 0:
+                class_average = f"{round((total_scores / total_possible) * 100, 1)}%"
+            
+            # Count recent submissions (last 7 days)
+            week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+            recent_activity = len([r for r in all_results if r.completed_at and r.completed_at > week_ago])
+    
+    # Create quiz status map
+    quiz_status_map = {}
+    import json
+    for quiz in quizzes:
+        # Check if quiz has essay questions that need manual grading
+        try:
+            questions = json.loads(quiz.questions_json or '[]')
+            essay_qids = [str(q['id']) for q in questions if q.get('type') == 'essay_type']
+            
+            if essay_qids:
+                # Check if any essay questions are unscored
+                from models import StudentQuizAnswer, StudentQuizResult
+                unscored_essays = db_session.query(StudentQuizAnswer).join(StudentQuizResult).filter(
+                    StudentQuizResult.quiz_id == quiz.id,
+                    StudentQuizAnswer.question_id.in_(essay_qids),
+                    StudentQuizAnswer.score.is_(None)
+                ).first()
+                
+                quiz_status_map[quiz.id] = 'pending' if unscored_essays else 'completed'
+            else:
+                quiz_status_map[quiz.id] = 'completed'
+        except:
+            quiz_status_map[quiz.id] = 'completed'
+    
+    # Calculate student averages and progress
+    for student in students:
+        # Get student's quiz results for this subject
+        student_results = db_session.query(StudentQuizResult).join(Quiz).filter(
+            Quiz.subject_id == subject_id,
+            StudentQuizResult.student_info_id == student.id
+        ).all()
+        
+        if student_results:
+            total_score = sum(r.score for r in student_results)
+            total_possible = sum(r.total_points for r in student_results)
+            if total_possible > 0:
+                student.average_grade = round((total_score / total_possible) * 100, 1)
+            else:
+                student.average_grade = None
+            student.progress = f"{len(student_results)}/{total_quizzes}"
+        else:
+            student.average_grade = None
+            student.progress = f"0/{total_quizzes}"
+    
+    return render_template('quiz/manage_quiz.html', 
+                         section_period_id=section_period_id, 
+                         subject_id=subject_id,
+                         students=students,
+                         quizzes=quizzes,
+                         quiz_status_map=quiz_status_map,
+                         total_students=total_students,
+                         total_quizzes=total_quizzes,
+                         class_average=class_average,
+                         recent_activity=recent_activity)
+
+@app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/student/<uuid:student_id>/quiz')
+@login_required
+@user_type_required('teacher')
+def manage_student_quiz(section_period_id, subject_id, student_id):
+    db_session = g.session
+    
+    # Fetch the subject and student to verify they exist and teacher has access
+    subject = db_session.query(SectionSubject).filter_by(id=subject_id, section_period_id=section_period_id).first()
+    if not subject:
+        flash('Subject not found.', 'error')
+        return redirect(url_for('teacher_section_period_view', section_period_id=section_period_id))
+    
+    student = db_session.query(StudentInfo).filter_by(id=student_id, section_period_id=section_period_id).first()
+    if not student:
+        flash('Student not found.', 'error')
+        return redirect(url_for('manage_quiz', section_period_id=section_period_id, subject_id=subject_id))
+    
+    # Get all quizzes for this subject
+    quizzes = db_session.query(Quiz).filter_by(subject_id=subject_id).order_by(Quiz.created_at.desc()).all()
+    
+    # Get student's quiz results and prepare quiz rows
+    from models import StudentQuizResult, StudentQuizAnswer
+    import json
+    
+    quiz_rows = []
+    for quiz in quizzes:
+        # Get student's attempt for this quiz
+        attempt = db_session.query(StudentQuizResult).filter_by(
+            student_info_id=student_id, 
+            quiz_id=quiz.id
+        ).first()
+        
+        # Check if quiz has essay questions
+        essay_questions = []
+        essay_answers = []
+        try:
+            questions = json.loads(quiz.questions_json or '[]')
+            essay_questions = [q for q in questions if q.get('type') == 'essay_type']
+        except:
+            pass
+        
+        # Get essay answers if student has attempted the quiz
+        if attempt and essay_questions:
+            essay_answers = db_session.query(StudentQuizAnswer).filter_by(
+                student_quiz_result_id=attempt.id
+            ).all()
+        
+        # Determine status
+        status = 'not_attempted'
+        if attempt:
+            if essay_questions:
+                # Check if any essay questions are unscored
+                unscored = db_session.query(StudentQuizAnswer).filter(
+                    StudentQuizAnswer.student_quiz_result_id == attempt.id,
+                    StudentQuizAnswer.question_id.in_([str(q['id']) for q in essay_questions]),
+                    StudentQuizAnswer.score.is_(None)
+                ).first()
+                status = 'pending' if unscored else 'completed'
+            else:
+                status = 'completed'
+        
+        quiz_rows.append({
+            'quiz': quiz,
+            'attempt': attempt,
+            'status': status,
+            'essay_questions': essay_questions,
+            'essay_answers': essay_answers
+        })
+    
+    return render_template('quiz/manage_student_quiz.html',
+                         section_period_id=section_period_id,
+                         subject_id=subject_id,
+                         student=student,
+                         quiz_rows=quiz_rows)
+
+@app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/student/<uuid:student_id>/quiz/<uuid:quiz_id>/score-essay', methods=['GET', 'POST'])
+@login_required
+@user_type_required('teacher')
+def score_student_essay(section_period_id, subject_id, student_id, quiz_id):
+    db_session = g.session
+    from models import StudentQuizResult, StudentQuizAnswer
+    import json
+    # Fetch the subject and student to verify they exist and teacher has access
+    subject = db_session.query(SectionSubject).filter_by(id=subject_id, section_period_id=section_period_id).first()
+    if not subject:
+        flash('Subject not found.', 'error')
+        return redirect(url_for('teacher_section_period_view', section_period_id=section_period_id))
+    student = db_session.query(StudentInfo).filter_by(id=student_id, section_period_id=section_period_id).first()
+    if not student:
+        flash('Student not found.', 'error')
+        return redirect(url_for('manage_quiz', section_period_id=section_period_id, subject_id=subject_id))
+    quiz = db_session.query(Quiz).filter_by(id=quiz_id, subject_id=subject_id).first()
+    if not quiz:
+        flash('Quiz not found.', 'error')
+        return redirect(url_for('manage_student_quiz', section_period_id=section_period_id, subject_id=subject_id, student_id=student_id))
+    quiz_result = db_session.query(StudentQuizResult).filter_by(
+        student_info_id=student_id, 
+        quiz_id=quiz_id
+    ).first()
+    if not quiz_result:
+        flash('Student has not attempted this quiz.', 'error')
+        return redirect(url_for('manage_student_quiz', section_period_id=section_period_id, subject_id=subject_id, student_id=student_id))
+    questions = json.loads(quiz.questions_json or '[]')
+    essay_questions = [q for q in questions if q.get('type') == 'essay_type']
+    # GET: Render the essay scoring page
+    if request.method == 'GET':
+        # Get all essay answers for this attempt, use string keys
+        all_answers = db_session.query(StudentQuizAnswer).filter_by(student_quiz_result_id=quiz_result.id).all()
+        essay_answers = {str(a.question_id): a for a in all_answers}
+        return render_template(
+            'quiz/quiz_check_essay.html',
+            quiz=quiz,
+            student=student,
+            essay_questions=essay_questions,
+            essay_answers=essay_answers,
+            section_period_id=section_period_id,
+            subject_id=subject_id
+        )
+    # POST: Process essay scores
+    try:
+        total_essay_score = 0
+        total_essay_points = 0
+        for question in essay_questions:
+            question_id = str(question['id'])
+            score_key = f'score_{question_id}'
+            if score_key in request.form:
+                score_value = request.form[score_key]
+                if score_value and score_value.strip():
+                    try:
+                        score = float(score_value)
+                        max_points = float(question.get('points', 1))
+                        essay_answer = db_session.query(StudentQuizAnswer).filter_by(
+                            student_quiz_result_id=quiz_result.id,
+                            question_id=question_id
+                        ).first()
+                        if essay_answer:
+                            essay_answer.score = score
+                        else:
+                            essay_answer = StudentQuizAnswer(
+                                student_quiz_result_id=quiz_result.id,
+                                question_id=question_id,
+                                answer_text=request.form.get(f'answer_{question_id}', ''),
+                                score=score
+                            )
+                            db_session.add(essay_answer)
+                        total_essay_score += score
+                        total_essay_points += max_points
+                    except ValueError:
+                        flash(f'Invalid score for question {question_id}.', 'error')
+                        return redirect(url_for('score_student_essay', section_period_id=section_period_id, subject_id=subject_id, student_id=student_id, quiz_id=quiz_id))
+        # Update the quiz result with new total score
+        if total_essay_points > 0:
+            all_questions = questions
+            all_answers = db_session.query(StudentQuizAnswer).filter_by(student_quiz_result_id=quiz_result.id).all()
+            answer_map = {str(a.question_id): a for a in all_answers}
+            total_score = 0
+            total_points = 0
+            for q in all_questions:
+                qid = str(q['id'])
+                pts = float(q.get('points', 1))
+                total_points += pts
+                if q.get('type') == 'essay_type':
+                    ans = answer_map.get(qid)
+                    if ans and ans.score is not None:
+                        total_score += float(ans.score)
+                else:
+                    # For auto-scored questions, check if the answer was correct
+                    # Find the student's original answer from StudentQuizAnswer if available
+                    ans = answer_map.get(qid)
+                    if ans and hasattr(ans, 'score') and ans.score is not None:
+                        # If the answer was auto-scored and correct, score is points, else 0
+                        total_score += float(ans.score)
+            quiz_result.score = total_score
+            quiz_result.total_points = total_points
+        db_session.commit()
+        flash('Essay scores saved successfully!', 'success')
+        # PRG: Redirect to GET after POST
+        return redirect(url_for('score_student_essay', section_period_id=section_period_id, subject_id=subject_id, student_id=student_id, quiz_id=quiz_id))
+    except Exception as e:
+        db_session.rollback()
+        flash(f'Error saving essay scores: {str(e)}', 'error')
+        return redirect(url_for('score_student_essay', section_period_id=section_period_id, subject_id=subject_id, student_id=student_id, quiz_id=quiz_id))
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
