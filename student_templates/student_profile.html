@@ -1,0 +1,188 @@
+{% extends 'student_base.html' %}
+
+{% block title %}Student Profile{% endblock %}
+
+{% block content %}
+<style>
+.profile-card {
+    max-width: 440px;
+    margin: 40px auto;
+    background: linear-gradient(135deg, #f8fafc 60%, #e0e7ff 100%);
+    border-radius: 20px;
+    box-shadow: 0 6px 32px rgba(37,99,235,0.10);
+    padding: 2.5rem 2rem 2rem 2rem;
+    position: relative;
+    overflow: hidden;
+}
+.profile-avatar {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: #dbeafe;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2563eb;
+    margin: 0 auto 1.2rem auto;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+}
+.profile-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2563eb;
+    margin-bottom: 0.5rem;
+    margin-top: 1.2rem;
+    letter-spacing: 0.01em;
+}
+.profile-divider {
+    border: none;
+    border-top: 1.5px solid #e5e7eb;
+    margin: 1.5rem 0 1.2rem 0;
+}
+.form-label {
+    font-weight: 600;
+    color: #374151;
+}
+.profile-info-row {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.1rem;
+}
+.profile-info-label {
+    font-size: 0.98rem;
+    color: #64748b;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+}
+.profile-info-value {
+    font-size: 1.08rem;
+    color: #1e293b;
+    font-weight: 700;
+    background: #f1f5f9;
+    border-radius: 8px;
+    padding: 0.55rem 1rem;
+    border: 1px solid #e5e7eb;
+    user-select: all;
+}
+.btn-primary-modern {
+    background: linear-gradient(90deg, #2563eb 60%, #60a5fa 100%);
+    border: none;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    transition: background 0.2s, box-shadow 0.2s;
+    border-radius: 999px;
+    font-size: 1.1rem;
+    padding: 0.95rem 0;
+    margin-top: 0.7rem;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+    width: 100%;
+    min-width: 220px;
+    max-width: 100%;
+    display: block;
+}
+.btn-primary-modern:hover, .btn-primary-modern:focus {
+    background: linear-gradient(90deg, #1d4ed8 60%, #2563eb 100%);
+    box-shadow: 0 4px 16px rgba(37,99,235,0.13);
+}
+.input-group {
+    display: flex;
+    width: 100%;
+    box-shadow: 0 1px 4px rgba(37,99,235,0.04);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+.input-group .form-control {
+    border-radius: 8px 0 0 8px;
+    border-right: none;
+    background: #f8fafc;
+    font-size: 1.08rem;
+    padding: 0.7rem 1rem;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+.input-group .btn {
+    min-width: 48px;
+    padding: 0 0.5rem;
+    border-radius: 0 8px 8px 0;
+    border-left: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.input-group .btn i {
+    font-size: 1.1rem;
+}
+@media (max-width: 500px) {
+    .profile-card { padding: 1.2rem 0.5rem; }
+    .profile-avatar { width: 64px; height: 64px; font-size: 1.5rem; }
+    .btn-primary-modern { font-size: 1rem; padding: 0.7rem 0; }
+}
+</style>
+<div class="profile-card">
+    <div class="profile-avatar">
+        <i class="fas fa-user-circle"></i>
+    </div>
+    <h2 class="mb-3" style="text-align:center; font-weight:800; color:#1e293b;">My Profile</h2>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}" style="margin-bottom: 1rem;">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <form method="POST" autocomplete="off">
+        <div class="profile-section-title">Profile Information</div>
+        <div class="profile-info-row">
+            <span class="profile-info-label">Full Name</span>
+            <span class="profile-info-value">{{ student.name }}</span>
+        </div>
+        <div class="profile-info-row">
+            <span class="profile-info-label">Student ID Number</span>
+            <span class="profile-info-value">{{ student.student_id_number }}</span>
+        </div>
+        <hr class="profile-divider">
+        <div class="profile-section-title">Change Password</div>
+        <div class="mb-3">
+            <label for="current_password" class="form-label">Current Password</label>
+            <div class="input-group">
+                <input type="password" class="form-control" id="current_password" name="current_password" required placeholder="Enter current password">
+                <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('current_password', this)"><i class="fas fa-eye"></i></button>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="new_password" class="form-label">New Password</label>
+            <div class="input-group">
+                <input type="password" class="form-control" id="new_password" name="new_password" required placeholder="Enter new password">
+                <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('new_password', this)"><i class="fas fa-eye"></i></button>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="confirm_password" class="form-label">Confirm New Password</label>
+            <div class="input-group">
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required placeholder="Confirm new password">
+                <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('confirm_password', this)"><i class="fas fa-eye"></i></button>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary-modern">Update Password</button>
+    </form>
+</div>
+<script>
+function togglePassword(fieldId, btn) {
+    const field = document.getElementById(fieldId);
+    const icon = btn.querySelector('i');
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        field.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+</script>
+{% endblock %} 

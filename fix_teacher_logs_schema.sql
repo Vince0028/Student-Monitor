@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS teacher_logs_backup AS
 SELECT * FROM teacher_logs;
 
 -- Drop the old table
-DROP TABLE IF EXISTS teacher_logs;
 
 -- Create the new table with correct schema
 CREATE TABLE teacher_logs (

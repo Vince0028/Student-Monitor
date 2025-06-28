@@ -347,9 +347,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <label for="password-{{ student.id }}" class="form-label">Student Password:</label>
                         <div class="input-group">
                             <input type="password" class="form-control" id="password-{{ student.id }}" name="password" placeholder="Leave blank to keep unchanged">
-                            <button type="button" class="btn btn-outline-secondary" onclick="togglePasswordVisibility('{{ student.id }}')">
-                                <i id="eyeIcon-{{ student.id }}" class="fa fa-eye"></i>
-                            </button>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -543,20 +540,6 @@ function clearSelectedParent(studentId) {
 }
 </script>
 
-<script>
-function togglePasswordVisibility(studentId) {
-    const passwordInput = document.getElementById('password-' + studentId);
-    const eyeIcon = document.getElementById('eyeIcon-' + studentId);
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        eyeIcon.className = 'fa fa-eye-slash';
-    } else {
-        passwordInput.type = 'password';
-        eyeIcon.className = 'fa fa-eye';
-    }
-}
-</script>
-
 <!-- Persist password field using localStorage for each student -->
 {% for student in students %}
 <script>
@@ -564,19 +547,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('password-{{ student.id }}');
     const modal = document.getElementById('editStudentModal-{{ student.id }}');
     if (passwordInput && modal) {
-        // Restore password from localStorage if available
-        const savedPassword = localStorage.getItem('editStudentPassword_{{ student.id }}');
-        if (savedPassword) {
-            passwordInput.value = savedPassword;
-        }
+        // Restore password from localStorage when modal is shown
+        modal.addEventListener('show.bs.modal', function() {
+            const savedPassword = localStorage.getItem('editStudentPassword_{{ student.id }}');
+            if (savedPassword) {
+                passwordInput.value = savedPassword;
+            }
+        });
         // Save password to localStorage on input
         passwordInput.addEventListener('input', function() {
             localStorage.setItem('editStudentPassword_{{ student.id }}', passwordInput.value);
         });
-        // Clear password from localStorage when modal is closed
-        modal.addEventListener('hidden.bs.modal', function() {
-            localStorage.removeItem('editStudentPassword_{{ student.id }}');
-        });
+        // Do NOT clear password from localStorage when modal is closed
     }
 });
 </script>
@@ -647,6 +629,56 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+});
+</script>
+
+{% if request.args.get('edit_student_id') %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var studentId = '{{ request.args.get('edit_student_id') }}';
+    var modal = document.getElementById('editStudentModal-' + studentId);
+    if (modal) {
+        var bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        // Restore password from localStorage
+        var passwordInput = document.getElementById('password-' + studentId);
+        var savedPassword = localStorage.getItem('editStudentPassword_' + studentId);
+        if (passwordInput && savedPassword) {
+            passwordInput.value = savedPassword;
+        }
+        // Remove the query param so modal doesn't pop up on refresh
+        if (window.history.replaceState) {
+            const url = new URL(window.location);
+            url.searchParams.delete('edit_student_id');
+            window.history.replaceState({}, document.title, url);
+        }
+    }
+});
+</script>
+{% endif %}
+
+<!-- Add this script after the modals are rendered -->
+<script>
+function fetchAndSetStudentPassword(studentId) {
+    fetch(`/api/student/${studentId}/password`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const passwordInput = document.getElementById('password-' + studentId);
+                if (passwordInput) passwordInput.value = data.password || '';
+            }
+        });
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+    {% for student in students %}
+    var editStudentModal = document.getElementById('editStudentModal-{{ student.id }}');
+    if (editStudentModal) {
+        editStudentModal.addEventListener('show.bs.modal', function() {
+            fetchAndSetStudentPassword('{{ student.id }}');
+        });
+    }
+    {% endfor %}
 });
 </script>
 {% endblock %}

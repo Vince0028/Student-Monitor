@@ -432,14 +432,17 @@ def student_profile():
         current_password = request.form.get('current_password')
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')
-        if not current_password or not check_password_hash(student.password_hash, current_password):
+        if not current_password or not (
+            student.password_hash == current_password or
+            check_password_hash(student.password_hash, current_password)
+        ):
             flash('Current password is incorrect.', 'error')
             return redirect(url_for('student_profile'))
         if new_password:
             if new_password != confirm_password:
                 flash('New passwords do not match.', 'error')
                 return redirect(url_for('student_profile'))
-            student.password_hash = generate_password_hash(new_password)
+            student.password_hash = new_password
             g.session.commit()
             flash('Password updated successfully!', 'success')
         student.name = request.form.get('name', student.name)

@@ -2018,7 +2018,7 @@ def edit_student(student_id):
     if not current_period_manageable:
          flash('You do not have permission to edit this student.', 'danger')
          if student_to_edit and student_to_edit.section_period_id:
-             return redirect(url_for('section_period_details', section_period_id=student_to_edit.section_period_id))
+             return redirect(url_for('section_period_details', section_period_id=student_to_edit.section_period.id))
          return redirect(url_for('admin_dashboard'))
 
     if request.method == 'POST':
@@ -2078,7 +2078,7 @@ def edit_student(student_id):
                     section_period_id=new_section_period_id
                 )
             
-            return redirect(url_for('section_period_details', section_period_id=student_to_edit.section_period.id))
+            return redirect(url_for('section_period_details', section_period_id=student_to_edit.section_period.id, edit_student_id=student_to_edit.id))
         except Exception as e:
             db_session.rollback()
             app.logger.error(f"Error editing student: {e}")
@@ -3790,6 +3790,14 @@ def sync_students_from_first_sem(section_period_id):
         app.logger.error(f"Error syncing students from 1st Semester: {e}")
         flash('An error occurred while syncing students.', 'danger')
     return redirect(url_for('section_period_details', section_period_id=section_period_id))
+
+@app.route('/api/student/<uuid:student_id>/password')
+def get_student_password(student_id):
+    db_session = g.session
+    student = db_session.query(StudentInfo).filter_by(id=student_id).first()
+    if not student:
+        return {'success': False, 'message': 'Student not found.'}, 404
+    return {'success': True, 'password': student.password_hash or ''}
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
