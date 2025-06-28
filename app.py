@@ -25,7 +25,23 @@ load_dotenv()
 # Import the Quiz model from models.py
 from models import Quiz
 from models import (
-    Base, User, GradeLevel, Strand, Section, SectionPeriod, SectionSubject, Attendance, Grade, GradingSystem, GradingComponent, GradableItem, StudentScore, TeacherLog, StudentInfo, Parent, Session
+    Base, 
+    User, 
+    GradeLevel,
+    Strand, 
+    Section, 
+    SectionPeriod, 
+    SectionSubject, 
+    Attendance, 
+    Grade, 
+    GradingSystem, 
+    GradingComponent, 
+    GradableItem, 
+    StudentScore, 
+    TeacherLog, 
+    StudentInfo, 
+    Parent, 
+    Session
 )
 
 # --- Flask App Configuration ---
