@@ -721,39 +721,24 @@ def verify_password_for_profile():
 def admin_dashboard():
     db_session = g.session
     admin_id = uuid.UUID(session['user_id'])
-    
-    # Get all grade levels created by this admin
-    grade_levels = db_session.query(GradeLevel).filter_by(created_by=admin_id).all()
-    
-    # Sort grade levels by grade number (highest to lowest), then by level type (SHS before JHS)
-    def grade_level_sort_key(gl):
-        import re
-        match = re.search(r'(\d+)', gl.name)
-        number = int(match.group(1)) if match else 0
-        # SHS should come before JHS if same number
-        level_type_priority = 0 if gl.level_type == 'SHS' else 1
-        return (-number, level_type_priority)
-    grade_levels = sorted(grade_levels, key=grade_level_sort_key)
-    
-    # Get all sections for this admin's grade levels
-    sections = db_session.query(Section).join(GradeLevel).filter(GradeLevel.created_by == admin_id).all()
-    
-    # Get all section periods for this admin's sections
-    section_periods = db_session.query(SectionPeriod).join(Section).join(GradeLevel).filter(GradeLevel.created_by == admin_id).all()
-    
-    # Get all students in this admin's section periods
-    students = db_session.query(StudentInfo).join(SectionPeriod).join(Section).join(GradeLevel).filter(GradeLevel.created_by == admin_id).all()
-    students_boys = [s for s in students if (s.gender or '').lower() == 'male']
-    students_girls = [s for s in students if (s.gender or '').lower() == 'female']
-    
+
+    # Eager load sections and section_periods for grade levels
+    grade_levels = db_session.query(GradeLevel).options(
+        joinedload(GradeLevel.sections).joinedload(Section.section_periods)
+    ).filter_by(created_by=admin_id).all()
+
+    # Get counts for summary
+    section_count = db_session.query(Section).join(GradeLevel).filter(GradeLevel.created_by == admin_id).count()
+    student_count = db_session.query(StudentInfo).join(SectionPeriod).join(Section).join(GradeLevel).filter(GradeLevel.created_by == admin_id).count()
+
+    # Paginate students (first 20)
+    students = db_session.query(StudentInfo).join(SectionPeriod).join(Section).join(GradeLevel).filter(GradeLevel.created_by == admin_id).limit(20).all()
+
     return render_template('admin_dashboard.html',
                          grade_levels=grade_levels,
-                         sections=sections,
-                         section_periods=section_periods,
-                         students=students,
-                         students_boys=students_boys,
-                         students_girls=students_girls,
-                         all_grade_levels=ALL_GRADE_LEVELS)
+                         section_count=section_count,
+                         student_count=student_count,
+                         students=students)
 
 @app.route('/add_grade_level', methods=['GET', 'POST'])
 @login_required
@@ -1792,23 +1777,15 @@ def teacher_dashboard():
     db_session = g.session
     teacher_id = uuid.UUID(session['user_id'])
 
-    # This query now correctly finds all sections where the logged-in teacher
-    # is either the main adviser for the section OR assigned to any of its periods.
     sections = db_session.query(Section).options(
         joinedload(Section.grade_level),
-        joinedload(Section.strand),
-        # Eagerly load all periods for the found sections
-        joinedload(Section.section_periods).joinedload(SectionPeriod.assigned_teacher)
+        joinedload(Section.strand)
     ).outerjoin(Section.section_periods).filter(
         or_(
             Section.assigned_user_id == teacher_id,
             SectionPeriod.assigned_teacher_id == teacher_id
         )
-    ).distinct().order_by(Section.name).all()
-
-    # The template can now iterate through the sections and their periods.
-    # The periods themselves can be filtered in the template if needed,
-    # but the dashboard will now correctly show all relevant sections.
+    ).distinct().order_by(Section.name).limit(20).all()  # Paginate if needed
 
     return render_template('teacher_dashboard.html', sections=sections, uuid=uuid)
 
