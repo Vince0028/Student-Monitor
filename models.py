@@ -116,6 +116,7 @@ class SectionPeriod(Base):
     created_by_admin = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     assigned_teacher = relationship('User', foreign_keys=[assigned_teacher_id], backref='assigned_section_periods')
+    students_in_period = relationship('StudentInfo', back_populates='section_period')
     def __repr__(self):
         return f"<SectionPeriod(id={self.id}, section_id={self.section_id}, period='{self.period_name}', type='{self.period_type}', year='{self.school_year}', assigned_teacher_id='{self.assigned_teacher_id}')>"
 
@@ -142,6 +143,7 @@ class Attendance(Base):
     status = Column(String(50), nullable=False)
     recorded_by = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    student_info = relationship('StudentInfo', back_populates='attendance_records')
     def __repr__(self):
         return f"<Attendance(id={self.id}, student_info_id={self.student_info_id}, date={self.attendance_date}, status='{self.status}')>"
 
@@ -157,6 +159,7 @@ class Grade(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     section_subject = relationship('SectionSubject', backref='grades')
+    student_info = relationship('StudentInfo', back_populates='grades')
     def __repr__(self):
         return f"<Grade(id={self.id}, student_info_id={self.student_info_id}, subject='{self.section_subject_id}', grade={self.grade_value}')>"
 
@@ -173,13 +176,13 @@ class StudentInfo(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     average_grade = Column(Numeric(5, 2), nullable=True)
     parent = relationship('Parent', back_populates='students')
-    # Relationships (do not import related models here to avoid circular imports)
-    # section_period = relationship('SectionPeriod', back_populates='students_in_period')
-    # attendance_records = relationship('Attendance', back_populates='student_info', cascade='all, delete-orphan')
-    # grades = relationship('Grade', back_populates='student_info', cascade='all, delete-orphan')
-    # scores = relationship('StudentScore', back_populates='student', cascade='all, delete-orphan')
+    # Relationships
+    section_period = relationship('SectionPeriod', back_populates='students_in_period')
+    attendance_records = relationship('Attendance', back_populates='student_info', cascade='all, delete-orphan')
+    grades = relationship('Grade', back_populates='student_info', cascade='all, delete-orphan')
+    scores = relationship('StudentScore', back_populates='student', cascade='all, delete-orphan')
     def __repr__(self):
-        return f"<StudentInfo(id={self.id}, name='{self.name}', student_id_number='{self.student_id_number}', gender='{self.gender}')>" 
+        return f"<StudentInfo(id={self.id}, name='{self.name}', student_id_number='{self.student_id_number}', gender='{self.gender}')>"
 
 class GradingSystem(Base):
     __tablename__ = 'grading_systems'
@@ -217,7 +220,7 @@ class StudentScore(Base):
     student_info_id = Column(PG_UUID(as_uuid=True), ForeignKey('students_info.id'), nullable=False)
     score = Column(Numeric(10, 2), nullable=False)
     __table_args__ = (UniqueConstraint('item_id', 'student_info_id'),)
-    # Relationships: see main app for back_populates
+    student = relationship('StudentInfo', back_populates='scores')
     def __repr__(self):
         return f"<StudentScore(id={self.id}, item_id={self.item_id}, student_info_id={self.student_info_id}, score={self.score})>" 
 
@@ -249,4 +252,18 @@ class Parent(Base):
     phone_number = Column(String(50), nullable=True)
     students = relationship('StudentInfo', back_populates='parent')
     def __repr__(self):
-        return f"<Parent(id={self.id}, username='{self.username}', email='{self.email}')>" 
+        return f"<Parent(id={self.id}, username='{self.username}', email='{self.email}')>"
+
+class ParentPortalStudent(Base):
+    __tablename__ = 'parent_portal_students'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    parent_id = Column(PG_UUID(as_uuid=True), ForeignKey('parents.id'), nullable=False)
+    student_id_number = Column(String(255), nullable=False)
+    first_name = Column(String(255), nullable=False)
+    last_name = Column(String(255), nullable=False)
+    grade_level = Column(String(50), nullable=True)
+    section_name = Column(String(255), nullable=True)
+    strand_name = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    def __repr__(self):
+        return f"<ParentPortalStudent(id={self.id}, student_id_number='{self.student_id_number}', first_name='{self.first_name}', last_name='{self.last_name}')>" 

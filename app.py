@@ -41,6 +41,7 @@ from models import (
     TeacherLog, 
     StudentInfo, 
     Parent, 
+    ParentPortalStudent,
     Session
 )
 
@@ -175,6 +176,74 @@ def verify_current_user_password(user_id, password):
     if user and check_password_hash(user.password_hash, password):
         return True
     return False
+
+# Helper function to sync total grade to database
+def sync_total_grade_to_database(db_session, student_id, subject_id, teacher_id, section_period):
+    """
+    Sync the calculated total grade from the grading system to the grades table.
+    """
+    try:
+        # Get the grading system for this subject
+        grading_system = db_session.query(GradingSystem).filter_by(section_subject_id=subject_id).first()
+        if not grading_system:
+            return False
+        
+        # Get all scores for this student in this subject
+        all_student_scores_query = db_session.query(StudentScore).join(GradableItem).join(GradingComponent).filter(
+            GradingComponent.system_id == grading_system.id,
+            StudentScore.student_info_id == student_id
+        ).all()
+        student_scores_map = {s.item_id: s.score for s in all_student_scores_query}
+
+        # Calculate total grade
+        student_total_grade = decimal.Decimal('0.0')
+        total_weight = 0
+        
+        for component in grading_system.components:
+            component_items = component.items
+            if not component_items:
+                continue
+            
+            component_student_sum = sum((decimal.Decimal(student_scores_map.get(i.id, 0)) for i in component_items), decimal.Decimal(0))
+            component_max_sum = sum((i.max_score for i in component_items), decimal.Decimal(0))
+
+            if component_max_sum > 0:
+                average = component_student_sum / component_max_sum
+                weight = decimal.Decimal(component.weight) / decimal.Decimal('100.0')
+                student_total_grade += average * weight
+                total_weight += component.weight
+
+        # Only save if we have a valid total weight
+        if total_weight > 0:
+            final_grade = student_total_grade * 100  # Convert to percentage
+            
+            # Check if grade already exists for this student/subject/period
+            existing_grade = db_session.query(Grade).filter(
+                Grade.student_info_id == student_id,
+                Grade.section_subject_id == subject_id,
+                Grade.semester == section_period.period_name,
+                Grade.school_year == section_period.school_year
+            ).first()
+
+            if existing_grade:
+                existing_grade.grade_value = final_grade
+                existing_grade.teacher_id = teacher_id
+            else:
+                new_grade = Grade(
+                    student_info_id=student_id,
+                    section_subject_id=subject_id,
+                    teacher_id=teacher_id,
+                    grade_value=final_grade,
+                    semester=section_period.period_name,
+                    school_year=section_period.school_year
+                )
+                db_session.add(new_grade)
+            
+            return True
+        return False
+    except Exception as e:
+        app.logger.error(f"Error syncing total grade: {e}")
+        return False
 
 # --- Routes ---
 

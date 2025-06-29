@@ -24,7 +24,9 @@
             </div>
             <div class="info-item">
                 <span class="info-label">Account Created:</span>
-                <span class="info-value">{{ parent.created_at.strftime('%B %d, %Y') }}</span>
+                <span class="info-value">
+                    {{ parent.created_at.strftime('%B %d, %Y') if parent.created_at else 'N/A' }}
+                </span>
             </div>
             <div class="info-item">
                 <span class="info-label">Children Linked:</span>
