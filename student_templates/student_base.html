@@ -208,7 +208,7 @@
             <!-- Desktop Nav -->
             <nav class="student-nav">
                 <ul>
-                    {% if session.student_id %}
+                    {% if session.student_id and request.endpoint != 'student_login' %}
                         <li><a href="{{ url_for('student_dashboard') }}" class="{% if request.endpoint == 'student_dashboard' %}active{% endif %}">Dashboard</a></li>
                         <li><a href="{{ url_for('student_grades') }}" class="{% if request.endpoint == 'student_grades' %}active{% endif %}">Grades</a></li>
                         <li><a href="{{ url_for('student_attendance') }}" class="{% if request.endpoint == 'student_attendance' %}active{% endif %}">Attendance</a></li>
@@ -216,12 +216,10 @@
                         <li><a href="{{ url_for('student_profile') }}" class="{% if request.endpoint == 'student_profile' %}active{% endif %}">Profile</a></li>
                         <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin-left: 1em;">Logout</a></li>
                         <li>
-                          <button id="darkModeToggle" title="Toggle dark mode" style="background:none;border:none;color:#fff;font-size:1.2em;cursor:pointer;margin-left:0.5em;vertical-align:middle;">
+                          <button id="darkModeToggle" title="Toggle dark mode" style="background:none;border:none;color:#fff;font-size:1.2em;cursor:pointer;margin-left:0.5em;vertical-align:middle;margin-top:1.5em; transform: translateY(-50%)">
                             <i id="darkModeIcon" class="fas fa-moon"></i>
                           </button>
                         </li>
-                    {% elif request.endpoint != 'student_login' %}
-                        <li><a href="{{ url_for('student_login') }}">Login</a></li>
                     {% endif %}
                 </ul>
             </nav>
@@ -400,6 +398,26 @@
         if (btn) btn.onclick = toggle;
         if (btnMobile) btnMobile.onclick = toggle;
       });
+    })();
+    </script>
+    <script>
+    // --- Student Portal: Log out on tab close (sessionStorage approach) ---
+    (function() {
+        const SESSION_KEY = 'student_portal_active';
+        // If the flag is missing, log out and redirect
+        if (!sessionStorage.getItem(SESSION_KEY)) {
+            fetch("{{ url_for('student_logout') }}", {method: 'POST'}).then(() => {
+                window.location.href = "{{ url_for('student_login') }}";
+            });
+        } else {
+            // If the flag exists, do nothing (user is active in this tab)
+        }
+        // Set the flag for this tab
+        sessionStorage.setItem(SESSION_KEY, '1');
+        // On tab close, log out
+        window.addEventListener('unload', function() {
+            navigator.sendBeacon("{{ url_for('student_logout') }}");
+        });
     })();
     </script>
 </body>
