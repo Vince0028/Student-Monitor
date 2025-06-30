@@ -61,5 +61,10 @@
         <!-- Removed inline essay scoring form. Now handled by dedicated page. -->
         {% endif %}
     {% endfor %}
+    <div style="text-align: right; margin-top: 2rem;">
+        <a href="{{ url_for('manage_quiz', section_period_id=section_period_id, subject_id=subject_id) }}" class="btn btn-secondary">
+            &larr; Back to Quiz Manager
+        </a>
+    </div>
 </div>
 {% endblock %} 

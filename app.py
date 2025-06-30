@@ -3309,6 +3309,8 @@ def api_create_quiz():
         questions = data.get('questions')
         section_period_id = data.get('section_period_id')
         subject_id = data.get('subject_id')
+        deadline = data.get('deadline')
+        time_limit_minutes = data.get('time_limit_minutes')
         if not (title and questions and section_period_id and subject_id):
             return jsonify({'success': False, 'message': 'Missing required fields.'}), 400
         import json
@@ -3317,7 +3319,9 @@ def api_create_quiz():
             description=None,
             section_period_id=section_period_id,
             subject_id=subject_id,
-            questions_json=json.dumps(questions)
+            questions_json=json.dumps(questions),
+            deadline=deadline if deadline else None,
+            time_limit_minutes=time_limit_minutes if time_limit_minutes else None
         )
         db_session.add(quiz)
         db_session.commit()

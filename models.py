@@ -32,6 +32,8 @@ class Quiz(Base):
     questions_json = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    deadline = Column(DateTime(timezone=True), nullable=True)
+    time_limit_minutes = Column(Integer, nullable=True)
     def __repr__(self):
         return f"<Quiz(id={self.id}, title='{self.title}')>"
 
@@ -42,7 +44,8 @@ class StudentQuizResult(Base):
     quiz_id = Column(PG_UUID(as_uuid=True), ForeignKey('quizzes.id'), nullable=False)
     score = Column(Numeric(5, 2), nullable=False)
     total_points = Column(Numeric(5, 2), nullable=False)
-    completed_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=True)
     __table_args__ = (UniqueConstraint('student_info_id', 'quiz_id'),)
 
 class StudentQuizAnswer(Base):

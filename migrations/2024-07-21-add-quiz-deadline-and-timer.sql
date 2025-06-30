@@ -1,0 +1,2 @@
+ALTER TABLE quizzes ADD COLUMN deadline TIMESTAMP WITH TIME ZONE;
+ALTER TABLE quizzes ADD COLUMN time_limit_minutes INTEGER; 

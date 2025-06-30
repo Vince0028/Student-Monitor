@@ -21,5 +21,8 @@
             <div class="feature-card-desc">Monitor student performance, view quiz results, and manage all quizzes in one place.</div>
         </a>
     </div>
+    <div style="display: flex; justify-content: center; margin-top: 2.5rem;">
+        <a href="{{ url_for('manage_subject_grades', section_period_id=section_period_id, subject_id=subject_id) }}" class="btn btn-outline-secondary">&larr; Back to Gradebook</a>
+    </div>
 </div>
 {% endblock %}

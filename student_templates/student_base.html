@@ -215,11 +215,6 @@
                         <li><a href="{{ url_for('student_quiz') }}" class="{% if request.endpoint == 'student_quiz' %}active{% endif %}">Quiz</a></li>
                         <li><a href="{{ url_for('student_profile') }}" class="{% if request.endpoint == 'student_profile' %}active{% endif %}">Profile</a></li>
                         <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin-left: 1em;">Logout</a></li>
-                        <li>
-                          <button id="darkModeToggle" title="Toggle dark mode" style="background:none;border:none;color:#fff;font-size:1.2em;cursor:pointer;margin-left:0.5em;vertical-align:middle;margin-top:1.5em; transform: translateY(-50%)">
-                            <i id="darkModeIcon" class="fas fa-moon"></i>
-                          </button>
-                        </li>
                     {% endif %}
                 </ul>
             </nav>
@@ -233,11 +228,6 @@
                         <li><a href="{{ url_for('student_quiz') }}">Quiz</a></li>
                         <li><a href="{{ url_for('student_profile') }}">Profile</a></li>
                         <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin:0.5em 0;">Logout</a></li>
-                        <li>
-                          <button id="darkModeToggleMobile" title="Toggle dark mode" style="background:none;border:none;color:#222;font-size:1.2em;cursor:pointer;margin-left:0.5em;vertical-align:middle;">
-                            <i id="darkModeIconMobile" class="fas fa-moon"></i>
-                          </button>
-                        </li>
                     {% else %}
                         <li><a href="{{ url_for('student_login') }}">Login</a></li>
                     {% endif %}
@@ -368,37 +358,6 @@
             }
         });
     });
-    </script>
-    <script>
-    // Dark mode toggle logic
-    (function() {
-      function setDarkMode(enabled) {
-        document.body.classList.toggle('dark-mode', enabled);
-        var icon = document.getElementById('darkModeIcon');
-        var iconMobile = document.getElementById('darkModeIconMobile');
-        if (icon) icon.className = enabled ? 'fas fa-sun' : 'fas fa-moon';
-        if (iconMobile) iconMobile.className = enabled ? 'fas fa-sun' : 'fas fa-moon';
-      }
-      function getPref() {
-        return localStorage.getItem('studentDarkMode') === 'true';
-      }
-      function setPref(val) {
-        localStorage.setItem('studentDarkMode', val ? 'true' : 'false');
-      }
-      document.addEventListener('DOMContentLoaded', function() {
-        var darkMode = getPref();
-        setDarkMode(darkMode);
-        var btn = document.getElementById('darkModeToggle');
-        var btnMobile = document.getElementById('darkModeToggleMobile');
-        function toggle() {
-          var enabled = !document.body.classList.contains('dark-mode');
-          setDarkMode(enabled);
-          setPref(enabled);
-        }
-        if (btn) btn.onclick = toggle;
-        if (btnMobile) btnMobile.onclick = toggle;
-      });
-    })();
     </script>
     <script>
     // --- Student Portal: Log out on tab close (sessionStorage approach) ---

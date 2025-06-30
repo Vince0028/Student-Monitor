@@ -1,14 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz Maker - Modern Interface</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% extends 'base.html' %}
+{% block content %}
     <style>
-        /* All the provided CSS goes here */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f4f6; min-height: 100vh; padding: 20px; }
         .quiz-container { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08); overflow: hidden; }
         .quiz-header { background: #222; padding: 30px; color: #fff; text-align: center; }
         .quiz-title { font-size: 2.5rem; font-weight: 600; margin-bottom: 10px; }
@@ -80,9 +73,37 @@
             cursor: pointer;
         }
         @media (max-width: 768px) { .quiz-container { margin: 10px; border-radius: 15px; } .quiz-content { padding: 20px; } .question-card { padding: 20px; } .quiz-title { font-size: 2rem; } }
+
+        /* Dark mode styles for quiz maker */
+        .dark-mode .quiz-container { background: #23272f; color: #f1f1f1; }
+        .dark-mode .quiz-header { background: #181a20; color: #fff; }
+        .dark-mode .quiz-title { color: #fff; }
+        .dark-mode .quiz-form-header { background: #23272f; border-left: 5px solid #888; }
+        .dark-mode .quiz-form-header input { color: #fff; background: transparent; }
+        .dark-mode .quiz-form-header input::placeholder { color: #aaa; }
+        .dark-mode .question-card { background: #23272f; border: 2px solid #444; }
+        .dark-mode .question-card:hover, .dark-mode .question-card.active { border-color: #888; box-shadow: 0 10px 30px rgba(0,0,0,0.18); }
+        .dark-mode .question-input { color: #fff; background: transparent; border-bottom: 2px solid #888; }
+        .dark-mode .question-input::placeholder { color: #aaa; }
+        .dark-mode .type-dropdown { background: #23272f; color: #fff; border: 1px solid #444; }
+        .dark-mode .type-dropdown:focus { border-color: #888; }
+        .dark-mode .option-item { background: #23272f; }
+        .dark-mode .option-input { color: #fff; background: transparent; }
+        .dark-mode .option-input::placeholder { color: #aaa; }
+        .dark-mode .remove-option { color: #aaa; }
+        .dark-mode .remove-option:hover { color: #e53e3e; background: #2d2f36; }
+        .dark-mode .add-option-btn { background: none; border: 2px dashed #444; color: #aaa; }
+        .dark-mode .add-option-btn:hover { border-color: #fff; color: #fff; background: #23272f; }
+        .dark-mode .short-answer-field { background: #23272f; border: 2px solid #444; }
+        .dark-mode .short-answer-input { color: #fff; background: transparent; }
+        .dark-mode .quiz-actions { background: #23272f; border-top: 1px solid #444; }
+        .dark-mode .btn-primary { background: #181a20; color: #fff; }
+        .dark-mode .btn-primary:hover { background: #23272f; color: #fff; }
+        .dark-mode .btn-secondary { background: #444; color: #fff; }
+        .dark-mode .btn-secondary:hover { background: #888; color: #fff; }
+        .dark-mode .empty-state { color: #aaa; }
+        .dark-mode .empty-state i { color: #444; }
     </style>
-</head>
-<body>
     <div class="quiz-container">
         <div class="quiz-header">
             <div class="quiz-title">Quiz</div>
@@ -93,6 +114,17 @@
                 <input type="text" placeholder="Put your Quiz Name here..." id="quizTitle" value="">
                 <div style="margin-top: 10px; color: #718096;">
                     <i class="fas fa-users"></i> Questions: <span id="questionCount">0</span>
+                </div>
+                <div style="margin-top: 18px; display: flex; gap: 2rem; align-items: center;">
+                    <div>
+                        <label for="quizDeadline" style="font-size: 1rem; color: #444;">Deadline (optional):</label><br>
+                        <input type="datetime-local" id="quizDeadline" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc;">
+                        <div style="font-size:0.95rem; color:#888; margin-top:2px;">Leave blank if you do not want a deadline.</div>
+                    </div>
+                    <div>
+                        <label for="quizTimeLimit" style="font-size: 1rem; color: #444;">Time Limit (minutes):</label><br>
+                        <input type="number" id="quizTimeLimit" min="1" style="width: 90px; padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc;">
+                    </div>
                 </div>
             </div>
             <div id="questionsContainer">
@@ -114,6 +146,7 @@
                 Preview
             </button>
             <div>
+                <button class="btn-secondary" style="margin-right: 10px;" onclick="window.location.href='/section_period/{{ subject.section_period_id }}/subject/{{ subject.id }}/gradebook'">&larr; Back to Gradebook</button>
                 <button class="btn-secondary" style="margin-right: 10px;">
                     <i class="fas fa-save"></i>
                     Save Draft
@@ -255,6 +288,8 @@
         updateQuestionCount();
         document.querySelector('.btn-primary').addEventListener('click', function() {
             const quizTitle = document.getElementById('quizTitle').value.trim();
+            const quizDeadline = document.getElementById('quizDeadline').value;
+            const quizTimeLimit = document.getElementById('quizTimeLimit').value;
             if (!quizTitle) {
                 alert('Quiz title is required!');
                 return;
@@ -293,7 +328,9 @@
                     title: quizTitle,
                     questions: questions,
                     section_period_id: sectionPeriodId,
-                    subject_id: subjectId
+                    subject_id: subjectId,
+                    deadline: quizDeadline || null,
+                    time_limit_minutes: quizTimeLimit ? parseInt(quizTimeLimit) : null
                 })
             })
             .then(response => response.json())
@@ -310,5 +347,4 @@
             });
         });
     </script>
-</body>
-</html> 
+{% endblock %} 

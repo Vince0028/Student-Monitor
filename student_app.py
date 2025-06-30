@@ -3,14 +3,16 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 import decimal
+from decimal import Decimal
 
 # Import SQLAlchemy components
 from sqlalchemy import create_engine, Column, String, Date, Numeric, ForeignKey, DateTime, and_, or_, func, UniqueConstraint
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base, joinedload
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from dotenv import load_dotenv
+from sqlalchemy.sql import func
 
 # Assuming your models are in app.py, you need to import them
 # This is a circular dependency, so it's better to move models to a separate file
@@ -500,19 +502,54 @@ def student_upcoming_quizzes():
     student_id = session.get('student_id')
     student = db_session.query(StudentInfo).filter_by(id=student_id).first()
     all_quizzes = db_session.query(Quiz).filter_by(section_period_id=student.section_period_id).all()
-    completed_quiz_ids = set(
-        r.quiz_id for r in db_session.query(StudentQuizResult).filter_by(student_info_id=student_id)
-    )
-    # Fetch subject names for each quiz
-    from models import SectionSubject
+    from models import SectionSubject, StudentQuizResult
+    import json
+    from datetime import datetime, timezone
+    from decimal import Decimal
     upcoming_quizzes = []
     for q in all_quizzes:
-        if q.id not in completed_quiz_ids:
+        result = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=q.id).first()
+        # --- Timer logic: auto-complete if expired ---
+        expired = False
+        if q.time_limit_minutes and result and not result.completed_at:
+            now = datetime.now(timezone.utc)
+            started_at = result.started_at
+            if started_at:
+                if started_at.tzinfo is None or started_at.tzinfo.utcoffset(started_at) is None:
+                    started_at = started_at.replace(tzinfo=timezone.utc)
+                elapsed = (now - started_at).total_seconds()
+                if elapsed >= q.time_limit_minutes * 60:
+                    # Auto-complete
+                    result.completed_at = now
+                    # Set score to 0 if not graded
+                    score_is_zero = (result.score is None) or (isinstance(result.score, Decimal) and result.score == Decimal(0))
+                    points_is_zero = (result.total_points is None) or (isinstance(result.total_points, Decimal) and result.total_points == Decimal(0))
+                    if score_is_zero and points_is_zero:
+                        questions = json.loads(q.questions_json or '[]')
+                        result.score = Decimal(0)
+                        result.total_points = Decimal(str(sum(float(qq.get('points', 1)) for qq in questions)))
+                    db_session.commit()
+                    expired = True
+        # Show if not started or in-progress (not completed and not just expired)
+        if (not result or not result.completed_at) and not expired:
             subject_name = None
             if q.subject_id:
                 subj = db_session.query(SectionSubject).filter_by(id=q.subject_id).first()
                 subject_name = subj.subject_name if subj else None
             q.subject_name = subject_name
+            q.deadline = getattr(q, 'deadline', None)
+            # --- Timer logic for display ---
+            q.time_left = None
+            if q.time_limit_minutes:
+                now = datetime.now(timezone.utc)
+                started_at = None
+                if result and hasattr(result, 'started_at') and result.started_at:
+                    started_at = result.started_at
+                    if started_at.tzinfo is None or started_at.tzinfo.utcoffset(started_at) is None:
+                        started_at = started_at.replace(tzinfo=timezone.utc)
+                    elapsed = (now - started_at).total_seconds()
+                    q.time_left = max(0, int(q.time_limit_minutes * 60 - elapsed))
+                # If not started, do not set time_left (leave as None)
             upcoming_quizzes.append(q)
     return render_template('student_quiz_templates/student_upcoming_quizzes.html', upcoming_quizzes=upcoming_quizzes)
 
@@ -521,10 +558,10 @@ def student_upcoming_quizzes():
 def student_completed_quizzes():
     db_session = g.session
     student_id = session.get('student_id')
-    completed_results = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id).all()
+    from models import StudentQuizResult, StudentQuizAnswer, SectionSubject
+    completed_results = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id).filter(StudentQuizResult.completed_at.isnot(None)).all()
     completed_quizzes = []
     import json
-    from models import StudentQuizAnswer, SectionSubject
     def format_number(n):
         return int(n) if n == int(n) else round(float(n), 1)
     for result in completed_results:
@@ -558,24 +595,60 @@ def student_completed_quizzes():
 @app.route('/student/quiz/<uuid:quiz_id>', methods=['GET', 'POST'])
 @login_required
 def take_quiz(quiz_id):
+    from decimal import Decimal  # Ensure Decimal is always in scope
     student_id = uuid.UUID(session['student_id'])
-    # Check if already completed
-    existing_result = g.session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz_id).first()
-    if existing_result:
-        # Already completed, redirect to results
-        return redirect(url_for('view_quiz_score', quiz_id=quiz_id))
     quiz = g.session.query(Quiz).filter_by(id=quiz_id).first()
     if not quiz:
         flash('Quiz not found.', 'error')
         return redirect(url_for('student_quiz'))
     import json
     questions = json.loads(quiz.questions_json)
+    time_limit = quiz.time_limit_minutes
+    now = datetime.now(timezone.utc)
+    result = g.session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz_id).first()
+    started_at = None
+    time_left = None
+    if time_limit:
+        if result and hasattr(result, 'started_at') and result.started_at:
+            started_at = result.started_at
+            # Ensure started_at is timezone-aware
+            if started_at.tzinfo is None or started_at.tzinfo.utcoffset(started_at) is None:
+                started_at = started_at.replace(tzinfo=timezone.utc)
+        elif not result:
+            result = StudentQuizResult(
+                student_info_id=student_id,
+                quiz_id=quiz_id,
+                score=0,
+                total_points=0,
+                started_at=now
+            )
+            g.session.add(result)
+            g.session.commit()
+            started_at = now
+        elif result and not hasattr(result, 'started_at'):
+            result.started_at = now
+            g.session.commit()
+            started_at = now
+        if started_at:
+            elapsed = (now - started_at).total_seconds()
+            time_left = int(time_limit * 60 - elapsed)
+            if time_left <= 0:
+                # Auto-submit: mark as completed if not already
+                if result and (result.completed_at is None):
+                    result.completed_at = now  # type: ignore
+                    # Optionally, set score to 0 if not already graded
+                    score_is_zero = (result.score is None) or (isinstance(result.score, Decimal) and result.score == Decimal(0))
+                    points_is_zero = (result.total_points is None) or (isinstance(result.total_points, Decimal) and result.total_points == Decimal(0))
+                    if score_is_zero and points_is_zero:
+                        result.score = Decimal(0)  # type: ignore
+                        result.total_points = Decimal(str(sum(float(q.get('points', 1)) for q in questions)))  # type: ignore
+                    g.session.commit()
+                flash('Time is up! Your quiz was auto-submitted.')
+                return redirect(url_for('view_quiz_score', quiz_id=quiz_id))
     if request.method == 'POST':
-        print('--- QUIZ SUBMISSION DEBUG ---')
-        print('Quiz ID:', quiz_id)
-        print('Student ID:', student_id)
-        print('Questions:', questions)
-        print('Form data:', dict(request.form))
+        if time_limit and time_left is not None and time_left <= 0:
+            flash('Time is up! Your quiz was auto-submitted.')
+            return redirect(url_for('view_quiz_score', quiz_id=quiz_id))
         total_score = 0
         total_points = 0
         answers_to_store = []
@@ -589,12 +662,10 @@ def take_quiz(quiz_id):
                     selected = request.form.getlist(f'answer-{qid}[]')
                     selected_indices = set(int(i) for i in selected)
                     correct_indices = set(i for i, opt in enumerate(question['options']) if opt.get('isCorrect'))
-                    print(f'MULTI: selected={selected_indices}, correct={correct_indices}')
                     if selected_indices == correct_indices and correct_indices:
                         correct = True
                 else:
                     correct_index = next((i for i, opt in enumerate(question['options']) if opt.get('isCorrect')), None)
-                    print(f'SINGLE: answer={answer}, correct_index={correct_index}')
                     if answer is not None and correct_index is not None and int(answer) == correct_index:
                         correct = True
                 answer_score = pts if correct else 0
@@ -604,7 +675,6 @@ def take_quiz(quiz_id):
                     'score': answer_score
                 })
             elif question['type'] == 'essay_type':
-                # Always require teacher to check, do not auto-score
                 answers_to_store.append({
                     'question_id': qid,
                     'answer_text': answer,
@@ -622,18 +692,25 @@ def take_quiz(quiz_id):
             total_points += pts
             if correct:
                 total_score += pts
-        print(f'Total Score: {total_score}, Total Points: {total_points}')
-        # Record completion in StudentQuizResult with error handling
         try:
-            result = StudentQuizResult(
-                student_info_id=student_id,
-                quiz_id=quiz_id,
-                score=total_score,
-                total_points=total_points
-            )
-            g.session.add(result)
-            g.session.flush()  # Get result.id for answers
-            # Store all answers (auto and essay)
+            from decimal import Decimal, ROUND_HALF_UP
+            dec_score = Decimal(str(total_score)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            dec_points = Decimal(str(total_points)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            if result:
+                result.score = dec_score  # type: ignore
+                result.total_points = dec_points  # type: ignore
+                result.completed_at = now  # type: ignore
+                g.session.flush()
+            else:
+                result = StudentQuizResult(
+                    student_info_id=student_id,
+                    quiz_id=quiz_id,
+                    score=dec_score,  # type: ignore
+                    total_points=dec_points,  # type: ignore
+                    started_at=now,
+                    completed_at=now  # type: ignore
+                )
+                g.session.add(result)
             for ans in answers_to_store:
                 answer_obj = StudentQuizAnswer(
                     student_quiz_result_id=result.id,
@@ -643,15 +720,13 @@ def take_quiz(quiz_id):
                 )
                 g.session.add(answer_obj)
             g.session.commit()
-            print('StudentQuizResult and all answers created and committed.')
             flash('Quiz submitted successfully!', 'success')
             return redirect(url_for('view_quiz_score', quiz_id=quiz_id))
         except Exception as e:
             g.session.rollback()
-            print(f'Error submitting quiz: {e}')
             flash('An error occurred while submitting your quiz. Please try again.', 'error')
             return redirect(url_for('student_quiz'))
-    return render_template('student_quiz_templates/student_take_quiz.html', quiz=quiz, questions=questions)
+    return render_template('student_quiz_templates/student_take_quiz.html', quiz=quiz, questions=questions, time_left=time_left, time_limit=time_limit)
 
 @app.route('/student/quiz/<uuid:quiz_id>/score')
 @login_required

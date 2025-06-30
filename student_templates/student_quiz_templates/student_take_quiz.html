@@ -4,22 +4,46 @@
 
 {% block content %}
 <style>
-    body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-    .quiz-container { max-width: 900px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1); overflow: hidden; }
-    .quiz-header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 30px; color: white; text-align: center; border-radius: 20px 20px 0 0; }
-    .quiz-title { font-size: 2.5rem; font-weight: 600; margin-bottom: 10px; }
-    .quiz-subtitle { opacity: 0.9; font-size: 1.1rem; }
+    body { background: #fff !important; }
+    .quiz-container { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1); overflow: hidden; }
+    .quiz-header { background: #222; padding: 30px; color: #fff; text-align: center; border-radius: 20px 20px 0 0; }
+    .quiz-title { font-size: 2.5rem; font-weight: 600; margin-bottom: 10px; color: #fff; }
+    .quiz-subtitle { opacity: 0.9; font-size: 1.1rem; color: #f1f1f1; }
     .quiz-content { padding: 30px; }
-    .question-card { background: white; border: 2px solid #e2e8f0; border-radius: 15px; padding: 25px; margin-bottom: 20px; position: relative; transition: all 0.3s ease; }
-    .question-card:hover { border-color: #4facfe; box-shadow: 0 10px 30px rgba(79, 172, 254, 0.1); }
+    .question-card { background: #fff; border: 2px solid #e2e8f0; border-radius: 15px; padding: 25px; margin-bottom: 20px; position: relative; transition: all 0.3s ease; }
+    .question-card:hover { border-color: #222; box-shadow: 0 10px 30px rgba(34,34,34,0.08); }
     .question-header { display: flex; align-items: center; margin-bottom: 20px; }
-    .question-number { background: #4facfe; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 15px; flex-shrink: 0; }
-    .question-input { flex: 1; border: none; font-size: 1.2rem; padding: 10px 0; color: #2d3748; background: transparent; }
-    .question-input:focus { outline: none; border-bottom: 2px solid #4facfe; }
-    .form-check-input:checked { background-color: #4facfe; border-color: #4facfe; }
-    .btn-primary { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none; padding: 12px 25px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3); }
+    .question-number { background: #222; color: #fff; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 15px; flex-shrink: 0; }
+    .question-input { flex: 1; border: none; font-size: 1.2rem; padding: 10px 0; color: #222; background: transparent; }
+    .question-input:focus { outline: none; border-bottom: 2px solid #222; }
+    .form-check-input:checked { background-color: #222; border-color: #222; }
+    .btn-primary { background: #222; color: #fff; border: none; padding: 12px 25px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(34,34,34,0.15); background: #111; }
     @media (max-width: 768px) { .quiz-container { margin: 10px; border-radius: 15px; } .quiz-content { padding: 20px; } .question-card { padding: 20px; } .quiz-title { font-size: 2rem; } }
+    .timer-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f7fafc;
+        border-bottom: 2px solid #2563eb;
+        padding: 1.1rem 0 0.7rem 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2563eb;
+        letter-spacing: 1px;
+        position: relative;
+    }
+    .timer-bar .timer-icon {
+        font-size: 1.5rem;
+        margin-right: 0.7rem;
+        color: #2563eb;
+    }
+    .timer-bar .timer-warning {
+        color: #e53e3e;
+        font-weight: 600;
+        margin-left: 1.2rem;
+        font-size: 1.05rem;
+    }
 </style>
 <div class="quiz-container mt-4" style="margin-top: 20px;">
     <div class="quiz-header">
@@ -27,6 +51,39 @@
         <div class="quiz-subtitle">Answer all questions below and submit when finished.</div>
     </div>
     <div class="quiz-content">
+        {% if time_limit and time_left is not none %}
+        <div class="timer-bar">
+            <span class="timer-icon"><i class="fas fa-stopwatch"></i></span>
+            Time Remaining: <span id="timerDisplay">--:--</span>
+            <span class="timer-warning" id="timerWarning" style="display:none;">Time is up! Submitting...</span>
+        </div>
+        <script>
+            let timeLeft = {{ time_left|int }};
+            let timerDisplay = document.getElementById('timerDisplay');
+            let timerWarning = document.getElementById('timerWarning');
+            let quizForm = document.querySelector('.quiz-content form');
+            function pad(n) { return n < 10 ? '0' + n : n; }
+            function updateTimer() {
+                if (timeLeft <= 0) {
+                    timerDisplay.textContent = '00:00';
+                    timerWarning.style.display = '';
+                    // Disable all inputs
+                    Array.from(quizForm.elements).forEach(e => e.disabled = true);
+                    // Auto-submit with blank answers (grade 0)
+                    setTimeout(function() {
+                        quizForm.submit();
+                    }, 1200);
+                    return;
+                }
+                let min = Math.floor(timeLeft / 60);
+                let sec = timeLeft % 60;
+                timerDisplay.textContent = pad(min) + ':' + pad(sec);
+                timeLeft--;
+                setTimeout(updateTimer, 1000);
+            }
+            updateTimer();
+        </script>
+        {% endif %}
         <form method="POST">
             {% for question in questions %}
             <div class="question-card">

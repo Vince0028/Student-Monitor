@@ -8,7 +8,7 @@
     <div class="quiz-card-grid">
         {% if upcoming_quizzes %}
             {% for quiz in upcoming_quizzes %}
-            <a href="{{ url_for('take_quiz', quiz_id=quiz.id) }}" style="text-decoration: none; color: inherit;">
+            <a href="#" class="quiz-link" data-quiz-id="{{ quiz.id }}" data-time-limit="{{ quiz.time_limit_minutes }}" data-title="{{ quiz.title }}" data-url="{{ url_for('take_quiz', quiz_id=quiz.id) }}" style="text-decoration: none; color: inherit;">
                 <div class="feature-card card-quiz-upcoming">
                     <div class="feature-card-icon"><i class="fas fa-hourglass-start"></i></div>
                     <div class="feature-card-title">{{ quiz.title }}</div>
@@ -16,6 +16,19 @@
                     <div style="color:#888; font-size:0.98rem; margin-bottom:0.2rem;">Subject: <strong>{{ quiz.subject_name }}</strong></div>
                     {% endif %}
                     <div class="feature-card-desc">{{ quiz.description or 'Take this quiz now.' }}</div>
+                    {% if quiz.time_limit_minutes %}
+                        <span class="quiz-timer" style="color:#1976d2; font-weight:500;">
+                            <i class="fa fa-clock-o"></i> Time Limit: {{ quiz.time_limit_minutes }} min
+                        </span><br>
+                        {% if quiz.time_left is not none %}
+                            <span class="quiz-timer-remaining" style="color:#d32f2f; font-weight:500;">
+                                ⏰ Time Left: <span id="timer-{{ quiz.id }}">{{ (quiz.time_left // 60)|int }}:{{ '%02d' % (quiz.time_left % 60) }}</span>
+                            </span><br>
+                        {% endif %}
+                    {% endif %}
+                    {% if not quiz.deadline %}
+                        <div style="color:#888; font-size:0.95rem; margin-top:0.2rem;">No deadline set</div>
+                    {% endif %}
                 </div>
             </a>
             {% endfor %}
@@ -24,4 +37,117 @@
         {% endif %}
     </div>
 </div>
+<!-- Timer Modal -->
+<div id="timerModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:18px; max-width:420px; margin:auto; padding:2.5rem 2rem 2rem 2rem; box-shadow:0 12px 40px rgba(37,99,235,0.13), 0 2px 8px rgba(37,99,235,0.10); text-align:center; position:relative;">
+        <div style="font-size:2.5rem; color:#2563eb; margin-bottom:0.5rem;"><i class="fas fa-stopwatch"></i></div>
+        <h4 id="modalQuizTitle" style="margin-bottom:1.2rem; font-size:1.35rem; font-weight:600; color:#222;"></h4>
+        <div id="modalTimerText" style="font-size:1.08rem; color:#444; margin-bottom:2rem; line-height:1.6;"></div>
+        <div style="display:flex; gap:1rem; justify-content:center;">
+            <button id="modalProceedBtn" class="btn btn-primary" style="background:#2563eb; color:#fff; border:none; border-radius:8px; font-size:1rem; padding:0.7rem 1.5rem; font-weight:600; box-shadow:0 2px 8px rgba(37,99,235,0.08); transition:background 0.2s;">Start Quiz</button>
+            <button id="modalCancelBtn" class="btn btn-secondary" style="background:#e0e7ef; color:#222; border:none; border-radius:8px; font-size:1rem; padding:0.7rem 1.5rem; font-weight:600;">Cancel</button>
+        </div>
+    </div>
+</div>
+<style>
+    /* Timer Modal Button Effects */
+    #timerModal .btn.btn-primary {
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        padding: 0.7rem 1.5rem;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+        transition: background 0.18s, box-shadow 0.18s, transform 0.12s;
+        outline: none;
+    }
+    #timerModal .btn.btn-primary:hover {
+        background: #1746b0;
+        box-shadow: 0 4px 16px rgba(37,99,235,0.13);
+        transform: translateY(-2px) scale(1.03);
+    }
+    #timerModal .btn.btn-primary:active {
+        background: #143a8c;
+        transform: scale(0.97);
+    }
+    #timerModal .btn.btn-secondary {
+        background: #e0e7ef;
+        color: #222;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        padding: 0.7rem 1.5rem;
+        font-weight: 600;
+        transition: background 0.18s, color 0.18s, transform 0.12s;
+        outline: none;
+    }
+    #timerModal .btn.btn-secondary:hover {
+        background: #cfd8e6;
+        color: #111;
+        transform: translateY(-1px) scale(1.03);
+    }
+    #timerModal .btn.btn-secondary:active {
+        background: #b6c2d6;
+        color: #111;
+        transform: scale(0.97);
+    }
+</style>
+<script>
+    document.querySelectorAll('.quiz-link').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const timeLimit = parseInt(this.dataset.timeLimit);
+            const quizTitle = this.dataset.title;
+            const url = this.dataset.url;
+            if (timeLimit && timeLimit > 0) {
+                document.getElementById('modalQuizTitle').textContent = quizTitle;
+                document.getElementById('modalTimerText').innerHTML = `This quiz has a time limit of <b>${timeLimit} minute${timeLimit > 1 ? 's' : ''}</b>.<br>The timer will start when you begin. If you close the tab or log out, the timer will continue.<br><span style='color:#e53e3e;font-weight:500;'>You cannot pause the timer once started.</span>`;
+                document.getElementById('timerModal').style.display = 'flex';
+                const proceedBtn = document.getElementById('modalProceedBtn');
+                proceedBtn.disabled = false;
+                proceedBtn.onclick = function() {
+                    proceedBtn.disabled = true;
+                    setTimeout(function() { window.location.href = url; }, 150);
+                };
+                document.getElementById('modalCancelBtn').onclick = function() {
+                    document.getElementById('timerModal').style.display = 'none';
+                };
+            } else {
+                window.location.href = url;
+            }
+        });
+    });
+
+    // Live countdown for all timers
+    function startCountdownTimers() {
+        const timers = document.querySelectorAll('[id^="timer-"]');
+        let anyZero = false;
+        timers.forEach(function(timer) {
+            let [min, sec] = timer.textContent.split(':').map(Number);
+            let total = min * 60 + sec;
+            if (isNaN(total)) return;
+            function update() {
+                if (total <= 0) {
+                    timer.textContent = '0:00';
+                    anyZero = true;
+                    return;
+                }
+                total--;
+                let m = Math.floor(total / 60);
+                let s = total % 60;
+                timer.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+                if (total > 0) {
+                    setTimeout(update, 1000);
+                } else {
+                    // When timer hits zero, refresh the page to update quiz status
+                    window.location.reload();
+                }
+            }
+            setTimeout(update, 1000);
+        });
+    }
+    document.addEventListener('DOMContentLoaded', startCountdownTimers);
+</script>
 {% endblock %}

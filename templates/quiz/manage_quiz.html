@@ -96,7 +96,7 @@
             <div class="icon" style="font-size:2rem; color:#bdbdbd; margin-left:auto; opacity:0.7;"><i class="fas fa-clock"></i></div>
         </div>
     </div>
-    <div style="margin-bottom:2.2rem;">
+    <div style="margin-bottom:2.2rem; max-height: 260px; overflow-y: auto; border-radius: 10px; border: 1px solid #f1f1f1;">
         <h3 style="font-size:1.2rem; font-weight:700; margin-bottom:0.7rem;">Quiz Status</h3>
         <ul style="list-style:none; padding:0; margin:0; max-width:600px;">
             {% for quiz in quizzes %}
@@ -130,7 +130,10 @@
             </select>
         </div>
     </div>
-    <div class="students-section" style="background:#fff; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:2rem;">
+    {% set boys = students | selectattr('gender', 'equalto', 'Male') | list %}
+    {% set girls = students | selectattr('gender', 'equalto', 'Female') | list %}
+    {% set scroll_style = 'max-height: 320px; overflow-y: auto; border: 1px solid #f1f1f1;' if students|length > 4 else '' %}
+    <div class="students-section" style="background:#fff; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:2rem; {{ scroll_style }}">
         <h2 style="font-size:1.3rem; font-weight:700; margin-bottom:0.5rem;">Students</h2>
         <p style="color:#6b7280; font-size:1rem; margin-bottom:1.5rem;">Monitor all student quiz performance</p>
         <table class="student-table" style="width:100%; table-layout:auto;">
@@ -144,7 +147,9 @@
                 </tr>
             </thead>
             <tbody id="studentList">
-                {% for student in students %}
+                {% if boys %}
+                <tr class="table-group-divider"><td colspan="5" style="font-weight:bold; background:#f5f5f5;">Boys</td></tr>
+                {% for student in boys %}
                 <tr>
                     <td>
                         <span class="student-avatar"><i class="fas fa-user"></i></span>
@@ -156,9 +161,28 @@
                     <td style="text-align:center;"><a class="view-btn" href="{{ url_for('manage_student_quiz', section_period_id=section_period_id, subject_id=subject_id, student_id=student.id) }}"><i class="fas fa-eye"></i> View</a></td>
                 </tr>
                 {% endfor %}
+                {% endif %}
+                {% if girls %}
+                <tr class="table-group-divider"><td colspan="5" style="font-weight:bold; background:#f5f5f5;">Girls</td></tr>
+                {% for student in girls %}
+                <tr>
+                    <td>
+                        <span class="student-avatar"><i class="fas fa-user"></i></span>
+                        <span class="name" style="font-weight:600; font-size:1.1rem;">{{ student.name }}</span>
+                    </td>
+                    <td><span class="email" style="color:#6b7280; font-size:0.97rem;">{{ student.email if student.email else '' }}</span></td>
+                    <td style="text-align:center;"><span class="stat-badge badge-blue">{{ student.average_grade if student.average_grade is not none else 'N/A' }}%</span></td>
+                    <td style="text-align:center;"><span class="stat-value">{{ student.progress if student.progress else 'N/A' }}</span></td>
+                    <td style="text-align:center;"><a class="view-btn" href="{{ url_for('manage_student_quiz', section_period_id=section_period_id, subject_id=subject_id, student_id=student.id) }}"><i class="fas fa-eye"></i> View</a></td>
+                </tr>
+                {% endfor %}
+                {% endif %}
             </tbody>
         </table>
     </div>
+</div>
+<div style="display: flex; justify-content: center; margin-top: 2.5rem;">
+    <a href="{{ url_for('manage_subject_grades', section_period_id=section_period_id, subject_id=subject_id) }}" class="btn btn-outline-secondary">&larr; Back to Gradebook</a>
 </div>
 <script>
     // Simple search filter for students

@@ -1,0 +1,1 @@
+ALTER TABLE student_quiz_results ADD COLUMN started_at TIMESTAMP WITH TIME ZONE; 

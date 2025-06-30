@@ -3,6 +3,48 @@
 {% block title %}Student Login - Student Portal{% endblock %}
 
 {% block content %}
+<div class="student-main">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-messages" style="margin-bottom: 1.5rem;">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">
+            <i class="fas fa-info-circle"></i> {{ message }}
+            <button type="button" class="close-btn" onclick="this.parentElement.remove()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  <div class="login-bg">
+    <div class="login-card">
+      <div class="login-header">
+        <i class="fas fa-user-graduate login-icon"></i>
+        <h2 class="login-title">Student Portal</h2>
+        <p class="login-desc">Sign in to access your dashboard</p>
+      </div>
+      <form method="POST" class="login-form">
+        <div class="form-group">
+          <label for="student_id_number" class="login-label">Student ID Number</label>
+          <input type="text" id="student_id_number" name="student_id_number" class="login-input" placeholder="Enter your student ID number" required autofocus>
+        </div>
+        <div class="form-group" style="position: relative;">
+          <label for="password" class="login-label">Password</label>
+          <input type="password" id="password" name="password" class="login-input" placeholder="Enter your password" required autocomplete="current-password">
+          <button type="button" id="togglePassword" aria-label="Show password" style="position:absolute; right:24px; top:50%; transform:translateY(45%); background:none; border:none; color:#2563eb; font-size:0.98em; cursor:pointer; padding:0 6px; font-weight:600;">
+            <span id="togglePasswordText">Show</span>
+          </button>
+        </div>
+        <button type="submit" class="login-btn">
+          <i class="fas fa-sign-in-alt"></i> Sign In
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <style>
 /* Mobile-first login styles */
 .login-bg {
@@ -201,32 +243,6 @@
   }
 }
 </style>
-
-<div class="login-bg">
-  <div class="login-card">
-    <div class="login-header">
-      <i class="fas fa-user-graduate login-icon"></i>
-      <h2 class="login-title">Student Portal</h2>
-      <p class="login-desc">Sign in to access your dashboard</p>
-    </div>
-    <form method="POST" class="login-form">
-      <div class="form-group">
-        <label for="student_id_number" class="login-label">Student ID Number</label>
-        <input type="text" id="student_id_number" name="student_id_number" class="login-input" placeholder="Enter your student ID number" required autofocus>
-      </div>
-      <div class="form-group" style="position: relative;">
-        <label for="password" class="login-label">Password</label>
-        <input type="password" id="password" name="password" class="login-input" placeholder="Enter your password" required autocomplete="current-password">
-        <button type="button" id="togglePassword" aria-label="Show password" style="position:absolute; right:24px; top:50%; transform:translateY(45%); background:none; border:none; color:#2563eb; font-size:0.98em; cursor:pointer; padding:0 6px; font-weight:600;">
-          <span id="togglePasswordText">Show</span>
-        </button>
-      </div>
-      <button type="submit" class="login-btn">
-        <i class="fas fa-sign-in-alt"></i> Sign In
-      </button>
-    </form>
-  </div>
-</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
