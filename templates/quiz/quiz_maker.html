@@ -147,7 +147,7 @@
             </button>
             <div>
                 <button class="btn-secondary" style="margin-right: 10px;" onclick="window.location.href='/section_period/{{ subject.section_period_id }}/subject/{{ subject.id }}/gradebook'">&larr; Back to Gradebook</button>
-                <button class="btn-secondary" style="margin-right: 10px;">
+                <button class="btn-secondary" style="margin-right: 10px;" id="saveDraftBtn">
                     <i class="fas fa-save"></i>
                     Save Draft
                 </button>
@@ -158,13 +158,49 @@
             </div>
         </div>
     </div>
+    <!-- Publish Result Modal -->
+    <div id="publishResultModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background:#222; color:#fff; border-radius:12px; padding:2rem 2.5rem; max-width:350px; width:90vw; box-shadow:0 8px 32px rgba(0,0,0,0.18); text-align:center;">
+            <h3 id="publishResultTitle" style="font-size:1.2rem; font-weight:700; margin-bottom:1.1rem;"></h3>
+            <p id="publishResultMsg" style="margin-bottom:2rem; color:#e2e8f0;"></p>
+            <button id="publishResultOkBtn" class="btn btn-primary" style="background:#3182ce; color:#fff; border:none; border-radius:8px; padding:0.6rem 1.5rem; font-weight:600; font-size:1rem; cursor:pointer;">OK</button>
+        </div>
+    </div>
+    <!-- Inject quiz data for editing if present -->
+    {% if quiz_data %}
+    <script>window.existingQuiz = {{ quiz_data|tojson }};</script>
+    {% else %}
+    <script>window.existingQuiz = null;</script>
+    {% endif %}
     <script>
         // Inject Flask variables for redirect
         const sectionPeriodId = "{{ subject.section_period_id }}";
         const subjectId = "{{ subject.id }}";
-        // All the provided JS goes here
         let questions = [];
         let questionCounter = 0;
+        // Pre-fill form if editing
+        window.addEventListener('DOMContentLoaded', function() {
+            if (window.existingQuiz) {
+                document.getElementById('quizTitle').value = window.existingQuiz.title || '';
+                if (window.existingQuiz.deadline) {
+                    // Convert ISO to local datetime-local input format
+                    let dt = new Date(window.existingQuiz.deadline);
+                    let local = dt.toISOString().slice(0,16);
+                    document.getElementById('quizDeadline').value = local;
+                }
+                if (window.existingQuiz.time_limit_minutes) {
+                    document.getElementById('quizTimeLimit').value = window.existingQuiz.time_limit_minutes;
+                }
+                try {
+                    questions = Array.isArray(window.existingQuiz.questions) ? window.existingQuiz.questions : JSON.parse(window.existingQuiz.questions);
+                } catch (e) { questions = []; }
+                questionCounter = questions.length > 0 ? Math.max(...questions.map(q => q.id || 0)) : 0;
+                // Render all questions
+                for (const q of questions) { renderQuestion(q); }
+                updateEmptyState();
+                updateQuestionCount();
+            }
+        });
         function addQuestion() { questionCounter++; const question = { id: questionCounter, text: '', type: 'multiple_choice', options: [ { text: '', isCorrect: false }, { text: '', isCorrect: false } ], correctAnswer: '', points: 1 }; questions.push(question); renderQuestion(question); updateEmptyState(); updateQuestionCount(); }
         function renderQuestion(question) { const container = document.getElementById('questionsContainer'); const questionDiv = document.createElement('div'); questionDiv.className = 'question-card'; questionDiv.id = `question-${question.id}`; questionDiv.innerHTML = `<div class="question-header"><div class="question-number">${questions.indexOf(question) + 1}</div><input type="text" class="question-input" placeholder="Type your question here..." value="${question.text}" onchange="updateQuestion(${question.id}, 'text', this.value)"><div class="question-actions"><button class="action-btn drag-handle" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></button><button class="action-btn" onclick="duplicateQuestion(${question.id})" title="Duplicate"><i class="fas fa-copy"></i></button><button class="action-btn delete-btn" onclick="deleteQuestion(${question.id})" title="Delete"><i class="fas fa-trash"></i></button></div></div><div class="question-type-selector"><select class="type-dropdown" onchange="changeQuestionType(${question.id}, this.value)"><option value="multiple_choice" ${question.type === 'multiple_choice' ? 'selected' : ''}><i class="fas fa-list-ul"></i> Multiple Choice</option><option value="essay_type" ${question.type === 'essay_type' ? 'selected' : ''}><i class="fas fa-font"></i> Essay Type</option><option value="true_false" ${question.type === 'true_false' ? 'selected' : ''}><i class="fas fa-check-circle"></i> True/False</option></select></div><div style='margin-bottom:10px;'><label style='font-size:0.95rem;color:#718096;'>Points:</label> <input type='number' min='1' value='${question.points || 1}' style='width:60px;' onchange='updateQuestion(${question.id}, "points", this.value)'></div><div id="question-content-${question.id}">${renderQuestionContent(question)}</div>`; container.appendChild(questionDiv); }
         function renderQuestionContent(question) {
@@ -286,64 +322,139 @@
         // Initialize with empty state
         updateEmptyState();
         updateQuestionCount();
+        document.getElementById('saveDraftBtn').addEventListener('click', function() {
+            // Gather quiz data as in publish, but set status to 'draft'
+            const quizTitle = document.getElementById('quizTitle').value.trim();
+            const quizDeadline = document.getElementById('quizDeadline').value;
+            const quizTimeLimit = document.getElementById('quizTimeLimit').value;
+            const sectionPeriodId = '{{ subject.section_period_id }}';
+            const subjectId = '{{ subject.id }}';
+            const data = {
+                title: quizTitle,
+                questions: questions,
+                section_period_id: sectionPeriodId,
+                subject_id: subjectId,
+                deadline: quizDeadline,
+                time_limit_minutes: quizTimeLimit,
+                status: 'draft'
+            };
+            fetch('/api/quizzes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const modal = document.getElementById('publishResultModal');
+                const title = document.getElementById('publishResultTitle');
+                const msg = document.getElementById('publishResultMsg');
+                const okBtn = document.getElementById('publishResultOkBtn');
+                if (data.success) {
+                    title.textContent = 'Draft Saved!';
+                    msg.textContent = 'Your quiz draft has been saved. You can continue editing or publish it later.';
+                    okBtn.onclick = function() { window.location.reload(); };
+                } else {
+                    title.textContent = 'Error';
+                    msg.textContent = data.message || 'Failed to save draft.';
+                    okBtn.onclick = function() { modal.style.display = 'none'; };
+                }
+                modal.style.display = 'flex';
+            })
+            .catch(err => {
+                const modal = document.getElementById('publishResultModal');
+                const title = document.getElementById('publishResultTitle');
+                const msg = document.getElementById('publishResultMsg');
+                const okBtn = document.getElementById('publishResultOkBtn');
+                title.textContent = 'Network Error';
+                msg.textContent = 'Network error: ' + err.message;
+                okBtn.onclick = function() { modal.style.display = 'none'; };
+                modal.style.display = 'flex';
+            });
+        });
         document.querySelector('.btn-primary').addEventListener('click', function() {
             const quizTitle = document.getElementById('quizTitle').value.trim();
             const quizDeadline = document.getElementById('quizDeadline').value;
             const quizTimeLimit = document.getElementById('quizTimeLimit').value;
+            const modal = document.getElementById('publishResultModal');
+            const title = document.getElementById('publishResultTitle');
+            const msg = document.getElementById('publishResultMsg');
+            const okBtn = document.getElementById('publishResultOkBtn');
+            function showModal(modalTitle, modalMsg) {
+                title.textContent = modalTitle;
+                msg.textContent = modalMsg;
+                modal.style.display = 'flex';
+                okBtn.onclick = function() { modal.style.display = 'none'; };
+            }
             if (!quizTitle) {
-                alert('Quiz title is required!');
+                showModal('Validation Error', 'Quiz title is required!');
                 return;
             }
             if (questions.length === 0) {
-                alert('Please add at least one question.');
+                showModal('Validation Error', 'Please add at least one question.');
                 return;
             }
             for (const q of questions) {
                 if (q.type === 'multiple_choice') {
                     if (q.allowMultiple) {
                         if (!q.options.some(opt => opt.isCorrect)) {
-                            alert('Warning: At least one multiple choice question has no correct answer selected.');
+                            showModal('Validation Error', 'At least one multiple choice question has no correct answer selected.');
                             return;
                         }
                     } else {
                         if (!q.options.some(opt => opt.isCorrect)) {
-                            alert('Warning: At least one multiple choice question has no correct answer selected.');
+                            showModal('Validation Error', 'At least one multiple choice question has no correct answer selected.');
                             return;
                         }
                     }
                 }
                 if (q.type === 'essay_type' && (!q.correctAnswer || !q.correctAnswer.trim())) {
-                    alert('Warning: At least one essay type question has no correct answer.');
+                    showModal('Validation Error', 'At least one essay type question has no correct answer.');
                     return;
                 }
                 if (q.type === 'true_false' && (!q.correctAnswer || (q.correctAnswer !== 'true' && q.correctAnswer !== 'false'))) {
-                    alert('Warning: At least one true/false question has no correct answer.');
+                    showModal('Validation Error', 'At least one true/false question has no correct answer.');
                     return;
                 }
             }
+            const data = {
+                title: quizTitle,
+                questions: questions,
+                section_period_id: sectionPeriodId,
+                subject_id: subjectId,
+                deadline: quizDeadline,
+                time_limit_minutes: quizTimeLimit,
+                status: 'published'
+            };
             fetch('/api/quizzes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title: quizTitle,
-                    questions: questions,
-                    section_period_id: sectionPeriodId,
-                    subject_id: subjectId,
-                    deadline: quizDeadline || null,
-                    time_limit_minutes: quizTimeLimit ? parseInt(quizTimeLimit) : null
-                })
+                body: JSON.stringify(data)
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Quiz published successfully!');
-                    window.location.href = `/section_period/${sectionPeriodId}/subject/${subjectId}/gradebook`;
+                    title.textContent = 'Quiz Published!';
+                    msg.textContent = 'Quiz published successfully!';
+                    modal.style.display = 'flex';
+                    okBtn.onclick = function() {
+                        window.location.href = `/section_period/${sectionPeriodId}/subject/${subjectId}/gradebook`;
+                    };
                 } else {
-                    alert('Failed to publish quiz: ' + (data.message || 'Unknown error'));
+                    title.textContent = 'Publish Failed';
+                    msg.textContent = 'Failed to publish quiz: ' + (data.message || 'Unknown error');
+                    modal.style.display = 'flex';
+                    okBtn.onclick = function() {
+                        modal.style.display = 'none';
+                    };
                 }
             })
             .catch(err => {
-                alert('Network error: ' + err.message);
+                title.textContent = 'Network Error';
+                msg.textContent = 'Network error: ' + err.message;
+                modal.style.display = 'flex';
+                okBtn.onclick = function() {
+                    modal.style.display = 'none';
+                };
             });
         });
     </script>

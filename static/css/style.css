@@ -1879,3 +1879,11 @@ body.dark-mode input[type="date"]::-ms-input-placeholder {
 body.dark-mode input[type="date"]::placeholder {
   color: #bbb !important;
 }
+
+.centered-flex-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 32px;
+    margin-bottom: 10px;
+}

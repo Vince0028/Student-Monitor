@@ -3296,7 +3296,24 @@ def quiz_maker(section_period_id, subject_id):
     if not subject:
         flash('Subject not found.', 'error')
         return redirect(url_for('teacher_section_period_view', section_period_id=section_period_id))
-    return render_template('quiz/quiz_maker.html', subject=subject)
+    quiz_data = None
+    edit_quiz_id = request.args.get('edit')
+    if edit_quiz_id:
+        from models import Quiz
+        try:
+            quiz = db_session.query(Quiz).filter_by(id=edit_quiz_id, subject_id=subject_id, section_period_id=section_period_id).first()
+            if quiz:
+                import json
+                quiz_data = {
+                    'id': str(quiz.id),
+                    'title': quiz.title,
+                    'questions': json.loads(quiz.questions_json) if quiz.questions_json else [],
+                    'deadline': quiz.deadline.isoformat() if quiz.deadline else None,
+                    'time_limit_minutes': quiz.time_limit_minutes
+                }
+        except Exception:
+            quiz_data = None
+    return render_template('quiz/quiz_maker.html', subject=subject, quiz_data=quiz_data)
 
 @app.route('/api/quizzes', methods=['POST'])
 @login_required
@@ -3311,9 +3328,24 @@ def api_create_quiz():
         subject_id = data.get('subject_id')
         deadline = data.get('deadline')
         time_limit_minutes = data.get('time_limit_minutes')
-        if not (title and questions and section_period_id and subject_id):
+        status = data.get('status', 'draft')
+        if not (title and questions is not None and section_period_id and subject_id):
             return jsonify({'success': False, 'message': 'Missing required fields.'}), 400
         import json
+        # Check for existing draft quiz for this title/subject/period
+        existing_quiz = db_session.query(Quiz).filter_by(
+            title=title,
+            section_period_id=section_period_id,
+            subject_id=subject_id
+        ).first()
+        if existing_quiz:
+            # Update the existing quiz (draft or published)
+            existing_quiz.questions_json = json.dumps(questions)
+            existing_quiz.deadline = deadline if deadline else None
+            existing_quiz.time_limit_minutes = time_limit_minutes if time_limit_minutes else None
+            existing_quiz.status = status
+            db_session.commit()
+            return jsonify({'success': True, 'message': 'Quiz updated!', 'quiz_id': str(existing_quiz.id)})
         quiz = Quiz(
             title=title,
             description=None,
@@ -3321,7 +3353,8 @@ def api_create_quiz():
             subject_id=subject_id,
             questions_json=json.dumps(questions),
             deadline=deadline if deadline else None,
-            time_limit_minutes=time_limit_minutes if time_limit_minutes else None
+            time_limit_minutes=time_limit_minutes if time_limit_minutes else None,
+            status=status
         )
         db_session.add(quiz)
         db_session.commit()
@@ -3474,76 +3507,68 @@ def quiz_dashboard(section_period_id, subject_id):
 @login_required
 @user_type_required('teacher')
 def manage_quiz(section_period_id, subject_id):
+    from models import StudentQuizResult, StudentQuizAnswer
     db_session = g.session
-    
     # Fetch the subject to verify it exists and teacher has access
     subject = db_session.query(SectionSubject).filter_by(id=subject_id, section_period_id=section_period_id).first()
     if not subject:
         flash('Subject not found.', 'error')
         return redirect(url_for('teacher_section_period_view', section_period_id=section_period_id))
-    
     # Get all students in this section_period
     students = db_session.query(StudentInfo).filter_by(section_period_id=section_period_id).order_by(StudentInfo.name).all()
-    
     # Get all quizzes for this subject
     quizzes = db_session.query(Quiz).filter_by(subject_id=subject_id).order_by(Quiz.created_at.desc()).all()
-    
     # Calculate quiz statistics
     total_students = len(students)
+    # Only count published quizzes for denominator
+    published_quizzes = [q for q in quizzes if getattr(q, 'status', 'published') == 'published']
+    total_published_quizzes = len(published_quizzes)
     total_quizzes = len(quizzes)
-    
     # Calculate class average and recent activity
     class_average = "N/A"
     recent_activity = 0
-    
-    if total_quizzes > 0 and total_students > 0:
-        # Get all quiz results for this subject
-        from models import StudentQuizResult
+    recent_activity_denominator = total_students * total_published_quizzes
+    if total_published_quizzes > 0 and total_students > 0:
         all_results = db_session.query(StudentQuizResult).join(Quiz).filter(Quiz.subject_id == subject_id).all()
-        
         if all_results:
-            # Calculate class average
             total_scores = sum(result.score for result in all_results)
             total_possible = sum(result.total_points for result in all_results)
             if total_possible > 0:
                 class_average = f"{round((total_scores / total_possible) * 100, 1)}%"
-            
-            # Count recent submissions (last 7 days)
             week_ago = datetime.now(timezone.utc) - timedelta(days=7)
-            recent_activity = len([r for r in all_results if r.completed_at and r.completed_at > week_ago])
-    
+            # Only count submissions for published quizzes
+            published_quiz_ids = [q.id for q in published_quizzes]
+            recent_activity = len([
+                r for r in all_results
+                if r.completed_at and r.completed_at > week_ago and r.quiz_id in published_quiz_ids
+            ])
     # Create quiz status map
     quiz_status_map = {}
     import json
     for quiz in quizzes:
-        # Check if quiz has essay questions that need manual grading
+        if getattr(quiz, 'status', 'published') != 'published':
+            quiz_status_map[quiz.id] = 'draft'
+            continue
         try:
             questions = json.loads(quiz.questions_json or '[]')
             essay_qids = [str(q['id']) for q in questions if q.get('type') == 'essay_type']
-            
             if essay_qids:
-                # Check if any essay questions are unscored
-                from models import StudentQuizAnswer, StudentQuizResult
                 unscored_essays = db_session.query(StudentQuizAnswer).join(StudentQuizResult).filter(
                     StudentQuizResult.quiz_id == quiz.id,
                     StudentQuizAnswer.question_id.in_(essay_qids),
                     StudentQuizAnswer.score.is_(None)
                 ).first()
-                
                 quiz_status_map[quiz.id] = 'pending' if unscored_essays else 'completed'
             else:
                 quiz_status_map[quiz.id] = 'completed'
         except:
             quiz_status_map[quiz.id] = 'completed'
-    
     # Calculate student averages and progress
     for student in students:
-        # Get student's quiz results for this subject
         student_results = db_session.query(StudentQuizResult).join(Quiz).filter(
             Quiz.subject_id == subject_id,
             StudentQuizResult.student_info_id == student.id
         ).all()
-        
         if student_results:
             total_score = sum(r.score for r in student_results)
             total_possible = sum(r.total_points for r in student_results)
@@ -3555,7 +3580,6 @@ def manage_quiz(section_period_id, subject_id):
         else:
             student.average_grade = None
             student.progress = f"0/{total_quizzes}"
-    
     return render_template('quiz/manage_quiz.html', 
                          section_period_id=section_period_id, 
                          subject_id=subject_id,
@@ -3565,7 +3589,8 @@ def manage_quiz(section_period_id, subject_id):
                          total_students=total_students,
                          total_quizzes=total_quizzes,
                          class_average=class_average,
-                         recent_activity=recent_activity)
+                         recent_activity=recent_activity,
+                         recent_activity_denominator=recent_activity_denominator)
 
 @app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/student/<uuid:student_id>/quiz')
 @login_required
@@ -3749,6 +3774,30 @@ def score_student_essay(section_period_id, subject_id, student_id, quiz_id):
         db_session.rollback()
         flash(f'Error saving essay scores: {str(e)}', 'error')
         return redirect(url_for('score_student_essay', section_period_id=section_period_id, subject_id=subject_id, student_id=student_id, quiz_id=quiz_id))
+
+@app.route('/teacher/section_period/<uuid:section_period_id>/subject/<uuid:subject_id>/quiz/<uuid:quiz_id>/delete', methods=['POST'])
+@login_required
+@user_type_required('teacher')
+def delete_quiz(section_period_id, subject_id, quiz_id):
+    db_session = g.session
+    from models import Quiz, StudentQuizResult, StudentQuizAnswer
+    try:
+        # Delete all related student quiz answers and results
+        results = db_session.query(StudentQuizResult).filter_by(quiz_id=quiz_id).all()
+        for result in results:
+            db_session.query(StudentQuizAnswer).filter_by(student_quiz_result_id=result.id).delete()
+            db_session.delete(result)
+        # Delete the quiz itself
+        quiz = db_session.query(Quiz).filter_by(id=quiz_id, subject_id=subject_id, section_period_id=section_period_id).first()
+        if quiz:
+            db_session.delete(quiz)
+            db_session.commit()
+            return {'success': True}
+        else:
+            return {'success': False, 'message': 'Quiz not found.'}
+    except Exception as e:
+        db_session.rollback()
+        return {'success': False, 'message': str(e)}
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

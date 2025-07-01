@@ -469,7 +469,7 @@ def student_quiz():
     db_session = g.session
     student_id = session.get('student_id')
     student = db_session.query(StudentInfo).filter_by(id=student_id).first()
-    quizzes = db_session.query(Quiz).filter_by(section_period_id=student.section_period_id).all()
+    quizzes = db_session.query(Quiz).filter_by(section_period_id=student.section_period_id, status='published').all()
     # Find pending quizzes for this student
     import json
     pending_quizzes = []
@@ -501,7 +501,7 @@ def student_upcoming_quizzes():
     db_session = g.session
     student_id = session.get('student_id')
     student = db_session.query(StudentInfo).filter_by(id=student_id).first()
-    all_quizzes = db_session.query(Quiz).filter_by(section_period_id=student.section_period_id).all()
+    all_quizzes = db_session.query(Quiz).filter_by(section_period_id=student.section_period_id, status='published').all()
     from models import SectionSubject, StudentQuizResult
     import json
     from datetime import datetime, timezone
@@ -608,27 +608,26 @@ def take_quiz(quiz_id):
     result = g.session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz_id).first()
     started_at = None
     time_left = None
-    if time_limit:
-        if result and hasattr(result, 'started_at') and result.started_at:
-            started_at = result.started_at
-            # Ensure started_at is timezone-aware
-            if started_at.tzinfo is None or started_at.tzinfo.utcoffset(started_at) is None:
-                started_at = started_at.replace(tzinfo=timezone.utc)
-        elif not result:
-            result = StudentQuizResult(
-                student_info_id=student_id,
-                quiz_id=quiz_id,
-                score=0,
-                total_points=0,
-                started_at=now
-            )
-            g.session.add(result)
-            g.session.commit()
-            started_at = now
-        elif result and not hasattr(result, 'started_at'):
+    # --- Always create a result if not exists, regardless of timer ---
+    if not result:
+        result = StudentQuizResult(
+            student_info_id=student_id,
+            quiz_id=quiz_id,
+            score=0,
+            total_points=0,
+            started_at=now
+        )
+        g.session.add(result)
+        g.session.commit()
+        started_at = now
+    else:
+        started_at = getattr(result, 'started_at', None)
+        if not started_at:
             result.started_at = now
             g.session.commit()
             started_at = now
+    # --- Timer logic only if time_limit is set ---
+    if time_limit:
         if started_at:
             elapsed = (now - started_at).total_seconds()
             time_left = int(time_limit * 60 - elapsed)
@@ -696,21 +695,10 @@ def take_quiz(quiz_id):
             from decimal import Decimal, ROUND_HALF_UP
             dec_score = Decimal(str(total_score)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
             dec_points = Decimal(str(total_points)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            if result:
-                result.score = dec_score  # type: ignore
-                result.total_points = dec_points  # type: ignore
-                result.completed_at = now  # type: ignore
-                g.session.flush()
-            else:
-                result = StudentQuizResult(
-                    student_info_id=student_id,
-                    quiz_id=quiz_id,
-                    score=dec_score,  # type: ignore
-                    total_points=dec_points,  # type: ignore
-                    started_at=now,
-                    completed_at=now  # type: ignore
-                )
-                g.session.add(result)
+            result.score = dec_score  # type: ignore
+            result.total_points = dec_points  # type: ignore
+            result.completed_at = now  # type: ignore
+            g.session.flush()
             for ans in answers_to_store:
                 answer_obj = StudentQuizAnswer(
                     student_quiz_result_id=result.id,

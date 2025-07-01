@@ -12,7 +12,7 @@ engine = create_engine(
     pool_timeout=30,
 )
 import uuid
-from sqlalchemy import Column, String, DateTime, Numeric, ForeignKey, UniqueConstraint, Date, Integer
+from sqlalchemy import Column, String, DateTime, Numeric, ForeignKey, UniqueConstraint, Date, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
@@ -27,13 +27,14 @@ class Quiz(Base):
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = Column(String(255), nullable=False)
     description = Column(String(255), nullable=True)
-    section_period_id = Column(PG_UUID(as_uuid=True), nullable=True)
-    subject_id = Column(PG_UUID(as_uuid=True), nullable=True)
-    questions_json = Column(String, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    section_period_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_periods.id'), nullable=False)
+    subject_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_subjects.id'), nullable=False)
+    questions_json = Column(Text, nullable=False)
     deadline = Column(DateTime(timezone=True), nullable=True)
     time_limit_minutes = Column(Integer, nullable=True)
+    status = Column(String(20), nullable=False, default='draft')  # 'draft' or 'published'
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     def __repr__(self):
         return f"<Quiz(id={self.id}, title='{self.title}')>"
 
