@@ -50,6 +50,7 @@
                                 <tr>
                                     <th>Student Name</th>
                                     <th>Status</th>
+                                    <th>Notes</th>
                                 </tr>
                             </thead>
                             <tbody id="studentTableBody">
@@ -57,49 +58,58 @@
                                 {% set girls = attendance_records | selectattr('0.gender', 'equalto', 'Female') | list %}
                                 {% set unknowns = attendance_records | rejectattr('0.gender', 'equalto', 'Male') | rejectattr('0.gender', 'equalto', 'Female') | list %}
                                 {% if boys %}
-                                <tr class="table-group-divider"><td colspan="2" style="font-weight:bold; background:#f5f5f5;">Boys</td></tr>
+                                <tr class="table-group-divider"><td colspan="3" style="font-weight:bold; background:#f5f5f5;">Boys</td></tr>
                                 {% for student, attendance in boys %}
                                 <tr class="student-row">
                                     <td class="student-name">{{ student.name }}</td>
-                                    <td class="text-center">
-                                        {% for status in attendance_statuses %}
-                                        <label class="me-2">
-                                            <input type="radio" name="status_{{ student.id }}" value="{{ status }}" {% if attendance and attendance.status == status %}checked{% endif %} required>
-                                            {{ status|capitalize }}
-                                        </label>
-                                        {% endfor %}
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            {% for status in attendance_statuses %}
+                                                <input type="radio" class="btn-check" name="status_{{ student.id }}" id="{{ status }}_{{ student.id }}" value="{{ status }}" {% if attendance and attendance.status == status %}checked{% endif %} required>
+                                                <label class="btn btn-outline-{% if status == 'present' %}success{% elif status == 'absent' %}danger{% elif status == 'late' %}warning{% else %}info{% endif %}" for="{{ status }}_{{ student.id }}">{{ status|capitalize }}</label>
+                                            {% endfor %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control attendance-notes" name="notes_{{ student.id }}" id="notes_{{ student.id }}" placeholder="Add reason (if needed)" maxlength="255" value="{{ attendance.notes if attendance and attendance.notes }}" {% if not attendance or attendance.status not in ['absent','late','excused'] %}disabled{% endif %}>
                                     </td>
                                 </tr>
                                 {% endfor %}
                                 {% endif %}
                                 {% if girls %}
-                                <tr class="table-group-divider"><td colspan="2" style="font-weight:bold; background:#f5f5f5;">Girls</td></tr>
+                                <tr class="table-group-divider"><td colspan="3" style="font-weight:bold; background:#f5f5f5;">Girls</td></tr>
                                 {% for student, attendance in girls %}
                                 <tr class="student-row">
                                     <td class="student-name">{{ student.name }}</td>
-                                    <td class="text-center">
-                                        {% for status in attendance_statuses %}
-                                        <label class="me-2">
-                                            <input type="radio" name="status_{{ student.id }}" value="{{ status }}" {% if attendance and attendance.status == status %}checked{% endif %} required>
-                                            {{ status|capitalize }}
-                                        </label>
-                                        {% endfor %}
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            {% for status in attendance_statuses %}
+                                                <input type="radio" class="btn-check" name="status_{{ student.id }}" id="{{ status }}_{{ student.id }}" value="{{ status }}" {% if attendance and attendance.status == status %}checked{% endif %} required>
+                                                <label class="btn btn-outline-{% if status == 'present' %}success{% elif status == 'absent' %}danger{% elif status == 'late' %}warning{% else %}info{% endif %}" for="{{ status }}_{{ student.id }}">{{ status|capitalize }}</label>
+                                            {% endfor %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control attendance-notes" name="notes_{{ student.id }}" id="notes_{{ student.id }}" placeholder="Add reason (if needed)" maxlength="255" value="{{ attendance.notes if attendance and attendance.notes }}" {% if not attendance or attendance.status not in ['absent','late','excused'] %}disabled{% endif %}>
                                     </td>
                                 </tr>
                                 {% endfor %}
                                 {% endif %}
                                 {% if unknowns %}
-                                <tr class="table-group-divider"><td colspan="2" style="font-weight:bold; background:#f5f5f5;">Unknown/Other</td></tr>
+                                <tr class="table-group-divider"><td colspan="3" style="font-weight:bold; background:#f5f5f5;">Unknown/Other</td></tr>
                                 {% for student, attendance in unknowns %}
                                 <tr class="student-row">
                                     <td class="student-name">{{ student.name }}</td>
-                                    <td class="text-center">
-                                        {% for status in attendance_statuses %}
-                                        <label class="me-2">
-                                            <input type="radio" name="status_{{ student.id }}" value="{{ status }}" {% if attendance and attendance.status == status %}checked{% endif %} required>
-                                            {{ status|capitalize }}
-                                        </label>
-                                        {% endfor %}
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            {% for status in attendance_statuses %}
+                                                <input type="radio" class="btn-check" name="status_{{ student.id }}" id="{{ status }}_{{ student.id }}" value="{{ status }}" {% if attendance and attendance.status == status %}checked{% endif %} required>
+                                                <label class="btn btn-outline-{% if status == 'present' %}success{% elif status == 'absent' %}danger{% elif status == 'late' %}warning{% else %}info{% endif %}" for="{{ status }}_{{ student.id }}">{{ status|capitalize }}</label>
+                                            {% endfor %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control attendance-notes" name="notes_{{ student.id }}" id="notes_{{ student.id }}" placeholder="Add reason (if needed)" maxlength="255" value="{{ attendance.notes if attendance and attendance.notes }}" {% if not attendance or attendance.status not in ['absent','late','excused'] %}disabled{% endif %}>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -117,6 +127,7 @@
                             <tr>
                                 <th>Student Name</th>
                                 <th>Status</th>
+                                <th>Notes</th>
                             </tr>
                         </thead>
                         <tbody id="studentTableBody">
@@ -124,7 +135,7 @@
                             {% set girls = attendance_records | selectattr('0.gender', 'equalto', 'Female') | list %}
                             {% set unknowns = attendance_records | rejectattr('0.gender', 'equalto', 'Male') | rejectattr('0.gender', 'equalto', 'Female') | list %}
                             {% if boys %}
-                            <tr class="table-group-divider"><td colspan="2" style="font-weight:bold; background:#f5f5f5;">Boys</td></tr>
+                            <tr class="table-group-divider"><td colspan="3" style="font-weight:bold; background:#f5f5f5;">Boys</td></tr>
                             {% for student, attendance in boys %}
                             <tr class="student-row">
                                 <td class="student-name">{{ student.name }}</td>
@@ -141,11 +152,12 @@
                                         <span class="badge rounded-pill bg-secondary">Not Recorded</span>
                                     {% endif %}
                                 </td>
+                                <td>{{ attendance.notes if attendance and attendance.notes }}</td>
                             </tr>
                             {% endfor %}
                             {% endif %}
                             {% if girls %}
-                            <tr class="table-group-divider"><td colspan="2" style="font-weight:bold; background:#f5f5f5;">Girls</td></tr>
+                            <tr class="table-group-divider"><td colspan="3" style="font-weight:bold; background:#f5f5f5;">Girls</td></tr>
                             {% for student, attendance in girls %}
                             <tr class="student-row">
                                 <td class="student-name">{{ student.name }}</td>
@@ -162,11 +174,12 @@
                                         <span class="badge rounded-pill bg-secondary">Not Recorded</span>
                                     {% endif %}
                                 </td>
+                                <td>{{ attendance.notes if attendance and attendance.notes }}</td>
                             </tr>
                             {% endfor %}
                             {% endif %}
                             {% if unknowns %}
-                            <tr class="table-group-divider"><td colspan="2" style="font-weight:bold; background:#f5f5f5;">Unknown/Other</td></tr>
+                            <tr class="table-group-divider"><td colspan="3" style="font-weight:bold; background:#f5f5f5;">Unknown/Other</td></tr>
                             {% for student, attendance in unknowns %}
                             <tr class="student-row">
                                 <td class="student-name">{{ student.name }}</td>
@@ -183,6 +196,7 @@
                                         <span class="badge rounded-pill bg-secondary">Not Recorded</span>
                                     {% endif %}
                                 </td>
+                                <td>{{ attendance.notes if attendance and attendance.notes }}</td>
                             </tr>
                             {% endfor %}
                             {% endif %}
@@ -292,6 +306,25 @@ document.addEventListener('DOMContentLoaded', function() {
         Array.from(studentRows).forEach(row => {
             const studentName = row.querySelector('.student-name').textContent.toLowerCase();
             row.classList.toggle('hidden', !studentName.includes(searchTerm));
+        });
+    });
+
+    // Enable/disable notes field based on status
+    document.querySelectorAll('.student-row').forEach(function(row) {
+        const radios = row.querySelectorAll('input[type=radio][name^="status_"]');
+        const notesInput = row.querySelector('.attendance-notes');
+        if (!notesInput) return;
+        radios.forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                if (['absent','late','excused'].includes(this.value)) {
+                    notesInput.disabled = false;
+                    notesInput.required = true;
+                } else {
+                    notesInput.disabled = true;
+                    notesInput.required = false;
+                    notesInput.value = '';
+                }
+            });
         });
     });
 });

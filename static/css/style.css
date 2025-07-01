@@ -1887,3 +1887,20 @@ body.dark-mode input[type="date"]::placeholder {
     gap: 32px;
     margin-bottom: 10px;
 }
+
+.no-scroll-page.login-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.no-scroll-page.login-page .app-main {
+    flex: 1 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+.no-scroll-page.login-page .auth-container {
+    margin: 0 auto;
+}

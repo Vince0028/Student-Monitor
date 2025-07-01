@@ -220,19 +220,64 @@
   }
 }
 .semester-attendance-scroll {
-    max-height: 300px;
+    max-height: 450px;
     overflow-y: auto;
-    border-radius: 8px;
-    border: 1px solid #eee;
-    margin-bottom: 1em;
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 2em;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    padding-bottom: 0.5em;
+}
+.attendance-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+.attendance-table th, .attendance-table td {
+    padding: 0.75rem 1.1rem;
+    text-align: left;
+}
+.attendance-table th {
+    background: #f1f5f9;
+    color: #374151;
+    font-weight: 600;
+    border-bottom: 2px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+.attendance-table td {
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
+    background: #fff;
+}
+.attendance-table tbody tr:last-child td {
+    border-bottom: none;
+}
+@media (max-width: 900px) {
+  .semester-attendance-scroll {
+    max-height: 320px;
+    padding-bottom: 0.2em;
+  }
+  .attendance-table th, .attendance-table td {
+    padding: 0.6rem 0.5rem;
+    font-size: 0.97em;
+  }
 }
 .semester-header {
     text-align: center;
     text-transform: uppercase;
     font-weight: bold;
     font-size: 1.1em;
-    margin: 2em 0 1em 0;
+    margin: 2.5em 0 1.2em 0;
     letter-spacing: 1px;
+    color: #222;
 }
 </style>
 <div class="landing-card">
@@ -268,7 +313,6 @@
         <div class="attendance-filter-title"><i class="fas fa-filter"></i> Filters & Search</div>
         <form method="get" action="{{ url_for('student_attendance') }}" class="attendance-filter-form">
             <div class="attendance-filter-row">
-                <input type="text" name="search" placeholder="Search by subject or notes..." value="{{ request.args.get('search', '') }}" class="form-control attendance-search">
                 <select name="status" class="form-select attendance-status-filter">
                     <option value="">All Status</option>
                     <option value="present" {% if request.args.get('status') == 'present' %}selected{% endif %}>Present</option>
@@ -282,7 +326,7 @@
                         <option value="{{ sid }}" {% if request.args.get('subject') == sid|string %}selected{% endif %}>{{ sname }}</option>
                     {% endfor %}
                 </select>
-                <a href="{{ url_for('student_attendance') }}" class="btn btn-secondary">Clear</a>
+                <button type="button" class="attendance-clear-btn" onclick="window.location.href='{{ url_for('student_attendance') }}'">Clear</button>
             </div>
         </form>
     </div>
@@ -290,39 +334,41 @@
     {% if records_by_period %}
         {% for period, records in records_by_period.items() %}
             <div class="semester-header">{{ period }}</div>
-            <div class="{% if records|length > 5 %}semester-attendance-scroll{% endif %}">
-                <table class="attendance-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Subject</th>
-                            <th>Status</th>
-                            <th>Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for record in records %}
-                        <tr>
-                            <td>{{ record.attendance_date.strftime('%a, %b %d, %Y') }}</td>
-                            <td>{{ subject_map.get(record.section_subject_id, 'N/A') }}</td>
-                            <td>
-                                {% if record.status == 'present' %}
-                                    <span class="badge badge-present">Present</span>
-                                {% elif record.status == 'absent' %}
-                                    <span class="badge badge-absent">Absent</span>
-                                {% elif record.status == 'late' %}
-                                    <span class="badge badge-late">Late</span>
-                                {% elif record.status == 'excused' %}
-                                    <span class="badge badge-excused">Excused</span>
-                                {% else %}
-                                    <span class="badge badge-unknown">{{ record.status|capitalize }}</span>
-                                {% endif %}
-                            </td>
-                            <td>--</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="{% if records|length > 8 %}semester-attendance-scroll{% else %}attendance-table-card{% endif %}">
+                <div class="table-responsive">
+                    <table class="attendance-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Subject</th>
+                                <th>Status</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in records %}
+                            <tr>
+                                <td>{{ record.attendance_date.strftime('%a, %b %d, %Y') }}</td>
+                                <td>{{ subject_map.get(record.section_subject_id, 'N/A') }}</td>
+                                <td>
+                                    {% if record.status == 'present' %}
+                                        <span class="badge badge-present">Present</span>
+                                    {% elif record.status == 'absent' %}
+                                        <span class="badge badge-absent">Absent</span>
+                                    {% elif record.status == 'late' %}
+                                        <span class="badge badge-late">Late</span>
+                                    {% elif record.status == 'excused' %}
+                                        <span class="badge badge-excused">Excused</span>
+                                    {% else %}
+                                        <span class="badge badge-unknown">{{ record.status|capitalize }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ record.notes or '--' }}</td> {# Jinja: show notes or -- #}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         {% endfor %}
     {% else %}

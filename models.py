@@ -146,10 +146,11 @@ class Attendance(Base):
     attendance_date = Column(Date, nullable=False)
     status = Column(String(50), nullable=False)
     recorded_by = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'))
+    notes = Column(Text, nullable=True)  # New: notes for absent/late/excused
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     student_info = relationship('StudentInfo', back_populates='attendance_records')
     def __repr__(self):
-        return f"<Attendance(id={self.id}, student_info_id={self.student_info_id}, date={self.attendance_date}, status='{self.status}')>"
+        return f"<Attendance(id={self.id}, student_info_id={self.student_info_id}, date={self.attendance_date}, status='{self.status}', notes='{self.notes}')>"
 
 class Grade(Base):
     __tablename__ = 'grades'

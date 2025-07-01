@@ -348,16 +348,19 @@ def student_attendance(student_id):
         Attendance.student_info_id == student.id,
         Attendance.section_subject_id.in_(subject_ids)
     ).all()
-    # Build a dict: {(date, subject): status}
+    # Build a dict: {(date, subject): {'status': ..., 'notes': ...}}
     attendance_map = {}
     for record, subject in attendance_records:
-        attendance_map[(record.attendance_date, subject.subject_name)] = record.status
+        attendance_map[(record.attendance_date, subject.subject_name)] = {
+            'status': record.status,
+            'notes': record.notes
+        }
     # Build attendance_by_date for the template
     attendance_by_date = {}
     for date in all_dates:
         attendance_by_date[date] = {}
         for subject in subject_names:
-            attendance_by_date[date][subject] = attendance_map.get((date, subject), 'Not Recorded')
+            attendance_by_date[date][subject] = attendance_map.get((date, subject), {'status': 'Not Recorded', 'notes': None})
     return render_template('student_attendance.html', student=student, attendance_by_date=attendance_by_date, subject_names=subject_names)
 
 @app.route('/parent/profile', methods=['GET', 'POST'])

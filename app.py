@@ -480,18 +480,21 @@ def teacher_section_attendance_date(section_period_id, subject_id, date):
         try:
             for student in students:
                 status = request.form.get(f'status_{student.id}')
+                notes = request.form.get(f'notes_{student.id}')
                 if status:
                     record = attendance_map.get(str(student.id))
                     if record:
                         record.status = status
                         record.recorded_by = teacher_id
+                        record.notes = notes if status in ['absent','late','excused'] else None
                     else:
                         new_attendance = Attendance(
                             student_info_id=student.id,
                             section_subject_id=subject_id,
                             attendance_date=attendance_date,
                             status=status,
-                            recorded_by=teacher_id
+                            recorded_by=teacher_id,
+                            notes=notes if status in ['absent','late','excused'] else None
                         )
                         db_session.add(new_attendance)
             db_session.commit()
@@ -3070,6 +3073,7 @@ def teacher_section_attendance_details(section_period_id, subject_id):
             # Process attendance for each student
             for student in students:
                 status = request.form.get(f'status_{student.id}')
+                notes = request.form.get(f'notes_{student.id}')
                 if status:
                     # Check if attendance record already exists for this date
                     existing_record = db_session.query(Attendance).filter(
@@ -3081,13 +3085,15 @@ def teacher_section_attendance_details(section_period_id, subject_id):
                     if existing_record:
                         existing_record.status = status
                         existing_record.recorded_by = teacher_id
+                        existing_record.notes = notes if status in ['absent','late','excused'] else None
                     else:
                         new_attendance = Attendance(
                             student_info_id=student.id,
                             section_subject_id=subject_id,
                             attendance_date=attendance_date_obj,
                             status=status,
-                            recorded_by=teacher_id
+                            recorded_by=teacher_id,
+                            notes=notes if status in ['absent','late','excused'] else None
                         )
                         db_session.add(new_attendance)
 

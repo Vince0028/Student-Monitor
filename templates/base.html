@@ -15,7 +15,7 @@
     <!-- jQuery (for pages that use $) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
-<body data-user-type="{{ session.user_type }}">
+<body data-user-type="{{ session.user_type }}"{% if login_page %} class="no-scroll-page login-page"{% endif %}>
     <header class="app-header">
         <div class="container">
             <h1 class="app-title"><a href="{{ url_for('dashboard') if session.user_id else url_for('index') }}">Student Monitor</a></h1>

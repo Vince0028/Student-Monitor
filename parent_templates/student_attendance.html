@@ -34,6 +34,65 @@
         align-items: center;
         gap: 1rem;
     }
+    .attendance-dropdown {
+        padding: 0.45em 1.2em;
+        border-radius: 6px;
+        border: 1px solid #bfc9d1;
+        background: #f8fafc;
+        font-size: 1em;
+        font-weight: 500;
+        color: #222;
+        transition: border 0.2s;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        cursor: pointer;
+    }
+    .attendance-dropdown:focus {
+        border: 1.5px solid #2563eb;
+        outline: none;
+    }
+    @media (max-width: 600px) {
+        .attendance-filter-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.5rem;
+        }
+        .attendance-dropdown {
+            width: 100% !important;
+            min-width: 0;
+            font-size: 1.08em;
+            padding: 0.7em 1em;
+        }
+        .attendance-filter-row label {
+            margin-bottom: 0.2em;
+        }
+    }
+    .attendance-note {
+        display: block;
+        font-size: 0.92em;
+        color: #4b5563;
+        margin-top: 2px;
+        font-style: italic;
+        word-break: break-word;
+        max-width: 140px;
+        white-space: pre-line;
+    }
+    .attendance-clear-btn {
+        background: #f8fafc;
+        border: 1px solid #bfc9d1;
+        color: #222;
+        padding: 0.45em 1.2em;
+        border-radius: 6px;
+        font-size: 1em;
+        font-weight: 500;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        cursor: pointer;
+        transition: background 0.2s, border 0.2s;
+        margin-left: 0.2em;
+    }
+    .attendance-clear-btn:hover {
+        background: #e5e7eb;
+        border: 1.5px solid #2563eb;
+    }
 </style>
 <div class="dashboard-header">
     <h2>Attendance for {{ student.name }}</h2>
@@ -42,7 +101,7 @@
 
 <div class="attendance-filter-row">
     <label for="attendanceStatusFilter"><strong>Filter by Status:</strong></label>
-    <select id="attendanceStatusFilter" class="form-select" style="width: 200px;">
+    <select id="attendanceStatusFilter" class="form-select attendance-dropdown" style="width: 180px;">
         <option value="all">All</option>
         <option value="present">Present</option>
         <option value="absent">Absent</option>
@@ -50,6 +109,14 @@
         <option value="excused">Excused</option>
         <option value="notrecorded">Not Recorded</option>
     </select>
+    <label for="attendanceSubjectFilter"><strong>Subject:</strong></label>
+    <select id="attendanceSubjectFilter" class="form-select attendance-dropdown" style="width: 180px;">
+        <option value="all">All Subjects</option>
+        {% for subject in subject_names %}
+        <option value="{{ loop.index }}">{{ subject }}</option>
+        {% endfor %}
+    </select>
+    <button type="button" class="attendance-clear-btn" id="attendanceClearBtn">Clear</button>
 </div>
 
 {% if attendance_by_date %}
@@ -59,57 +126,80 @@
                 <thead>
                     <tr>
                         <th>Date</th>
-                        {% for subject in subject_names %}
-                        <th>{{ subject }}</th>
-                        {% endfor %}
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>Notes</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for date, subj_statuses in attendance_by_date.items() %}
-                    <tr>
-                        <td>{{ date.strftime('%Y-%m-%d') }}</td>
                         {% for subject in subject_names %}
-                        <td>
-                            {% set status = subj_statuses.get(subject, 'Not Recorded') %}
-                            {% if status == 'present' %}
-                                <span class="attendance-status-cell status-present" data-status="present">Present</span>
-                            {% elif status == 'absent' %}
-                                <span class="attendance-status-cell status-absent" data-status="absent">Absent</span>
-                            {% elif status == 'late' %}
-                                <span class="attendance-status-cell status-late" data-status="late">Late</span>
-                            {% elif status == 'excused' %}
-                                <span class="attendance-status-cell status-excused" data-status="excused">Excused</span>
-                            {% else %}
-                                <span class="attendance-status-cell status-notrecorded" data-status="notrecorded">Not Recorded</span>
-                            {% endif %}
-                        </td>
+                            {% set cell = subj_statuses.get(subject, {'status': 'Not Recorded', 'notes': None}) %}
+                            {% set status = cell.status if cell.status is defined else cell['status'] %}
+                            {% set notes = cell.notes if cell.notes is defined else cell['notes'] %}
+                            <tr>
+                                <td>{{ date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ subject }}</td>
+                                <td>
+                                    {% if status == 'present' %}
+                                        <span class="attendance-status-cell status-present" data-status="present">Present</span>
+                                    {% elif status == 'absent' %}
+                                        <span class="attendance-status-cell status-absent" data-status="absent">Absent</span>
+                                    {% elif status == 'late' %}
+                                        <span class="attendance-status-cell status-late" data-status="late">Late</span>
+                                    {% elif status == 'excused' %}
+                                        <span class="attendance-status-cell status-excused" data-status="excused">Excused</span>
+                                    {% else %}
+                                        <span class="attendance-status-cell status-notrecorded" data-status="notrecorded">Not Recorded</span>
+                                    {% endif %}
+                                </td>
+                                <td>{% if notes %}<span class="attendance-note">{{ notes }}</span>{% else %}--{% endif %}</td>
+                            </tr>
                         {% endfor %}
-                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
     <script>
-    document.getElementById('attendanceStatusFilter').addEventListener('change', function() {
-        const filter = this.value;
+    function filterAttendanceTable() {
+        const statusFilter = document.getElementById('attendanceStatusFilter').value;
+        const subjectFilter = document.getElementById('attendanceSubjectFilter').value;
         const table = document.getElementById('attendanceTable');
         const rows = table.querySelectorAll('tbody tr');
+        // Get subject names for mapping index to name
+        const subjectOptions = Array.from(document.getElementById('attendanceSubjectFilter').options).map(opt => opt.text);
+        let selectedSubject = null;
+        if (subjectFilter !== 'all') {
+            selectedSubject = subjectOptions[parseInt(subjectFilter)];
+        }
         rows.forEach(row => {
-            let showRow = false;
-            row.querySelectorAll('td').forEach((cell, idx) => {
-                // skip the first cell (date)
-                if (idx === 0) return;
-                const statusSpan = cell.querySelector('.attendance-status-cell');
-                if (!statusSpan) return;
-                const status = statusSpan.getAttribute('data-status');
-                if (filter === 'all' || status === filter) {
-                    showRow = true;
+            const subjectCell = row.children[1]; // 2nd column is Subject
+            const statusCell = row.children[2]; // 3rd column is Status
+            let showRow = true;
+            // Subject filter
+            if (selectedSubject && subjectCell.textContent.trim() !== selectedSubject) {
+                showRow = false;
+            }
+            // Status filter
+            if (showRow && statusFilter !== 'all') {
+                const statusSpan = statusCell.querySelector('.attendance-status-cell');
+                if (!statusSpan || statusSpan.getAttribute('data-status') !== statusFilter) {
+                    showRow = false;
                 }
-            });
+            }
             row.style.display = showRow ? '' : 'none';
         });
+    }
+    document.getElementById('attendanceStatusFilter').addEventListener('change', filterAttendanceTable);
+    document.getElementById('attendanceSubjectFilter').addEventListener('change', filterAttendanceTable);
+    document.getElementById('attendanceClearBtn').addEventListener('click', function() {
+        document.getElementById('attendanceStatusFilter').value = 'all';
+        document.getElementById('attendanceSubjectFilter').value = 'all';
+        filterAttendanceTable();
     });
+    // Run once on page load to apply default filters
+    filterAttendanceTable();
     </script>
 {% else %}
     <div class="empty-state">

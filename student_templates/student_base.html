@@ -209,12 +209,12 @@
             <nav class="student-nav">
                 <ul>
                     {% if session.student_id and request.endpoint != 'student_login' %}
-                        <li><a href="{{ url_for('student_dashboard') }}" class="{% if request.endpoint == 'student_dashboard' %}active{% endif %}">Dashboard</a></li>
-                        <li><a href="{{ url_for('student_grades') }}" class="{% if request.endpoint == 'student_grades' %}active{% endif %}">Grades</a></li>
-                        <li><a href="{{ url_for('student_attendance') }}" class="{% if request.endpoint == 'student_attendance' %}active{% endif %}">Attendance</a></li>
-                        <li><a href="{{ url_for('student_quiz') }}" class="{% if request.endpoint == 'student_quiz' %}active{% endif %}">Quiz</a></li>
-                        <li><a href="{{ url_for('student_profile') }}" class="{% if request.endpoint == 'student_profile' %}active{% endif %}">Profile</a></li>
-                        <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin-left: 1em;">Logout</a></li>
+                        <li><a href="{{ url_for('student_dashboard') }}" class="{% if request.endpoint == 'student_dashboard' %}active{% endif %}"><i class="fas fa-home"></i> Dashboard</a></li>
+                        <li><a href="{{ url_for('student_grades') }}" class="{% if request.endpoint == 'student_grades' %}active{% endif %}"><i class="fas fa-graduation-cap"></i> Grades</a></li>
+                        <li><a href="{{ url_for('student_attendance') }}" class="{% if request.endpoint == 'student_attendance' %}active{% endif %}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+                        <li><a href="{{ url_for('student_quiz') }}" class="{% if request.endpoint == 'student_quiz' %}active{% endif %}"><i class="fas fa-clipboard-question"></i> Quiz</a></li>
+                        <li><a href="{{ url_for('student_profile') }}" class="{% if request.endpoint == 'student_profile' %}active{% endif %}"><i class="fas fa-user"></i> Profile</a></li>
+                        <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin-left: 1em;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                     {% endif %}
                 </ul>
             </nav>
@@ -222,14 +222,14 @@
             <div id="mobileNavDropdown" class="mobile-nav-dropdown" style="display:none; position:absolute; top:100%; right:0; background:#fff; box-shadow:0 4px 16px rgba(0,0,0,0.12); border-radius:10px; min-width:160px; z-index:9999;">
                 <ul style="list-style:none; margin:0; padding:0;">
                     {% if session.student_id %}
-                        <li><a href="{{ url_for('student_dashboard') }}">Dashboard</a></li>
-                        <li><a href="{{ url_for('student_grades') }}">Grades</a></li>
-                        <li><a href="{{ url_for('student_attendance') }}">Attendance</a></li>
-                        <li><a href="{{ url_for('student_quiz') }}">Quiz</a></li>
-                        <li><a href="{{ url_for('student_profile') }}">Profile</a></li>
-                        <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin:0.5em 0;">Logout</a></li>
+                        <li><a href="{{ url_for('student_dashboard') }}"><i class="fas fa-home"></i> Dashboard</a></li>
+                        <li><a href="{{ url_for('student_grades') }}"><i class="fas fa-graduation-cap"></i> Grades</a></li>
+                        <li><a href="{{ url_for('student_attendance') }}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+                        <li><a href="{{ url_for('student_quiz') }}"><i class="fas fa-clipboard-question"></i> Quiz</a></li>
+                        <li><a href="{{ url_for('student_profile') }}"><i class="fas fa-user"></i> Profile</a></li>
+                        <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin:0.5em 0;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                     {% else %}
-                        <li><a href="{{ url_for('student_login') }}">Login</a></li>
+                        <li><a href="{{ url_for('student_login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
                     {% endif %}
                 </ul>
             </div>

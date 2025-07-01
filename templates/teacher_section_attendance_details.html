@@ -44,6 +44,7 @@
                                     <tr>
                                         <th>Student Name</th>
                                         <th>Status</th>
+                                        <th>Notes</th>
                                     </tr>
                                 </thead>
                                 <tbody id="studentTableBody">
@@ -69,6 +70,9 @@
                                                     <label class="btn btn-outline-info" for="excused_{{ student.id }}">Excused</label>
                                                 </div>
                                             </td>
+                                            <td>
+                                                <input type="text" class="form-control attendance-notes" name="notes_{{ student.id }}" id="notes_{{ student.id }}" placeholder="Add reason (if needed)" maxlength="255" disabled>
+                                            </td>
                                         </tr>
                                     {% endfor %}
                                     {% endif %}
@@ -91,6 +95,9 @@
                                                     <input type="radio" class="btn-check" name="status_{{ student.id }}" id="excused_{{ student.id }}" value="excused">
                                                     <label class="btn btn-outline-info" for="excused_{{ student.id }}">Excused</label>
                                                 </div>
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control attendance-notes" name="notes_{{ student.id }}" id="notes_{{ student.id }}" placeholder="Add reason (if needed)" maxlength="255" disabled>
                                             </td>
                                         </tr>
                                     {% endfor %}
@@ -192,6 +199,24 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 row.classList.add('hidden');
             }
+        });
+    });
+
+    // Enable/disable notes field based on status
+    document.querySelectorAll('.student-row').forEach(function(row) {
+        const radios = row.querySelectorAll('input[type=radio][name^="status_"]');
+        const notesInput = row.querySelector('.attendance-notes');
+        radios.forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                if (['absent','late','excused'].includes(this.value)) {
+                    notesInput.disabled = false;
+                    notesInput.required = true;
+                } else {
+                    notesInput.disabled = true;
+                    notesInput.required = false;
+                    notesInput.value = '';
+                }
+            });
         });
     });
 });
