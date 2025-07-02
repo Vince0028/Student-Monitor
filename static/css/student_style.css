@@ -1,3 +1,7 @@
+html, body, *, *:before, *:after {
+  box-sizing: border-box;
+}
+
 html, body {
   height: 100%;
 }
@@ -860,6 +864,21 @@ html.login-page, body.login-page, .login-page {
   .upcoming-assignments-dashboard .dashboard-card-grid .feature-card {
     margin: 0.4rem 0 !important;
     width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-bg {
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .login-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 1rem !important;
+    border-radius: 0 !important;
   }
 }
 
