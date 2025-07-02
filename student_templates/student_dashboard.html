@@ -296,13 +296,13 @@ html, body {
     </div>
     
     <div class="dashboard-card-grid">
-        <a href="{{ url_for('student_assignments') }}" class="feature-card card-assignments">
+        <div class="feature-card card-assignments" id="assignmentsCard" style="cursor: pointer;" title="Assignments is currently unavailable.">
             <div class="feature-card-icon">
                 <i class="fas fa-book-open"></i>
             </div>
             <div class="feature-card-title">Assignments</div>
             <div class="feature-card-desc">View, filter, and submit your assignments</div>
-        </a>
+        </div>
         
         <a href="{{ url_for('student_grades') }}" class="feature-card card-grades">
             <div class="feature-card-icon">
@@ -329,4 +329,33 @@ html, body {
         </a>
     </div>
 </div>
+
+<!-- Assignments Unavailable Modal -->
+<div id="assignmentsModal" class="modal" style="display:none; position:fixed; z-index:99999; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:16px; max-width:350px; width:90%; margin:auto; padding:2rem 1.5rem; box-shadow:0 8px 32px rgba(37,99,235,0.10); text-align:center; position:relative;">
+    <button id="closeAssignmentsModal" style="position:absolute; top:12px; right:16px; background:none; border:none; font-size:1.5rem; color:#888; cursor:pointer;">&times;</button>
+    <div style="font-size:2.5rem; color:#2563eb; margin-bottom:0.5rem;"><i class="fas fa-tools"></i></div>
+    <h3 style="margin-bottom:0.5rem; color:#2563eb;">Coming Soon!</h3>
+    <div style="color:#444; font-size:1.1rem;">The Assignments feature is still under development and will be available in a future update.</div>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var assignmentsCard = document.getElementById('assignmentsCard');
+  var modal = document.getElementById('assignmentsModal');
+  var closeBtn = document.getElementById('closeAssignmentsModal');
+  if(assignmentsCard && modal && closeBtn) {
+    assignmentsCard.addEventListener('click', function(e) {
+      e.preventDefault();
+      modal.style.display = 'flex';
+    });
+    closeBtn.addEventListener('click', function() {
+      modal.style.display = 'none';
+    });
+    modal.addEventListener('click', function(e) {
+      if(e.target === modal) modal.style.display = 'none';
+    });
+  }
+});
+</script>
 {% endblock %} 

@@ -75,23 +75,25 @@
     
     .mobile-nav-overlay.active {
         opacity: 1;
+        display: block;
     }
     
     .mobile-nav-menu {
         position: fixed;
         top: 0;
-        right: -280px;
-        width: 280px;
+        left: -80vw;
+        width: 80vw;
+        max-width: 320px;
         height: 100%;
         background: white;
         z-index: 999;
-        transition: right 0.3s ease;
+        transition: left 0.3s ease;
         box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
         overflow-y: auto;
     }
     
     .mobile-nav-menu.active {
-        right: 0;
+        left: 0;
     }
     
     .mobile-nav-header {
@@ -186,8 +188,12 @@
         }
         
         .mobile-nav-menu {
-            width: 100%;
-            right: -100%;
+            width: 80vw;
+            max-width: 320px;
+            left: -80vw;
+        }
+        .mobile-nav-menu.active {
+            left: 0;
         }
     }
     
@@ -252,6 +258,29 @@
     .dark-mode .attendance-status-cell.status-late { background: #f59e42 !important; color: #fff !important; }
     .dark-mode .attendance-status-cell.status-excused { background: #3b82f6 !important; color: #fff !important; }
     .dark-mode .attendance-status-cell.status-notrecorded { background: #6b7280 !important; color: #fff !important; }
+    body.dark-mode .mobile-nav-menu {
+        background: #23272b !important;
+        color: #fff !important;
+    }
+    body.dark-mode .mobile-nav-header {
+        background: linear-gradient(135deg, #23272b, #181a1b) !important;
+        color: #fff !important;
+    }
+    body.dark-mode .mobile-nav-items a,
+    body.dark-mode .mobile-nav-items button {
+        color: #fff !important;
+        background: none !important;
+    }
+    body.dark-mode .mobile-nav-items a.active {
+        color: #60a5fa !important;
+        background: #181a1b !important;
+    }
+    body.dark-mode .mobile-nav-items .logout-item a {
+        color: #f87171 !important;
+    }
+    body.dark-mode .mobile-nav-items li {
+        border-bottom: 1px solid #333 !important;
+    }
     </style>
 </head>
 <body {% if request.endpoint == 'student_login' %}class="no-scroll-page login-page"{% elif request.endpoint in ['student_dashboard', 'student_assignments'] %}class="no-scroll-page"{% endif %}>
@@ -261,12 +290,13 @@
         <div class="container" style="display: flex; align-items: center; justify-content: space-between; position: relative;">
             <div style="display: flex; align-items: center; gap: 1.5em;">
                 <img src="{{ url_for('static', filename='css/pcshs_logo.png') }}" alt="PCSHS Logo" style="height: 64px; width: auto; margin-right: 18px;">
-                <span class="student-title" style="font-size: 2rem; font-weight: 800; color: #fff; margin-right: 2em; letter-spacing: -0.5px;">Student Portal</span>
+                <span class="student-title" style="font-size: 2rem; font-weight: 800; color: #fff; margin-right: 0.5em; letter-spacing: -0.5px;">Student Portal</span>
+                {% if session.student_id %}
+                <button id="mobileNavToggle" class="mobile-nav-toggle" aria-label="Open menu" type="button" style="margin-left: 0.5em;">
+                    <i class="fas fa-bars"></i>
+                </button>
+                {% endif %}
             </div>
-            <!-- Mobile Menu Button -->
-            {% if session.student_id %}
-            <button id="mobileMenuBtn" class="mobile-menu-btn" style="display:none;">Menu</button>
-            {% endif %}
             <!-- Desktop Nav -->
             <nav class="student-nav">
                 <ul>
@@ -287,23 +317,31 @@
                     {% endif %}
                 </ul>
             </nav>
-            <!-- Mobile Dropdown Nav -->
-            <div id="mobileNavDropdown" class="mobile-nav-dropdown" style="display:none; position:absolute; top:100%; right:0; background:#fff; box-shadow:0 4px 16px rgba(0,0,0,0.12); border-radius:10px; min-width:160px; z-index:9999;">
-                <ul style="list-style:none; margin:0; padding:0;">
-                    {% if session.student_id %}
-                        <li><a href="{{ url_for('student_dashboard') }}"><i class="fas fa-home"></i> Dashboard</a></li>
-                        <li><a href="{{ url_for('student_grades') }}"><i class="fas fa-graduation-cap"></i> Grades</a></li>
-                        <li><a href="{{ url_for('student_attendance') }}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
-                        <li><a href="{{ url_for('student_quiz') }}"><i class="fas fa-clipboard-question"></i> Quiz</a></li>
-                        <li><a href="{{ url_for('student_profile') }}"><i class="fas fa-user"></i> Profile</a></li>
-                        <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin:0.5em 0;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                    {% elif request.endpoint != 'student_login' %}
-                        <li><a href="{{ url_for('student_login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
-                    {% endif %}
-                </ul>
-            </div>
         </div>
     </header>
+    <!-- Modern Mobile Nav Overlay and Menu -->
+    {% if session.student_id %}
+    <div id="mobileNavOverlay" class="mobile-nav-overlay"></div>
+    <nav id="mobileNavMenu" class="mobile-nav-menu" aria-label="Mobile menu">
+        <div class="mobile-nav-header">
+            <span>Menu</span>
+            <button id="mobileNavClose" class="mobile-nav-close" aria-label="Close menu" type="button"><i class="fas fa-times"></i></button>
+        </div>
+        <ul class="mobile-nav-items">
+            <li><a href="{{ url_for('student_dashboard') }}" class="{% if request.endpoint == 'student_dashboard' %}active{% endif %}"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('student_grades') }}" class="{% if request.endpoint == 'student_grades' %}active{% endif %}"><i class="fas fa-graduation-cap"></i> Grades</a></li>
+            <li><a href="{{ url_for('student_attendance') }}" class="{% if request.endpoint == 'student_attendance' %}active{% endif %}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+            <li><a href="{{ url_for('student_quiz') }}" class="{% if request.endpoint == 'student_quiz' %}active{% endif %}"><i class="fas fa-clipboard-question"></i> Quiz</a></li>
+            <li><a href="{{ url_for('student_profile') }}" class="{% if request.endpoint == 'student_profile' %}active{% endif %}"><i class="fas fa-user"></i> Profile</a></li>
+            <li class="logout-item"><a href="{{ url_for('student_logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            <li style="border-top: 2px solid #e5e7eb; margin-top: 1rem;">
+                <button id="mobileDarkModeToggle" style="background:none; border:none; color:#333; font-size:1rem; width:100%; text-align:left; padding:1rem; display:flex; align-items:center; gap:0.75rem; cursor:pointer;">
+                    <i class="fas fa-moon"></i> Dark Mode
+                </button>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
     <!-- Header End -->
     
     <main class="student-main{% if request.endpoint in ['student_assignments', 'student_assignments_upcoming', 'student_assignments_completed', 'student_assignments_past_due'] %} assignments-main{% endif %}">
@@ -327,7 +365,7 @@
     </main>
     
     <footer class="student-footer">
-        <p>&copy; 2024 Student Monitor - Student Portal. All rights reserved.</p>
+        <p>&copy; 2025 Student Monitor - Student Portal. All rights reserved.</p>
     </footer>
     
     <script>
@@ -454,12 +492,27 @@
     // Dark mode toggle logic
     document.addEventListener('DOMContentLoaded', function() {
         const toggle = document.getElementById('darkModeToggle');
+        const mobileToggle = document.getElementById('mobileDarkModeToggle');
         if (toggle) {
             // Restore mode from localStorage
             if (localStorage.getItem('studentDarkMode') === '1') {
                 document.body.classList.add('dark-mode');
             }
             toggle.addEventListener('click', function() {
+                document.body.classList.toggle('dark-mode');
+                if (document.body.classList.contains('dark-mode')) {
+                    localStorage.setItem('studentDarkMode', '1');
+                } else {
+                    localStorage.setItem('studentDarkMode', '0');
+                }
+            });
+        }
+        if (mobileToggle) {
+            // Restore mode from localStorage
+            if (localStorage.getItem('studentDarkMode') === '1') {
+                document.body.classList.add('dark-mode');
+            }
+            mobileToggle.addEventListener('click', function() {
                 document.body.classList.toggle('dark-mode');
                 if (document.body.classList.contains('dark-mode')) {
                     localStorage.setItem('studentDarkMode', '1');

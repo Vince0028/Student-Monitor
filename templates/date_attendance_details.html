@@ -220,10 +220,6 @@
                         <div class="col-md-6">
                             <ul class="list-group list-group-flush">
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span>Total Present</span>
-                                    <span class="badge bg-success">{{ total_present }}</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <span>Total Absent</span>
                                     <span class="badge bg-danger">{{ total_absent }}</span>
                                 </li>
@@ -246,6 +242,10 @@
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <span>Total Girls</span>
                                     <span class="badge bg-pink" style="background-color:#e83e8c;">{{ total_girls }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Total Present</span>
+                                    <span class="badge bg-success">{{ total_present }}</span>
                                 </li>
                             </ul>
                         </div>
@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
             radio.addEventListener('change', function() {
                 if (['absent','late','excused'].includes(this.value)) {
                     notesInput.disabled = false;
-                    notesInput.required = true;
+                    notesInput.required = false;
                 } else {
                     notesInput.disabled = true;
                     notesInput.required = false;

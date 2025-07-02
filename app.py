@@ -511,10 +511,11 @@ def teacher_section_attendance_date(section_period_id, subject_id, date):
     for student in students:
         attendance = attendance_map.get(str(student.id))
         attendance_records.append((student, attendance))
-        if student.gender == 'Male':
-            total_boys += 1
-        elif student.gender == 'Female':
-            total_girls += 1
+        if attendance and attendance.status == 'present':
+            if student.gender == 'Male':
+                total_boys += 1
+            elif student.gender == 'Female':
+                total_girls += 1
         if attendance:
             if attendance.status == 'present':
                 total_present += 1

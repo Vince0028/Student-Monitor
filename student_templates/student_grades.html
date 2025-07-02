@@ -648,30 +648,30 @@ body.dark-mode .grades-table th {
                                                 {% endfor %}
                                                 <div class="activities-scroll">
                                                 <table style="width:100%; font-size:0.95em; background:#fff; border-radius:8px; overflow:hidden;">
-                                                <thead>
-                                                <tr style="background:#ebf8ff; color:#2c5282;">
-                                                <th style="width:28%;">Component</th>
-                                                <th>Item</th>
-                                                <th>Score</th>
-                                                <th>Max Score</th>
-                                                </tr>
-                                                </thead>
+                                                    <thead>
+                                                        <tr style="background:#ebf8ff; color:#2c5282;">
+                                                            <th style="width:28%;">Component</th>
+                                                            <th>Item</th>
+                                                            <th>Score</th>
+                                                            <th>Max Score</th>
+                                                        </tr>
+                                                    </thead>
                                                 </table>
                                                 <div class="activities-scroll-body" style="overflow-y:auto; max-height:180px;">
                                                 <table style="width:100%; font-size:0.95em; background:#fff; border-radius:8px; overflow:hidden;">
-                                                <tbody>
-                                                {% for component, items in grouped.items() %}
-                                                <tr style="background:#f7fafc;"><td colspan="4"><i class="fas fa-layer-group"></i> {{ component }}</td></tr>
-                                                {% for item in items %}
-                                                <tr>
-                                                <td></td>
-                                                <td><i class="fas fa-clipboard-list grade-item-icon"></i> {{ item.item_title }}</td>
-                                                <td>{{ '%.2f'|format(item.score) }}</td>
-                                                <td>{{ '%.2f'|format(item.max_score) }}</td>
-                                                </tr>
-                                                {% endfor %}
-                                                {% endfor %}
-                                                </tbody>
+                                                    <tbody>
+                                                        {% for component, items in grouped.items() %}
+                                                            <tr style="background:#f7fafc;"><td colspan="4"><i class="fas fa-layer-group"></i> {{ component }}</td></tr>
+                                                            {% for item in items %}
+                                                            <tr>
+                                                                <td></td>
+                                                                <td><i class="fas fa-clipboard-list grade-item-icon"></i> {{ item.item_title }}</td>
+                                                                <td>{{ '%.2f'|format(item.score) }}</td>
+                                                                <td>{{ '%.2f'|format(item.max_score) }}</td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        {% endfor %}
+                                                    </tbody>
                                                 </table>
                                                 </div>
                                                 </div>

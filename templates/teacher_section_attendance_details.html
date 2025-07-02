@@ -206,11 +206,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.student-row').forEach(function(row) {
         const radios = row.querySelectorAll('input[type=radio][name^="status_"]');
         const notesInput = row.querySelector('.attendance-notes');
+        if (!notesInput) return;
         radios.forEach(function(radio) {
             radio.addEventListener('change', function() {
                 if (['absent','late','excused'].includes(this.value)) {
                     notesInput.disabled = false;
-                    notesInput.required = true;
+                    notesInput.required = false;
                 } else {
                     notesInput.disabled = true;
                     notesInput.required = false;
