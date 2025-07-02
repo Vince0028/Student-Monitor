@@ -17,8 +17,11 @@
 </head>
 <body data-user-type="{{ session.user_type }}"{% if login_page %} class="no-scroll-page login-page"{% endif %}>
     <header class="app-header">
-        <div class="container">
-            <h1 class="app-title"><a href="{{ url_for('dashboard') if session.user_id else url_for('index') }}">Student Monitor</a></h1>
+        <div class="container" style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 1.2em;">
+                <img src="{{ url_for('static', filename='css/pcshs_logo.png') }}" alt="PCSHS Logo" style="height: 48px; width: auto; margin-right: 10px;">
+                <h1 class="app-title" style="margin: 0;"><a href="{{ url_for('dashboard') if session.user_id else url_for('index') }}">Student Monitor</a></h1>
+            </div>
             <nav class="main-nav">
                 <ul class="nav-links">
                     {% if session.user_id %} {# Check if user is logged in #}
@@ -44,6 +47,7 @@
     </header>
 
     <main class="app-main container">
+        {% if not login_page %}
         <div class="flash-messages">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -53,6 +57,7 @@
                 {% endif %}
             {% endwith %}
         </div>
+        {% endif %}
         {% block content %}{% endblock %}
     </main>
 

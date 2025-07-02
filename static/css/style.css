@@ -1902,5 +1902,15 @@ body.dark-mode input[type="date"]::placeholder {
     padding: 0;
 }
 .no-scroll-page.login-page .auth-container {
-    margin: 0 auto;
+    margin: 0 auto !important;
+    align-self: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.10);
+    max-width: 400px;
+    width: 100%;
+}
+@media (max-width: 500px) {
+  .auth-container {
+    max-width: 95vw;
+    padding: 18px;
+  }
 }

@@ -308,6 +308,7 @@
     
     <main class="student-main{% if request.endpoint in ['student_assignments', 'student_assignments_upcoming', 'student_assignments_completed', 'student_assignments_past_due'] %} assignments-main{% endif %}">
         <div class="container">
+            {% if request.endpoint != 'student_login' %}
             <div class="flash-messages" style="position: fixed; top: 130px; left: 50%; transform: translateX(-50%); z-index: 9999; width: auto; max-width: 90vw; pointer-events: none;">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
@@ -320,6 +321,7 @@
                     {% endif %}
                 {% endwith %}
             </div>
+            {% endif %}
             {% block content %}{% endblock %}
         </div>
     </main>
