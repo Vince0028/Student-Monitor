@@ -18,6 +18,12 @@
     align-items: stretch;
 }
 
+body.dark-mode .landing-card {
+    background: #23272f;
+    color: #f3f4f6;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+}
+
 .landing-header {
     background: #fff;
     border-radius: 16px;
@@ -30,6 +36,12 @@
     align-items: center;
     justify-content: center;
     text-align: center;
+}
+
+body.dark-mode .landing-header {
+    background: #23272f;
+    color: #f3f4f6;
+    box-shadow: 0 4px 16px rgba(25,118,210,0.18);
 }
 
 .landing-header h2 {
@@ -61,6 +73,13 @@
     box-shadow: 0 4px 12px rgba(43, 108, 176, 0.1);
 }
 
+body.dark-mode .overall-average-card {
+    background: linear-gradient(135deg, #23272f 80%, #2d3748 100%);
+    border: 2px solid #334155;
+    color: #f3f4f6;
+    box-shadow: 0 4px 12px rgba(43, 108, 176, 0.18);
+}
+
 .overall-average-card h3 {
     color: #2c5282;
     font-size: 1rem;
@@ -83,6 +102,12 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     margin-bottom: 1.5rem;
     overflow: hidden;
+}
+
+body.dark-mode .period-section {
+    background: #23272f;
+    color: #f3f4f6;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
 }
 
 .period-header {
@@ -129,6 +154,12 @@
     font-size: 0.9rem;
 }
 
+body.dark-mode .grades-table {
+    background: #23272f;
+    color: #f3f4f6;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+
 .grades-table th {
     background: #ebf8ff;
     color: #2c5282;
@@ -142,10 +173,21 @@
     white-space: nowrap;
 }
 
+body.dark-mode .grades-table th {
+    background: #2563eb !important;
+    color: #fff !important;
+    font-weight: bold !important;
+}
+
 .grades-table td {
     padding: 0.75rem;
     border-bottom: 1px solid #e2e8f0;
     color: #4a5568;
+}
+
+body.dark-mode .grades-table td {
+    color: #f3f4f6;
+    border-bottom: 1px solid #334155;
 }
 
 .grades-table tbody tr:last-child td {
@@ -156,8 +198,16 @@
     background: #f7fafc;
 }
 
+body.dark-mode .grades-table tbody tr:nth-child(even) {
+    background: #23272f;
+}
+
 .grades-table tbody tr:hover {
     background: #edf2f7;
+}
+
+body.dark-mode .grades-table tbody tr:hover {
+    background: #2d3748;
 }
 
 .grade-value {
@@ -177,6 +227,12 @@
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+body.dark-mode .empty-state {
+    background: #23272f;
+    color: #f3f4f6;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
 }
 
 .empty-state i {
@@ -432,12 +488,100 @@ html, body {
 }
 
 .activities-scroll {
-    max-height: 220px;
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
     border-radius: 8px;
     border: 1px solid #e2e8f0;
     background: #fff;
     margin-top: 0.5rem;
+}
+
+body.dark-mode .grades-table th,
+body.dark-mode .grades-table thead tr,
+body.dark-mode .grades-table tbody tr {
+    background: #23272f !important;
+    color: #f3f4f6 !important;
+    border-color: #334155 !important;
+}
+
+body.dark-mode .grades-table td {
+    color: #f3f4f6 !important;
+}
+
+body.dark-mode .grade-value {
+    color: #22c55e !important;
+}
+
+body.dark-mode .activities-scroll,
+body.dark-mode .activities-scroll table {
+    background: #23272f !important;
+    color: #f3f4f6 !important;
+    border-color: #334155 !important;
+}
+
+body.dark-mode .activities-scroll th,
+body.dark-mode .activities-scroll thead tr {
+    background: #2d3748 !important;
+    color: #90cdf4 !important;
+}
+
+body.dark-mode .activities-scroll td {
+    color: #f3f4f6 !important;
+}
+
+body.dark-mode .activities-scroll td:nth-child(3) {
+    color: #22c55e !important;
+}
+
+body.dark-mode .grades-table tr,
+body.dark-mode .grades-table td,
+body.dark-mode .grades-table th,
+body.dark-mode .activities-scroll table,
+body.dark-mode .activities-scroll thead tr,
+body.dark-mode .activities-scroll tbody tr,
+body.dark-mode .activities-scroll th,
+body.dark-mode .activities-scroll td {
+    background: #23272f !important;
+    color: #f3f4f6 !important;
+    border-color: #334155 !important;
+}
+body.dark-mode .activities-scroll tr[style*="background:#f7fafc"],
+body.dark-mode .activities-scroll tr[style*="background:#ebf8ff"],
+body.dark-mode .activities-scroll tr[style*="background:#fff"],
+body.dark-mode .activities-scroll tr[style*="background:#f9fafb"] {
+    background: #1e293b !important;
+    color: #60a5fa !important;
+    font-weight: bold !important;
+}
+body.dark-mode .activities-scroll td:nth-child(3) {
+    color: #22c55e !important;
+}
+body.dark-mode .grades-table td:before {
+    color: #90cdf4 !important;
+}
+body.dark-mode .activities-scroll tr[style*="background:#f7fafc"] td,
+body.dark-mode .activities-scroll tr[style*="background:#ebf8ff"] td {
+    color: #60a5fa !important;
+    font-weight: bold !important;
+}
+body.dark-mode .grades-table thead,
+body.dark-mode .grades-table thead tr,
+body.dark-mode .grades-table th {
+    background: #2563eb !important;
+    color: #fff !important;
+    font-weight: bold !important;
+    border-bottom: 2px solid #1e293b !important;
+}
+.activities-scroll tr[style*="background:#f7fafc"],
+.activities-scroll tr[style*="background:#ebf8ff"] {
+    background: #e3f0ff !important;
+    color: #2563eb !important;
+    font-weight: bold !important;
+}
+.activities-scroll tr[style*="background:#f7fafc"] td,
+.activities-scroll tr[style*="background:#ebf8ff"] td {
+    color: #2563eb !important;
+    font-weight: bold !important;
 }
 </style>
 
@@ -504,28 +648,32 @@ html, body {
                                                 {% endfor %}
                                                 <div class="activities-scroll">
                                                 <table style="width:100%; font-size:0.95em; background:#fff; border-radius:8px; overflow:hidden;">
-                                                    <thead>
-                                                        <tr style="background:#ebf8ff; color:#2c5282;">
-                                                            <th style="width:28%;">Component</th>
-                                                            <th>Item</th>
-                                                            <th>Score</th>
-                                                            <th>Max Score</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {% for component, items in grouped.items() %}
-                                                            <tr style="background:#f7fafc;"><td colspan="4"><i class="fas fa-layer-group"></i> {{ component }}</td></tr>
-                                                            {% for item in items %}
-                                                            <tr>
-                                                                <td></td>
-                                                                <td><i class="fas fa-clipboard-list grade-item-icon"></i> {{ item.item_title }}</td>
-                                                                <td>{{ '%.2f'|format(item.score) }}</td>
-                                                                <td>{{ '%.2f'|format(item.max_score) }}</td>
-                                                            </tr>
-                                                            {% endfor %}
-                                                        {% endfor %}
-                                                    </tbody>
+                                                <thead>
+                                                <tr style="background:#ebf8ff; color:#2c5282;">
+                                                <th style="width:28%;">Component</th>
+                                                <th>Item</th>
+                                                <th>Score</th>
+                                                <th>Max Score</th>
+                                                </tr>
+                                                </thead>
                                                 </table>
+                                                <div class="activities-scroll-body" style="overflow-y:auto; max-height:180px;">
+                                                <table style="width:100%; font-size:0.95em; background:#fff; border-radius:8px; overflow:hidden;">
+                                                <tbody>
+                                                {% for component, items in grouped.items() %}
+                                                <tr style="background:#f7fafc;"><td colspan="4"><i class="fas fa-layer-group"></i> {{ component }}</td></tr>
+                                                {% for item in items %}
+                                                <tr>
+                                                <td></td>
+                                                <td><i class="fas fa-clipboard-list grade-item-icon"></i> {{ item.item_title }}</td>
+                                                <td>{{ '%.2f'|format(item.score) }}</td>
+                                                <td>{{ '%.2f'|format(item.max_score) }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                                {% endfor %}
+                                                </tbody>
+                                                </table>
+                                                </div>
                                                 </div>
                                             </div>
                                         </td>

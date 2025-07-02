@@ -5,6 +5,27 @@
 {% block content %}
 <style>
     body { background: #fff !important; }
+    body.dark-mode .quiz-container {
+        background: #23272f !important;
+        color: #f3f4f6 !important;
+    }
+    body.dark-mode .question-card {
+        background: #181a1b !important;
+        color: #f3f4f6 !important;
+        border-color: #334155 !important;
+    }
+    body.dark-mode .question-card * {
+        color: #f3f4f6 !important;
+    }
+    body.dark-mode .form-check-label {
+        color: #f3f4f6 !important;
+    }
+    body.dark-mode .question-input {
+        color: #f3f4f6 !important;
+    }
+    body.dark-mode .question-header {
+        color: #f3f4f6 !important;
+    }
     .quiz-container { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1); overflow: hidden; }
     .quiz-header { background: #222; padding: 30px; color: #fff; text-align: center; border-radius: 20px 20px 0 0; }
     .quiz-title { font-size: 2.5rem; font-weight: 600; margin-bottom: 10px; color: #fff; }
@@ -44,6 +65,15 @@
         margin-left: 1.2rem;
         font-size: 1.05rem;
     }
+</style>
+<style>
+body.dark-mode .question-card,
+body.dark-mode .question-card *,
+body.dark-mode .form-check-label,
+body.dark-mode .question-input,
+body.dark-mode .question-header {
+    color: #f3f4f6 !important;
+}
 </style>
 <div class="quiz-container mt-4" style="margin-top: 20px;">
     <div class="quiz-header">

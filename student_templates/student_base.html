@@ -190,6 +190,68 @@
             right: -100%;
         }
     }
+    
+    body.dark-mode {
+        background: #181a1b !important;
+        color: #fff !important;
+    }
+    .dark-mode .landing-card,
+    .dark-mode .landing-header,
+    .dark-mode .attendance-table-card,
+    .dark-mode .attendance-filter-card,
+    .dark-mode .attendance-table,
+    .dark-mode .semester-attendance-scroll {
+        background: #23272b !important;
+        color: #fff !important;
+        border-color: #333 !important;
+        box-shadow: none !important;
+    }
+    .dark-mode .table th, .dark-mode .attendance-table th {
+        background: #23272b !important;
+        color: #fff !important;
+        border-bottom: 1.5px solid #333 !important;
+    }
+    .dark-mode .table td, .dark-mode .attendance-table td {
+        background: #23272b !important;
+        color: #fff !important;
+    }
+    .dark-mode .summary-card {
+        background: #23272b !important;
+        color: #fff !important;
+        border-color: #333 !important;
+    }
+    .dark-mode .attendance-clear-btn,
+    .dark-mode .attendance-dropdown,
+    .dark-mode .form-select,
+    .dark-mode .form-control {
+        background: #23272b !important;
+        color: #fff !important;
+        border-color: #444 !important;
+    }
+    .dark-mode .attendance-clear-btn:hover,
+    .dark-mode .attendance-dropdown:focus,
+    .dark-mode .form-select:focus,
+    .dark-mode .form-control:focus {
+        border-color: #2563eb !important;
+    }
+    .dark-mode .badge-present { background: #22c55e !important; color: #fff !important; }
+    .dark-mode .badge-absent { background: #ef4444 !important; color: #fff !important; }
+    .dark-mode .badge-late { background: #f59e42 !important; color: #fff !important; }
+    .dark-mode .badge-excused { background: #3b82f6 !important; color: #fff !important; }
+    .dark-mode .badge-unknown { background: #6b7280 !important; color: #fff !important; }
+    .dark-mode .btn, .dark-mode .btn-primary, .dark-mode .btn-success, .dark-mode .btn-danger, .dark-mode .btn-warning, .dark-mode .btn-info {
+        color: #fff !important;
+    }
+    .dark-mode .btn-primary { background: #2563eb !important; }
+    .dark-mode .btn-success { background: #22c55e !important; }
+    .dark-mode .btn-danger { background: #ef4444 !important; }
+    .dark-mode .btn-warning { background: #f59e42 !important; }
+    .dark-mode .btn-info { background: #3b82f6 !important; }
+    .dark-mode .attendance-status-cell.status-present { background: #22c55e !important; color: #fff !important; }
+    .dark-mode .attendance-status-cell.status-absent { background: #ef4444 !important; color: #fff !important; }
+    .dark-mode .attendance-status-cell.status-late { background: #f59e42 !important; color: #fff !important; }
+    .dark-mode .attendance-status-cell.status-excused { background: #3b82f6 !important; color: #fff !important; }
+    .dark-mode .attendance-status-cell.status-notrecorded { background: #6b7280 !important; color: #fff !important; }
     </style>
 </head>
 <body {% if request.endpoint == 'student_login' %}class="no-scroll-page login-page"{% elif request.endpoint in ['student_dashboard', 'student_assignments'] %}class="no-scroll-page"{% endif %}>
@@ -214,7 +276,14 @@
                         <li><a href="{{ url_for('student_attendance') }}" class="{% if request.endpoint == 'student_attendance' %}active{% endif %}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
                         <li><a href="{{ url_for('student_quiz') }}" class="{% if request.endpoint == 'student_quiz' %}active{% endif %}"><i class="fas fa-clipboard-question"></i> Quiz</a></li>
                         <li><a href="{{ url_for('student_profile') }}" class="{% if request.endpoint == 'student_profile' %}active{% endif %}"><i class="fas fa-user"></i> Profile</a></li>
-                        <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin-left: 1em;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        <li><a href="{{ url_for('student_logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        <li>
+                            <button id="darkModeToggle" title="Toggle dark mode" style="background:none; border:none; color:inherit; font-size:1.2em; cursor:pointer; margin-left:10px;">
+                                <i class="fas fa-moon"></i>
+                            </button>
+                        </li>
+                    {% elif request.endpoint != 'student_login' %}
+                        <li><a href="{{ url_for('student_login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
                     {% endif %}
                 </ul>
             </nav>
@@ -228,7 +297,7 @@
                         <li><a href="{{ url_for('student_quiz') }}"><i class="fas fa-clipboard-question"></i> Quiz</a></li>
                         <li><a href="{{ url_for('student_profile') }}"><i class="fas fa-user"></i> Profile</a></li>
                         <li><a href="{{ url_for('student_logout') }}" class="btn btn-danger" style="margin:0.5em 0;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                    {% else %}
+                    {% elif request.endpoint != 'student_login' %}
                         <li><a href="{{ url_for('student_login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
                     {% endif %}
                 </ul>
@@ -378,6 +447,26 @@
             navigator.sendBeacon("{{ url_for('student_logout') }}");
         });
     })();
+    </script>
+    <script>
+    // Dark mode toggle logic
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggle = document.getElementById('darkModeToggle');
+        if (toggle) {
+            // Restore mode from localStorage
+            if (localStorage.getItem('studentDarkMode') === '1') {
+                document.body.classList.add('dark-mode');
+            }
+            toggle.addEventListener('click', function() {
+                document.body.classList.toggle('dark-mode');
+                if (document.body.classList.contains('dark-mode')) {
+                    localStorage.setItem('studentDarkMode', '1');
+                } else {
+                    localStorage.setItem('studentDarkMode', '0');
+                }
+            });
+        }
+    });
     </script>
 </body>
 </html>
