@@ -1914,3 +1914,103 @@ body.dark-mode input[type="date"]::placeholder {
     padding: 18px;
   }
 }
+
+/* --- Dark mode overrides for section cards/tables --- */
+body.dark-mode .data-table tr {
+  background: #23272f !important;
+  border: 1.5px solid #23272f !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+body.dark-mode .data-table td,
+body.dark-mode .data-table th {
+  color: #fff !important;
+  background: #23272f !important;
+  border: none !important;
+}
+body.dark-mode .data-table td:before {
+  color: #b0b8c1 !important;
+}
+body.dark-mode .data-table {
+  border: none !important;
+}
+body.dark-mode .section-card,
+body.dark-mode .card,
+body.dark-mode .mobile-section-card {
+  border: none !important;
+  background: #23272f !important;
+  color: #fff !important;
+}
+body.dark-mode .section-card * {
+  color: #fff !important;
+}
+body.dark-mode .card * {
+  color: #fff !important;
+}
+body.dark-mode .mobile-section-card * {
+  color: #fff !important;
+}
+
+/* --- Dark mode for mobile nav/menu --- */
+body.dark-mode .mobile-nav {
+  background: #23272f !important;
+  color: #fff !important;
+}
+body.dark-mode .mobile-nav-header {
+  border-bottom: 1px solid #353b48;
+  color: #fff !important;
+}
+body.dark-mode .mobile-nav ul li a {
+  color: #fff !important;
+  background: transparent !important;
+}
+body.dark-mode .mobile-nav ul li a:hover,
+body.dark-mode .mobile-nav ul li a:focus-visible,
+body.dark-mode .mobile-nav ul li a:active {
+  background: #353b48 !important;
+  color: #fff !important;
+}
+body.dark-mode #mobileDarkModeToggle {
+  background: #23272f !important;
+  color: #fff !important;
+  border-color: #353b48 !important;
+}
+body.dark-mode #mobileDarkModeToggle:disabled {
+  opacity: 0.5;
+  filter: none;
+  color: #ccc !important;
+}
+
+/* --- Mobile menu close (X) button alignment and style --- */
+.mobile-nav-header {
+  position: relative;
+}
+#closeMobileNav {
+  position: absolute;
+  top: 50%;
+  right: 1.2em;
+  transform: translateY(-50%);
+  background: #23272f;
+  color: #fff;
+  border: 1.5px solid #fff;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  font-size: 1.3em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border 0.18s;
+}
+body.dark-mode #closeMobileNav {
+  background: #23272f;
+  color: #fff;
+  border: 1.5px solid #fff;
+}
+#closeMobileNav:hover, #closeMobileNav:focus-visible {
+  background: #353b48;
+  color: #fff;
+  border-color: #3182ce;
+  outline: none;
+}

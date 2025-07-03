@@ -122,7 +122,7 @@
         <h2>{{ section_period.section.name }} ({{ section_period.period_name }} {{ section_period.school_year }} {% if section_period.section.strand %}{{ section_period.section.strand.name }}{% endif %})</h2>
         <p class="dashboard-welcome">Manage students, subjects, and attendance for this {{ section_period.period_type | lower }}.</p>
         {% if section_period.assigned_teacher %}
-            <p class="dashboard-welcome">You are assigned as the primary teacher for this {{ section_period.period_type | lower }}.</p>
+            <p class="dashboard-welcome">Please make your way to your assigned subject.</p>
         {% else %}
             <p class="dashboard-welcome text-red-600 font-semibold">Note: This {{ section_period.period_type | lower }} does not have a primary assigned teacher. Manage with caution.</p>
         {% endif %}

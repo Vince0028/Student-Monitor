@@ -359,7 +359,7 @@ def login():
             session['specialization'] = user.specialization # Teacher specialization (will be None for JHS)
             session['grade_level_assigned'] = user.grade_level_assigned # Teacher assigned grade level
 
-            flash(f'Welcome, {user.username}! You are logged in as a {user.user_type.capitalize()}.', 'success')
+            flash('Welcome, you are logged in.', 'success')
             if session['user_type'] == 'admin':
                 return redirect(url_for('admin_dashboard'))
             elif session['user_type'] == 'teacher':

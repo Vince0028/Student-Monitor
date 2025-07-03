@@ -4,19 +4,21 @@
 
 {% block content %}
 <div class="dashboard-container">
-    <h2>Teacher Dashboard</h2>
-    <p class="dashboard-welcome">Welcome, {{ session['username'] }}!</p>
+    <h2 class="dashboard-title">Teacher Dashboard</h2>
+    <div style="display: flex; justify-content: center; margin-bottom: 1.5em;">
+        <div class="welcome-highlight">Welcome</div>
+    </div>
 
     <div class="dashboard-grid">
         <div class="card dashboard-option-card full-width">
-            <h3>Your Sections</h3>
+            <h3>The Sections</h3>
             <p>View and manage sections relevant to your specialization.</p>
         </div>
     </div>
 
     {% if sections %}
     <div class="card mt-40">
-        <h3>Sections in Your Field</h3>
+        <h3>Section in This Field</h3>
         <div class="table-responsive">
             <table class="data-table">
                 <thead>
@@ -30,17 +32,16 @@
                 <tbody>
                     {% for section in sections %}
                     <tr>
-                        <td>{{ section.name }}</td>
-                        <td>{{ section.strand.name if section.strand else 'N/A' }}</td>
-                        <td>{{ section.adviser_name or 'N/A' }}</td>
-                        <td>
-                            <div class="button-group" style="display: flex; align-items: center; gap: 10px;">
+                        <td data-label="Section Name">{{ section.name }}</td>
+                        <td data-label="Strand">{{ section.strand.name if section.strand else 'N/A' }}</td>
+                        <td data-label="Adviser">{{ section.adviser_name or 'N/A' }}</td>
+                        <td data-label="Actions">
+                            <div class="button-group" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                                 <select onchange="handlePeriodSelect(this, '{{ section.id }}', '{{ section.section_password|default('') }}')" class="btn btn-view btn-icon-small">
                                     <option value="">View Period...</option>
                                     {% set teacher_id = uuid.UUID(session.user_id) %}
                                     {% if section.section_periods %}
                                         {% for period in section.section_periods | sort(attribute='school_year', reverse=True) %}
-                                            {# Show period if teacher is the main section adviser OR assigned to the specific period #}
                                             {% if section.assigned_user_id == teacher_id or period.assigned_teacher_id == teacher_id %}
                                                 <option value="{{ url_for('section_period_details', section_period_id=period.id) }}">
                                                     {{ period.period_name }} {{ period.school_year }}
@@ -211,6 +212,72 @@
     </div>
   </div>
 </div>
+
+<style>
+@media (max-width: 600px) {
+  .data-table, .data-table thead, .data-table tbody, .data-table th, .data-table td, .data-table tr {
+    display: block;
+    width: 100%;
+  }
+  .data-table tr {
+    background: #fff;
+    margin-bottom: 18px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    padding: 12px 10px 18px 10px;
+  }
+  .data-table td {
+    border: none;
+    position: relative;
+    padding: 12px 10px 12px 48%;
+    min-height: 38px;
+    font-size: 1.08em;
+    line-height: 1.5;
+    margin-bottom: 6px;
+    background: none;
+  }
+  .data-table td:before {
+    content: attr(data-label) ': ';
+    position: absolute;
+    left: 10px;
+    top: 12px;
+    font-weight: bold;
+    color: #2d3748;
+    font-size: 1em;
+    width: 44%;
+    white-space: normal;
+    text-align: left;
+  }
+  .data-table td:last-child {
+    padding-bottom: 0;
+  }
+  .button-group {
+    margin-top: 10px;
+    gap: 12px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .button-group select {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    font-size: 1.1em;
+    padding: 12px 14px;
+    box-sizing: border-box;
+    background: #fff;
+  }
+  .button-group .btn {
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 6px;
+    font-size: 1.1em;
+    padding: 12px 0;
+  }
+  .button-group .btn:last-child {
+    margin-bottom: 0;
+  }
+}
+</style>
 
 <script>
 let selectedSectionPassword = '';

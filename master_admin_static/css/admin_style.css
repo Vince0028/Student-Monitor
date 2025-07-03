@@ -138,4 +138,16 @@ header {
 }
 .flashes li.danger {
     color: #b00;
+}
+.welcome-highlight {
+    display: inline-block;
+    background: #e3f2fd;
+    color: #1565c0;
+    font-weight: 600;
+    font-size: 1.2rem;
+    padding: 0.5em 1.5em;
+    border-radius: 1.5em;
+    box-shadow: 0 2px 8px rgba(21,101,192,0.07);
+    margin-bottom: 1em;
+    text-align: center;
 } 

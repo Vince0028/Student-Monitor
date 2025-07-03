@@ -16,11 +16,17 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body data-user-type="{{ session.user_type }}"{% if login_page %} class="no-scroll-page login-page"{% endif %}>
-    <header class="app-header">
-        <div class="container" style="display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 1.2em;">
+    <header class="app-header" style="background: #4a5568; min-height: 64px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+        <div class="container app-header-flex" style="display: flex; align-items: center; justify-content: space-between; max-width: 1200px; margin: 0 auto; width: 100%; height: 64px; min-height: 64px; padding: 0 2.2em;">
+            <div class="header-left" style="display: flex; align-items: center; gap: 1.2em; min-width: 0; height: 100%;">
                 <img src="{{ url_for('static', filename='css/pcshs_logo.png') }}" alt="PCSHS Logo" style="height: 48px; width: auto; margin-right: 10px;">
-                <h1 class="app-title" style="margin: 0;"><a href="{{ url_for('dashboard') if session.user_id else url_for('index') }}">Student Monitor</a></h1>
+                <h1 class="app-title" style="margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; font-weight: 700; font-size: 2rem;"> <a href="{{ url_for('dashboard') if session.user_id else url_for('index') }}" style="color: #fff; text-decoration: none;">Student Monitor</a></h1>
+            </div>
+            <div class="header-right" style="display: flex; align-items: center; gap: 0.7em; height: 100%;">
+                <!-- Hamburger button for mobile (always right-aligned) -->
+                <button id="hamburgerBtn" class="hamburger" aria-label="Open menu" aria-controls="mobileNav" aria-expanded="false" style="margin: 0; padding: 0; background: none;">
+                    <span></span><span></span><span></span>
+                </button>
             </div>
             <nav class="main-nav">
                 <ul class="nav-links">
@@ -33,8 +39,9 @@
                         {% endif %}
                         <li><a href="{{ url_for('logout') }}" class="btn-logout"><i class="fas fa-sign-out-alt"></i> <span class="nav-text">Logout</span></a></li>
                         <li>
-                            <button id="darkModeToggle" class="btn btn-outline-secondary" title="Toggle dark mode" style="margin-left: 0.5em;">
+                            <button id="darkModeToggle" class="btn btn-outline-secondary d-none d-md-inline-flex" title="Toggle dark mode" style="margin-left: 0.5em; align-items: center; gap: 0.4em;">
                                 <i id="darkModeIcon" class="fas fa-moon"></i>
+                                <span id="darkModeText" style="font-size: 1em;">Dark Mode</span>
                             </button>
                         </li>
                     {% else %}
@@ -46,13 +53,42 @@
         </div>
     </header>
 
+    <!-- Off-canvas mobile nav -->
+    <nav id="mobileNav" class="mobile-nav" aria-hidden="true">
+        <div class="mobile-nav-header">
+            <span>Menu</span>
+            <button id="closeMobileNav" aria-label="Close menu">&times;</button>
+        </div>
+        <ul>
+            {% if session.user_id %}
+                <li><a href="{{ url_for('profile') }}"><i class="fas fa-user-circle"></i> Profile</a></li>
+                {% if session.user_type == 'admin' %}
+                    <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                {% elif session.user_type == 'teacher' %}
+                    <li><a href="{{ url_for('teacher_dashboard') }}"><i class="fas fa-chalkboard-teacher"></i> Dashboard</a></li>
+                {% endif %}
+                <li><a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            {% else %}
+                <li><a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
+                <li><a href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> Register</a></li>
+            {% endif %}
+        </ul>
+        <div style="padding: 1.2em 1.5em 1.5em 1.5em; border-top: 1px solid #e2e8f0;">
+            <button id="mobileDarkModeToggle" class="btn btn-outline-secondary w-100" style="display: flex; align-items: center; gap: 0.7em; justify-content: flex-start;">
+                <i id="mobileDarkModeIcon" class="fas fa-moon"></i>
+                <span id="mobileDarkModeText">Dark Mode</span>
+            </button>
+        </div>
+    </nav>
+    <div id="mobileNavOverlay" class="mobile-nav-overlay"></div>
+
     <main class="app-main container">
         {% if not login_page %}
         <div class="flash-messages">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                        <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
@@ -302,6 +338,15 @@
         // Call on page load and window resize
         document.addEventListener('DOMContentLoaded', makeTablesResponsive);
         window.addEventListener('resize', makeTablesResponsive);
+
+        // Fade out flash messages after 3 seconds
+        setTimeout(function() {
+            document.querySelectorAll('.flash-messages .alert').forEach(function(el) {
+                el.style.transition = 'opacity 0.7s';
+                el.style.opacity = '0';
+                setTimeout(function() { el.style.display = 'none'; }, 700);
+            });
+        }, 3000);
     </script>
     {% block scripts %}{% endblock %}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -364,24 +409,231 @@
                 document.body.classList.add('dark-mode');
                 document.getElementById('darkModeIcon').classList.remove('fa-moon');
                 document.getElementById('darkModeIcon').classList.add('fa-sun');
+                document.getElementById('darkModeText').textContent = 'Light Mode';
+                // Mobile
+                document.getElementById('mobileDarkModeIcon').classList.remove('fa-moon');
+                document.getElementById('mobileDarkModeIcon').classList.add('fa-sun');
+                document.getElementById('mobileDarkModeText').textContent = 'Light Mode';
             } else {
                 document.body.classList.remove('dark-mode');
                 document.getElementById('darkModeIcon').classList.remove('fa-sun');
                 document.getElementById('darkModeIcon').classList.add('fa-moon');
+                document.getElementById('darkModeText').textContent = 'Dark Mode';
+                // Mobile
+                document.getElementById('mobileDarkModeIcon').classList.remove('fa-sun');
+                document.getElementById('mobileDarkModeIcon').classList.add('fa-moon');
+                document.getElementById('mobileDarkModeText').textContent = 'Dark Mode';
             }
         }
         document.addEventListener('DOMContentLoaded', function() {
             const darkMode = localStorage.getItem('darkMode') === 'true';
             setDarkMode(darkMode);
             const toggleBtn = document.getElementById('darkModeToggle');
-            if (toggleBtn) {
-                toggleBtn.addEventListener('click', function() {
-                    const enabled = !document.body.classList.contains('dark-mode');
-                    setDarkMode(enabled);
-                    localStorage.setItem('darkMode', enabled);
-                });
+            const mobileToggleBtn = document.getElementById('mobileDarkModeToggle');
+            function toggleDark() {
+                const enabled = !document.body.classList.contains('dark-mode');
+                setDarkMode(enabled);
+                localStorage.setItem('darkMode', enabled);
             }
+            if (toggleBtn) toggleBtn.addEventListener('click', toggleDark);
+            if (mobileToggleBtn) mobileToggleBtn.addEventListener('click', toggleDark);
         });
+    </script>
+
+    <style>
+    /* Header flex fix and ensure hamburger is inside header bar */
+    .app-header {
+      background: #4a5568;
+      min-height: 64px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      width: 100%;
+    }
+    .app-header-flex {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      height: 64px;
+      min-height: 64px;
+      padding: 0 2.2em;
+    }
+    .header-left { display: flex; align-items: center; gap: 1.2em; min-width: 0; height: 100%; }
+    .header-right { display: flex; align-items: center; gap: 0.7em; height: 100%; }
+    .app-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; font-weight: 700; font-size: 2rem; }
+    .app-title a { color: #fff; text-decoration: none; }
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 44px;
+      height: 44px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      z-index: 1201;
+      margin: 0;
+      padding: 0;
+      border-radius: 8px;
+      transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
+    }
+    .hamburger:hover,
+    .hamburger:focus-visible,
+    .hamburger:active {
+      background: rgba(255,255,255,0.13);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      outline: none;
+      transform: scale(1.07);
+    }
+    .hamburger:focus-visible {
+      outline: 2px solid #3182ce;
+      outline-offset: 2px;
+    }
+    .hamburger span {
+      display: block;
+      width: 28px;
+      height: 3px;
+      margin: 4px 0;
+      background: #fff;
+      border-radius: 2px;
+      transition: all 0.3s;
+    }
+    @media (max-width: 768px) {
+      html, body {
+        overflow-x: hidden;
+        max-width: 100vw;
+      }
+      .hamburger { display: flex; }
+      .main-nav { display: none !important; }
+      .header-right { gap: 0.5em; padding-right: 2px; }
+      .app-header-flex {
+        height: 56px;
+        min-height: 56px;
+        padding: 0 0.5em !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+      }
+      .app-header, .app-header-flex, .container {
+        box-sizing: border-box;
+        max-width: 100vw !important;
+      }
+      .app-title { font-size: 1.3rem; }
+      .header-left img { height: 38px !important; }
+      #hamburgerBtn { margin-right: 0; }
+    }
+    @media (min-width: 769px) {
+      .mobile-nav, .mobile-nav-overlay, #hamburgerBtn { display: none !important; }
+    }
+    /* Off-canvas mobile nav styles */
+    .mobile-nav {
+      position: fixed;
+      top: 0; left: 0;
+      width: 260px;
+      height: 100vh;
+      background: #fff;
+      box-shadow: 2px 0 16px rgba(0,0,0,0.13);
+      z-index: 1202;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+      padding-top: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .mobile-nav.open {
+      transform: translateX(0);
+    }
+    .mobile-nav-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2em 1.2em 1em 1.2em;
+      border-bottom: 1px solid #e2e8f0;
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+    .mobile-nav ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5em;
+    }
+    .mobile-nav ul li {
+      border-bottom: 1px solid #f1f1f1;
+    }
+    .mobile-nav ul li:last-child {
+      border-bottom: none;
+    }
+    .mobile-nav ul li a {
+      display: block;
+      padding: 1em 1.5em;
+      color: #2d3748;
+      text-decoration: none;
+      font-size: 1.08em;
+      transition: background 0.18s, color 0.18s;
+      border-radius: 6px;
+    }
+    .mobile-nav ul li a:hover,
+    .mobile-nav ul li a:focus-visible,
+    .mobile-nav ul li a:active {
+      background: #e2e8f0;
+      color: #1a202c;
+      outline: none;
+    }
+    .mobile-nav ul li a:focus-visible {
+      outline: 2px solid #3182ce;
+      outline-offset: 2px;
+    }
+    .mobile-nav-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.18);
+      z-index: 1200;
+      transition: opacity 0.3s;
+    }
+    .mobile-nav.open ~ .mobile-nav-overlay {
+      display: block;
+      opacity: 1;
+    }
+    </style>
+
+    <script>
+    // Hamburger and mobile nav logic
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const mobileNav = document.getElementById('mobileNav');
+    const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+    const closeMobileNav = document.getElementById('closeMobileNav');
+
+    function openMobileNav() {
+      mobileNav.classList.add('open');
+      mobileNav.setAttribute('aria-hidden', 'false');
+      hamburgerBtn.setAttribute('aria-expanded', 'true');
+      mobileNavOverlay.style.display = 'block';
+      setTimeout(() => { mobileNavOverlay.style.opacity = '1'; }, 10);
+    }
+    function closeMobileNavFunc() {
+      mobileNav.classList.remove('open');
+      mobileNav.setAttribute('aria-hidden', 'true');
+      hamburgerBtn.setAttribute('aria-expanded', 'false');
+      mobileNavOverlay.style.opacity = '0';
+      setTimeout(() => { mobileNavOverlay.style.display = 'none'; }, 300);
+    }
+    if (hamburgerBtn && mobileNav && mobileNavOverlay && closeMobileNav) {
+      hamburgerBtn.addEventListener('click', openMobileNav);
+      closeMobileNav.addEventListener('click', closeMobileNavFunc);
+      mobileNavOverlay.addEventListener('click', closeMobileNavFunc);
+      // Close on ESC
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && mobileNav.classList.contains('open')) closeMobileNavFunc();
+      });
+    }
     </script>
 </body>
 </html>
