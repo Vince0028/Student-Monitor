@@ -16,22 +16,22 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body data-user-type="{{ session.user_type }}"{% if login_page %} class="no-scroll-page login-page"{% endif %}>
-    <header class="app-header" style="background: #4a5568; min-height: 64px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-        <div class="container app-header-flex" style="display: flex; align-items: center; justify-content: space-between; max-width: 1200px; margin: 0 auto; width: 100%; height: 64px; min-height: 64px; padding: 0 2.2em;">
-            <div class="header-left" style="display: flex; align-items: center; gap: 1.2em; min-width: 0; height: 100%;">
+    <header class="app-header">
+        <div class="container app-header-flex">
+            <div class="header-left">
                 <img src="{{ url_for('static', filename='css/pcshs_logo.png') }}" alt="PCSHS Logo" style="height: 48px; width: auto; margin-right: 10px;">
-                <h1 class="app-title" style="margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; font-weight: 700; font-size: 2rem;"> <a href="{{ url_for('dashboard') if session.user_id else url_for('index') }}" style="color: #fff; text-decoration: none;">Student Monitor</a></h1>
+                <h1 class="app-title"> <a href="{{ url_for('dashboard') if session.user_id else url_for('index') }}" style="color: #fff; text-decoration: none;">Student Monitor</a></h1>
             </div>
-            <div class="header-right" style="display: flex; align-items: center; gap: 0.7em; height: 100%;">
+            <div class="header-right">
                 <!-- Hamburger button for mobile (always right-aligned) -->
-                <button id="hamburgerBtn" class="hamburger" aria-label="Open menu" aria-controls="mobileNav" aria-expanded="false" style="margin: 0; padding: 0; background: none;">
+                <button id="hamburgerBtn" class="hamburger" aria-label="Open menu" aria-controls="mobileNav" aria-expanded="false">
                     <span></span><span></span><span></span>
                 </button>
             </div>
             <nav class="main-nav">
                 <ul class="nav-links">
                     {% if session.user_id %} {# Check if user is logged in #}
-                        <li><a href="{{ url_for('profile') }}"><i class="fas fa-user-circle"></i> <span class="nav-text">Profile</span></a></li>
+                        <li><a href="{{ url_for('profile') }}" class="profile-link"><i class="fas fa-user-circle"></i> <span class="nav-text">Profile</span></a></li>
                         {% if session.user_type == 'admin' %}
                             <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> <span class="nav-text">Dashboard</span></a></li>
                         {% elif session.user_type == 'teacher' %}
@@ -39,9 +39,9 @@
                         {% endif %}
                         <li><a href="{{ url_for('logout') }}" class="btn-logout"><i class="fas fa-sign-out-alt"></i> <span class="nav-text">Logout</span></a></li>
                         <li>
-                            <button id="darkModeToggle" class="btn btn-outline-secondary d-none d-md-inline-flex" title="Toggle dark mode" style="margin-left: 0.5em; align-items: center; gap: 0.4em;">
+                            <button id="darkModeToggle" class="btn btn-outline-secondary d-none d-md-inline-flex" title="Toggle dark mode">
                                 <i id="darkModeIcon" class="fas fa-moon"></i>
-                                <span id="darkModeText" style="font-size: 1em;">Dark Mode</span>
+                                <span id="darkModeText">Dark Mode</span>
                             </button>
                         </li>
                     {% else %}
@@ -61,7 +61,7 @@
         </div>
         <ul>
             {% if session.user_id %}
-                <li><a href="{{ url_for('profile') }}"><i class="fas fa-user-circle"></i> Profile</a></li>
+                <li><a href="{{ url_for('profile') }}" class="profile-link"><i class="fas fa-user-circle"></i> Profile</a></li>
                 {% if session.user_type == 'admin' %}
                     <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                 {% elif session.user_type == 'teacher' %}
@@ -217,12 +217,15 @@
                 });
             }
 
-            const profileLink = document.querySelector('.nav-links a[href*="profile"]');
-            if (profileLink && document.body.dataset.userType === "teacher") {
-                profileLink.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    const passwordModal = new bootstrap.Modal(document.getElementById('passwordConfirmModal'));
-                    passwordModal.show();
+            // Attach admin password modal to all profile links for teachers
+            const profileLinks = document.querySelectorAll('.profile-link');
+            if (profileLinks.length && document.body.dataset.userType === "teacher") {
+                profileLinks.forEach(profileLink => {
+                    profileLink.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        const passwordModal = new bootstrap.Modal(document.getElementById('passwordConfirmModal'));
+                        passwordModal.show();
+                    });
                 });
             }
 
@@ -288,6 +291,41 @@
                     }
                 });
             });
+
+            // Hamburger/mobile nav logic
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const mobileNav = document.getElementById('mobileNav');
+            const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+            const closeMobileNav = document.getElementById('closeMobileNav');
+            function openMobileNav() {
+                mobileNav.classList.add('open');
+                mobileNavOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+            function closeMobileNavFunc() {
+                mobileNav.classList.remove('open');
+                mobileNavOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+            if (hamburgerBtn && mobileNav && mobileNavOverlay && closeMobileNav) {
+                hamburgerBtn.addEventListener('click', openMobileNav);
+                mobileNavOverlay.addEventListener('click', closeMobileNavFunc);
+                closeMobileNav.addEventListener('click', closeMobileNavFunc);
+            }
+            // Mobile menu: close on profile click and show modal if present
+            const mobileProfileLink = document.querySelector('#mobileNav .profile-link');
+            if (mobileProfileLink) {
+                mobileProfileLink.addEventListener('click', function(e) {
+                    closeMobileNavFunc();
+                    // If the profile password modal exists, show it
+                    const profileModal = document.getElementById('profilePasswordModal');
+                    if (profileModal) {
+                        e.preventDefault();
+                        const modal = new bootstrap.Modal(profileModal);
+                        setTimeout(() => modal.show(), 350); // Wait for menu to close
+                    }
+                });
+            }
         });
 
         function submitPassword() {
@@ -613,22 +651,18 @@
 
     function openMobileNav() {
       mobileNav.classList.add('open');
-      mobileNav.setAttribute('aria-hidden', 'false');
-      hamburgerBtn.setAttribute('aria-expanded', 'true');
-      mobileNavOverlay.style.display = 'block';
-      setTimeout(() => { mobileNavOverlay.style.opacity = '1'; }, 10);
+      mobileNavOverlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
     }
     function closeMobileNavFunc() {
       mobileNav.classList.remove('open');
-      mobileNav.setAttribute('aria-hidden', 'true');
-      hamburgerBtn.setAttribute('aria-expanded', 'false');
-      mobileNavOverlay.style.opacity = '0';
-      setTimeout(() => { mobileNavOverlay.style.display = 'none'; }, 300);
+      mobileNavOverlay.classList.remove('active');
+      document.body.style.overflow = '';
     }
     if (hamburgerBtn && mobileNav && mobileNavOverlay && closeMobileNav) {
       hamburgerBtn.addEventListener('click', openMobileNav);
-      closeMobileNav.addEventListener('click', closeMobileNavFunc);
       mobileNavOverlay.addEventListener('click', closeMobileNavFunc);
+      closeMobileNav.addEventListener('click', closeMobileNavFunc);
       // Close on ESC
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && mobileNav.classList.contains('open')) closeMobileNavFunc();

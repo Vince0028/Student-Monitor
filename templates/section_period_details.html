@@ -147,7 +147,10 @@
         <div class="list-container">
             {% for subject in section_subjects %}
             <div class="list-item">
-                <span>{{ subject.subject_name }} (Assigned to: {{ subject.assigned_teacher_name }})</span>
+                <div class="subject-info">
+                    <span class="subject-name">{{ subject.subject_name }}</span>
+                    <span class="subject-assigned-to">(Assigned to: {{ subject.assigned_teacher_name }})</span>
+                </div>
                 <div class="button-group">
                     <button type="button" class="btn btn-edit btn-icon-small" data-bs-toggle="modal" data-bs-target="#editSubjectModal-{{ subject.id }}" title="Edit Subject">
                         <i class="fas fa-edit"></i> Edit

@@ -177,7 +177,7 @@ body.dark-mode .question-header {
                         {% endif %}
                     {% elif question.type == 'essay_type' %}
                         <div class="mb-3">
-                            <textarea class="form-control form-style-input" name="answer-{{ question.id }}" placeholder="Type your answer here" rows="8" required style="width:100%; min-height:180px; resize:vertical;"></textarea>
+                            <textarea class="form-control form-style-input" name="answer-{{ question.id }}" placeholder="Type your answer here" rows="8" required style="width:100%; min-height:180px; resize:vertical;" maxlength="1000"></textarea>
                         </div>
                     {% elif question.type == 'true_false' %}
                         <div class="form-check mb-2">

@@ -21,7 +21,7 @@
             <div class="feature-card-desc">Review your scores for quizzes you've finished.</div>
         </a>
         <!-- Pending Quizzes Card -->
-        <div class="feature-card card-quiz-pending">
+        <a href="{{ url_for('student_pending_quizzes') }}" class="feature-card card-quiz-pending">
             <div class="feature-card-icon"><i class="fas fa-hourglass-half" style="color:#2563eb;"></i></div>
             <div class="feature-card-title">Pending Quizzes</div>
             <div class="feature-card-desc">
@@ -31,7 +31,7 @@
                     No quizzes are pending review
                 {% endif %}
             </div>
-        </div>
+        </a>
     </div>
 </div>
 

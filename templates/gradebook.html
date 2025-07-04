@@ -182,9 +182,18 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h3>Gradebook for {{ subject.subject_name }}</h3>
             <div>
-                <button type="button" class="btn btn-info btn-sm me-2" onclick="syncTotalGrades()">
-                    <i class="fas fa-sync-alt"></i> Sync Total Grades
-                </button>
+                <div class="btn-group me-2">
+                    <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="exportTableToExcel('gradeSheetTable', 'gradebook.xlsx'); return false;">Excel (.xlsx)</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="exportTableToWord('gradeSheetTable', 'gradebook.doc'); return false;">Word (.doc)</a></li>
+                    </ul>
+                </div>
+                <a href="{{ url_for('sync_total_grades_for_subject', subject_id=subject.id) }}" class="btn btn-primary">
+                    <i class="fas fa-sync"></i> Sync Total Grades
+                </a>
             </div>
         </div>
         <div class="card-body">
@@ -587,6 +596,72 @@ function syncTotalGrades() {
             toast.show();
         });
     };
+}
+</script>
+
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script>
+function exportTableToExcel(tableID, filename = '') {
+    // Clone the table and remove the last column (Actions)
+    var table = document.getElementById(tableID);
+    var clone = table.cloneNode(true);
+    // Remove last cell from each row
+    for (var i = 0; i < clone.rows.length; i++) {
+        clone.rows[i].deleteCell(clone.rows[i].cells.length - 1);
+    }
+    // Convert the cleaned table to workbook
+    var wb = XLSX.utils.table_to_book(clone, {sheet:"Sheet1"});
+    var ws = wb.Sheets["Sheet1"];
+    // Set column widths (wch = width in characters)
+    ws['!cols'] = [
+        { wch: 18 }, // Student Name
+        { wch: 14 }, // Assignment
+        { wch: 14 }, // Attendance
+        { wch: 14 }, // Exam
+        { wch: 14 }, // Quiz
+        { wch: 14 }, // Activities
+        { wch: 14 }, // Total Grade
+    ];
+    // Bold the first row (headers)
+    var range = XLSX.utils.decode_range(ws['!ref']);
+    for (var C = range.s.c; C <= range.e.c; ++C) {
+        var cell = ws[XLSX.utils.encode_cell({r:0, c:C})];
+        if (cell && !cell.s) cell.s = {};
+        if (cell) cell.s.font = { bold: true };
+    }
+    XLSX.writeFile(wb, filename || 'gradebook.xlsx');
+}
+function exportTableToWord(tableID, filename = '') {
+    // Clone the table and remove the last column (Actions)
+    var table = document.getElementById(tableID);
+    var clone = table.cloneNode(true);
+    for (var i = 0; i < clone.rows.length; i++) {
+        clone.rows[i].deleteCell(clone.rows[i].cells.length - 1);
+    }
+    // Remove all links (e.g., Grade button)
+    var links = clone.querySelectorAll('a');
+    links.forEach(function(link) {
+        var text = document.createTextNode(link.textContent);
+        link.parentNode.replaceChild(text, link);
+    });
+    var preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' " +
+                  "xmlns:w='urn:schemas-microsoft-com:office:word' " +
+                  "xmlns='http://www.w3.org/TR/REC-html40'>" +
+                  "<head><meta charset='utf-8'><title>Export HTML To Doc</title></head><body>";
+    var postHtml = "</body></html>";
+    var html = preHtml + clone.outerHTML + postHtml;
+    var blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    var downloadLink = document.createElement("a");
+    document.body.appendChild(downloadLink);
+    if (navigator.msSaveOrOpenBlob) {
+        navigator.msSaveOrOpenBlob(blob, filename || 'gradebook.doc');
+    } else {
+        downloadLink.href = URL.createObjectURL(blob);
+        downloadLink.download = filename || 'gradebook.doc';
+        downloadLink.click();
+        setTimeout(function() { URL.revokeObjectURL(downloadLink.href); }, 100);
+    }
+    document.body.removeChild(downloadLink);
 }
 </script>
 {% endblock %}

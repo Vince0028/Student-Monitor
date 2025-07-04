@@ -582,14 +582,16 @@ def student_completed_quizzes():
                 ).all()
                 if answers:
                     is_essay_pending = True
-            completed_quizzes.append({
-                'id': quiz.id,
-                'title': quiz.title,
-                'score': format_number(result.score),
-                'total_points': format_number(result.total_points),
-                'is_essay_pending': is_essay_pending,
-                'subject_name': subject_name
-            })
+            # Only append if not pending
+            if not is_essay_pending:
+                completed_quizzes.append({
+                    'id': quiz.id,
+                    'title': quiz.title,
+                    'score': format_number(result.score),
+                    'total_points': format_number(result.total_points),
+                    'is_essay_pending': is_essay_pending,
+                    'subject_name': subject_name
+                })
     return render_template('student_quiz_templates/student_completed_quizzes.html', completed_quizzes=completed_quizzes)
 
 @app.route('/student/quiz/<uuid:quiz_id>', methods=['GET', 'POST'])
@@ -730,6 +732,45 @@ def view_quiz_score(quiz_id):
     score = format_number(result.score)
     total_points = format_number(result.total_points)
     return render_template('student_quiz_templates/student_quiz_results.html', quiz_title=quiz.title, score=score, total_questions=total_points)
+
+@app.route('/student/quiz/pending')
+@login_required
+def student_pending_quizzes():
+    db_session = g.session
+    student_id = session.get('student_id')
+    student = db_session.query(StudentInfo).filter_by(id=student_id).first()
+    quizzes = db_session.query(Quiz).filter_by(section_period_id=student.section_period_id, status='published').all()
+    import json
+    pending_quizzes = []
+    for quiz in quizzes:
+        try:
+            questions = json.loads(quiz.questions_json or '[]')
+        except Exception:
+            questions = []
+        essay_qids = [str(q['id']) for q in questions if q.get('type') == 'essay_type']
+        if not essay_qids:
+            continue
+        # Get this student's attempt for this quiz
+        sqr = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz.id).first()
+        if not sqr:
+            continue  # Not taken yet
+        # Check if any essay_type is unscored
+        unscored = db_session.query(StudentQuizAnswer).filter(
+            StudentQuizAnswer.student_quiz_result_id == sqr.id,
+            StudentQuizAnswer.question_id.in_(essay_qids),
+            StudentQuizAnswer.score.is_(None)
+        ).first()
+        if unscored:
+            pending_quizzes.append({
+                'quiz': quiz,
+                'result_id': sqr.id,
+                'quiz_id': quiz.id,
+                'title': quiz.title,
+                'subject_id': quiz.subject_id,
+                'score': sqr.score,
+                'total_points': sqr.total_points
+            })
+    return render_template('student_quiz_templates/student_quiz_pending.html', pending_quizzes=pending_quizzes)
 
 if __name__ == '__main__':
     # To access on your mobile device, run with host='0.0.0.0' and your desired port (e.g., 5002):

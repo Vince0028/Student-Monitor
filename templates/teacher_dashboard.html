@@ -36,7 +36,7 @@
                         <td data-label="Strand">{{ section.strand.name if section.strand else 'N/A' }}</td>
                         <td data-label="Adviser">{{ section.adviser_name or 'N/A' }}</td>
                         <td data-label="Actions">
-                            <div class="button-group" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <div class="actions-flex-row">
                                 <select onchange="handlePeriodSelect(this, '{{ section.id }}', '{{ section.section_password|default('') }}')" class="btn btn-view btn-icon-small">
                                     <option value="">View Period...</option>
                                     {% set teacher_id = uuid.UUID(session.user_id) %}
@@ -52,20 +52,22 @@
                                         <option value="" disabled>No periods exist for this section</option>
                                     {% endif %}
                                 </select>
-                                <button type="button" class="btn btn-primary btn-icon-small edit-btn"
-                                        title="Edit Section Settings"
-                                        data-edit-url="{{ url_for('edit_section_admin', section_id=section.id) }}"
-                                        data-section-id="{{ section.id }}">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button type="button" class="btn btn-danger btn-icon-small delete-btn"
-                                        data-delete-url="{{ url_for('delete_teacher_section', section_id=section.id) }}"
-                                        data-redirect-url="{{ url_for('teacher_dashboard') }}"
-                                        data-confirmation-message="Are you sure you want to delete section {{ section.name }}? This will delete all periods, students, subjects, attendance, and grades within it that you manage."
-                                        data-item-name="Section {{ section.name }}"
-                                        title="Delete Section">
-                                    <i class="fas fa-trash-alt"></i> Delete
-                                </button>
+                                <div class="button-group">
+                                    <button type="button" class="btn btn-primary btn-icon-small edit-btn"
+                                            title="Edit Section Settings"
+                                            data-edit-url="{{ url_for('edit_section_admin', section_id=section.id) }}"
+                                            data-section-id="{{ section.id }}">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-icon-small delete-btn"
+                                            data-delete-url="{{ url_for('delete_teacher_section', section_id=section.id) }}"
+                                            data-redirect-url="{{ url_for('teacher_dashboard') }}"
+                                            data-confirmation-message="Are you sure you want to delete section {{ section.name }}? This will delete all periods, students, subjects, attendance, and grades within it that you manage."
+                                            data-item-name="Section {{ section.name }}"
+                                            title="Delete Section">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </button>
+                                </div>
                             </div>
                         </td>
                     </tr>

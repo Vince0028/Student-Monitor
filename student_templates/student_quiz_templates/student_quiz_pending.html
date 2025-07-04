@@ -1,0 +1,22 @@
+{% extends 'student_base.html' %}
+
+{% block title %}Pending Quizzes - Student Monitor{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h3 style="font-size: 2rem; font-weight: bold; margin-bottom: 1.5rem;">Pending Quizzes</h3>
+    {% if pending_quizzes and pending_quizzes|length > 0 %}
+        <div class="quiz-list-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; max-width: 900px; margin: 0 auto;">
+            {% for pq in pending_quizzes %}
+            <a href="{{ url_for('view_quiz_score', quiz_id=pq.quiz_id) }}" class="quiz-card quiz-card-pending" style="display: block; background: #f8faff; border-radius: 16px; box-shadow: 0 2px 12px rgba(37,99,235,0.07); padding: 2rem 1.5rem 1.5rem 1.5rem; text-decoration: none; transition: box-shadow 0.18s; border: 1.5px solid #e0e7ef; max-width: 420px; margin: 0 auto;">
+                <div style="font-size: 1.2rem; font-weight: 700; color: #2563eb; margin-bottom: 0.5rem;">{{ pq.title }}</div>
+                <div style="font-size: 1rem; color: #444; margin-bottom: 0.7rem;">Subject: <span style="font-weight:600;">{{ pq.quiz.subject_name if pq.quiz.subject_name else 'N/A' }}</span></div>
+                <div style="color:#2563eb; font-weight:600; font-size:1.05rem;">Score Pending (waiting for teacher review)</div>
+            </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="font-size:1.2rem; color:#888; margin-top:2rem;">No quizzes are currently pending review.</div>
+    {% endif %}
+</div>
+{% endblock %}

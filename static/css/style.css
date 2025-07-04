@@ -19,26 +19,66 @@ body {
 
 /* Header */
 .app-header {
-    background-color: #4a5568; /* Darker gray for header */
+    background-color: #4a5568;
     color: #fff;
-    padding: 15px 0;
+    min-height: 40px;
+    height: 40px;
+    padding: 0;
+    width: 100vw;
+    overflow-x: hidden;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    min-height: 80px;
-    overflow: visible;
+    display: flex;
+    align-items: center;
 }
 
 .app-header .container {
     display: flex;
-    justify-content: space-between;
+    flex-direction: row;
     align-items: center;
-    flex-wrap: wrap; /* Allow wrapping for responsiveness */
-    overflow: visible;
+    justify-content: space-between;
+    height: 40px;
+    min-height: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 0 2.2em;
+    gap: 0;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.2em;
+    min-width: 0;
+    height: 100%;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.7em;
+    height: 100%;
+}
+
+.app-header .header-left img {
+    height: 28px;
+    width: auto;
+    margin-right: 8px;
+    display: block;
 }
 
 .app-title {
     margin: 0;
-    font-size: 1.8em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #fff;
     font-weight: 700;
+    font-size: 1.3rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    height: 100%;
 }
 
 .app-title a {
@@ -48,7 +88,217 @@ body {
 }
 
 .app-title a:hover {
-    color: #a0aec0; /* Lighter gray on hover */
+    color: #a0aec0;
+}
+
+/* Hamburger button vertical alignment */
+.hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 40px;
+    width: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .app-header .container {
+        padding: 0 1em;
+    }
+    .header-left { padding-left: 0.7em; }
+    .header-right { padding-right: 0.7em; }
+}
+@media (max-width: 768px) {
+    .app-header {
+        min-height: 56px;
+        height: 56px;
+    }
+    .app-header .container {
+        height: 56px;
+        min-height: 56px;
+        flex-direction: row;
+        gap: 0;
+        padding: 0 0.5em;
+    }
+    .header-left { padding-left: 0.5em; }
+    .header-right { padding-right: 0.5em; }
+    .app-title { font-size: 1.3em; }
+    .main-nav {
+        display: none !important;
+    }
+    .hamburger {
+        display: flex !important;
+    }
+    .mobile-nav {
+        display: block !important;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 80vw;
+        max-width: 320px;
+        height: 100vh;
+        background: #4a5568;
+        color: #fff;
+        z-index: 9999 !important;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+        box-shadow: 2px 0 12px rgba(0,0,0,0.18);
+        overflow-y: auto;
+        pointer-events: auto;
+    }
+    .mobile-nav.open {
+        transform: translateX(0);
+    }
+    #mobileNavOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.3);
+        z-index: 9998 !important;
+        pointer-events: none !important;
+    }
+    #mobileNavOverlay.active {
+        display: block;
+        pointer-events: auto !important;
+    }
+    .card .button-group, .dashboard-option-card .button-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        align-items: stretch;
+        margin-top: 10px;
+    }
+    .card .button-group .btn, .dashboard-option-card .button-group .btn {
+        width: 100%;
+        margin-bottom: 0;
+        justify-content: center;
+        font-size: 1em;
+    }
+    .actions-flex-row {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+        width: 100% !important;
+        align-items: stretch !important;
+    }
+    .actions-flex-row .button-group {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+        width: 100% !important;
+        align-items: stretch !important;
+    }
+    .actions-flex-row .button-group .btn {
+        width: 100% !important;
+        margin-bottom: 0 !important;
+        justify-content: center !important;
+        font-size: 1em !important;
+    }
+    .data-table td[data-label='Actions'] {
+        width: auto !important;
+        left: auto !important;
+        display: table-cell !important;
+        position: relative !important;
+        z-index: 2 !important;
+        padding-bottom: 24px !important;
+        min-height: unset !important;
+        overflow: visible !important;
+    }
+    .data-table td[data-label='Actions'] .actions-flex-row,
+    .data-table td[data-label='Actions'] .button-group {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 10px !important;
+        align-items: stretch !important;
+        justify-content: flex-start !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: static !important;
+        margin-top: 10px !important;
+    }
+    .data-table td[data-label='Actions'] .button-group .btn {
+        width: 100% !important;
+        margin-bottom: 0 !important;
+        justify-content: center !important;
+        font-size: 1em !important;
+    }
+    .data-table thead {
+        display: none !important;
+    }
+}
+@media (min-width: 769px) {
+    .mobile-nav, #mobileNavOverlay, .hamburger {
+        display: none !important;
+    }
+    .main-nav {
+        display: block !important;
+    }
+    .data-table thead {
+        display: table-header-group !important;
+    }
+    .actions-flex-row {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 10px !important;
+        width: auto !important;
+        justify-content: flex-end !important;
+    }
+    .button-group {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 10px !important;
+        width: auto !important;
+        margin-top: 0 !important;
+    }
+    .button-group .btn {
+        width: auto !important;
+        margin-bottom: 0 !important;
+        font-size: 1em !important;
+        justify-content: center !important;
+    }
+    .card,
+    .card .data-table,
+    .card .data-table tr,
+    .card .data-table td:first-child,
+    .data-table td:first-child {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+    }
+    .subject-info {
+        padding-left: 0 !important;
+    }
+    .data-table td:first-child * {
+        margin-left: 0 !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+    }
+}
+@media (max-width: 480px) {
+    .app-header {
+        min-height: 48px;
+        height: 48px;
+    }
+    .app-header .container {
+        height: 48px;
+        min-height: 48px;
+        padding: 0 0.2em;
+    }
+    .header-left { padding-left: 0.2em; }
+    .header-right { padding-right: 0.2em; }
+    .app-title { font-size: 1.1em; }
 }
 
 .main-nav ul {
@@ -738,32 +988,40 @@ body {
 
 /* Lists */
 .list-container {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
-
 .list-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 20px 25px;
     border-bottom: 1px solid #e2e8f0;
     transition: background-color 0.3s ease;
+    gap: 16px;
 }
-
-.list-item:last-child {
-    border-bottom: none;
+.subject-info {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-width: 0;
 }
-
-.list-item span {
+.subject-name {
     font-weight: 600;
     color: #2d3748;
-    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
 }
-
-.list-item .button-group { 
+.subject-assigned-to {
+    margin-left: 12px;
+    font-weight: 400;
+    color: #4a5568;
+    white-space: nowrap;
+    font-size: 1em;
+    align-self: center;
+}
+.list-item .button-group {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
@@ -873,231 +1131,6 @@ body {
     }
 }
 
-@media (max-width: 768px) {
-    .app-header .container {
-        flex-direction: column;
-        gap: 15px;
-        text-align: center;
-    }
-
-    .app-title {
-        font-size: 1.5em;
-    }
-
-    .main-nav ul {
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        width: 100%;
-    }
-
-    .main-nav a {
-        width: 100%;
-        text-align: center;
-        padding: 12px 20px;
-    }
-
-    .hero-section {
-        padding: 40px 15px;
-        margin: 20px 10px;
-    }
-
-    .hero-content h2 {
-        font-size: 2em;
-    }
-
-    .hero-content p {
-        font-size: 1em;
-    }
-
-    .hero-buttons .btn {
-        min-width: 150px;
-        margin: 5px;
-    }
-
-    .info-card {
-        max-width: 100%;
-        min-width: unset;
-        margin: 10px 0;
-    }
-
-    .auth-container, .dashboard-container, .form-page-container {
-        padding: 20px;
-        margin: 15px 10px;
-        border-radius: 8px;
-    }
-
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-
-    .card {
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-
-    /* Enhanced Table Responsiveness */
-    .table-responsive {
-        margin: 0 -15px;
-        border-radius: 0;
-    }
-
-    .data-table {
-        font-size: 0.9em;
-    }
-
-    .data-table th, .data-table td {
-        padding: 10px 8px;
-        min-width: 80px;
-    }
-
-    /* Stack table cells on very small screens */
-    @media (max-width: 480px) {
-        .data-table, .data-table thead, .data-table tbody, .data-table th, .data-table td, .data-table tr {
-            display: block;
-        }
-
-        .data-table thead tr {
-            position: absolute;
-            top: -9999px;
-            left: -9999px;
-        }
-
-        .data-table tr {
-            border: 1px solid #e2e8f0;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            background: #fff;
-        }
-
-        .data-table td {
-            border: none;
-            position: relative;
-            padding-left: 50%;
-            text-align: left;
-            min-height: 40px;
-            display: flex;
-            align-items: center;
-        }
-
-        .data-table td:before {
-            content: attr(data-label) ": ";
-            position: absolute;
-            left: 10px;
-            width: 45%;
-            font-weight: 700;
-            color: #2d3748;
-        }
-
-        .data-table td:last-child {
-            border-bottom: none;
-        }
-    }
-
-    .grades-input-section .form-group {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-
-    .grades-input-section .form-group label {
-        flex-basis: auto;
-        min-width: unset;
-    }
-
-    .grades-input-section .form-group input {
-        width: 100%;
-        max-width: unset;
-        flex: none;
-    }
-
-    .button-group-right {
-        flex-direction: column;
-        gap: 10px;
-        align-items: stretch;
-    }
-
-    .button-group-right .btn {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .list-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
-        padding: 15px 20px;
-    }
-
-    .list-item .button-group {
-        width: 100%;
-        justify-content: flex-start;
-        flex-wrap: wrap;
-    }
-
-    .list-item .button-group .btn {
-        flex: 1;
-        min-width: 120px;
-        justify-content: center;
-    }
-
-    .attendance-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
-        padding: 15px 20px;
-    }
-
-    .attendance-options {
-        width: 100%;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
-    .attendance-options label {
-        flex: 1;
-        min-width: 80px;
-        justify-content: center;
-    }
-
-    .inline-form {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 15px;
-    }
-
-    .inline-form .form-group {
-        min-width: unset;
-    }
-
-    /* Button improvements for mobile */
-    .btn {
-        padding: 12px 16px;
-        font-size: 0.9em;
-        min-width: 100px;
-    }
-
-    .btn-icon-small {
-        padding: 8px 10px;
-        font-size: 0.8em;
-        min-width: auto;
-    }
-
-    /* Form improvements for mobile */
-    .app-form input[type="text"],
-    .app-form input[type="password"],
-    .app-form input[type="email"],
-    .app-form input[type="number"],
-    .app-form input[type="date"],
-    .app-form select,
-    .app-form textarea {
-        font-size: 16px; /* Prevent zoom on iOS */
-        padding: 12px 14px;
-    }
-}
-
 @media (max-width: 480px) {
     .container {
         padding: 0 10px;
@@ -1166,15 +1199,25 @@ body {
     }
 }
 
-/* Fix: Make button group inline and restrict select width */
+/* Default: horizontal for all .button-group (table and cards) */
 .button-group {
-    display: inline-flex; /* was flex */
+    display: flex;
+    flex-direction: row;
     align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    gap: 0.5em;
 }
 
-/* Fix: Set a fixed width for the select */
+/* Only stack and center in subject cards on mobile */
+@media (max-width: 700px) {
+    .subject-card .button-group {
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        gap: 0.7em;
+    }
+}
+
+/* Fix: Make button group inline and restrict select width */
 .button-group select {
     width: 160px;   /* or whatever looks best */
     min-width: 0;
@@ -1378,146 +1421,6 @@ body {
     color: #e3e6eb !important;
     border: 1px solid #31363b !important;
 }
-.dark-mode .form-control,
-.dark-mode input,
-.dark-mode select,
-.dark-mode textarea {
-    background: #181a1b !important;
-    color: #e3e6eb !important;
-    border: 1px solid #31363b !important;
-}
-.dark-mode .data-table th,
-.dark-mode .data-table td {
-    background: #23272e !important;
-    color: #e3e6eb !important;
-    border-color: #31363b !important;
-}
-.dark-mode .table-group-divider {
-    border-color: #31363b !important;
-}
-.dark-mode .app-footer, .dark-mode .parent-footer {
-    background: #181a1b !important;
-    color: #b0b3b8 !important;
-    border-top: 1px solid #31363b !important;
-}
-
-/* Move dark mode toggle to the right of the logout button */
-.main-nav ul.nav-links {
-    display: flex;
-    align-items: center;
-}
-#darkModeToggle {
-    margin-left: 0.5em !important;
-    margin-right: 0 !important;
-    order: 99;
-}
-
-/* Hide default focus outline for toggle, use custom */
-#darkModeToggle:focus {
-    outline: 2px solid #2563eb;
-    outline-offset: 2px;
-}
-
-/* --- Enhanced Dark Mode Text and Button Contrast --- */
-.dark-mode .card,
-.dark-mode .dashboard-container,
-.dark-mode .list-item,
-.dark-mode .list-item span,
-.dark-mode .card h3,
-.dark-mode .dashboard-container h2 {
-    color: #f3f6fa !important;
-}
-.dark-mode .btn,
-.dark-mode .btn-block,
-.dark-mode .btn-icon,
-.dark-mode .btn-icon-small {
-    color: #fff !important;
-    font-weight: 700 !important;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.25);
-}
-.dark-mode .btn-primary,
-.dark-mode .btn-block.btn-primary {
-    background: linear-gradient(90deg, #2563eb 60%, #1e40af 100%) !important;
-    color: #fff !important;
-    border: none !important;
-}
-.dark-mode .btn-primary:hover {
-    background: linear-gradient(90deg, #1d4ed8 60%, #1e3a8a 100%) !important;
-    box-shadow: 0 0 8px #2563eb99;
-}
-.dark-mode .btn-view {
-    background: linear-gradient(90deg, #805ad5 60%, #5b21b6 100%) !important;
-    color: #fff !important;
-    border: none !important;
-}
-.dark-mode .btn-view:hover {
-    background: linear-gradient(90deg, #6b46c1 60%, #4c1d95 100%) !important;
-    box-shadow: 0 0 8px #805ad599;
-}
-.dark-mode .btn-edit {
-    background: linear-gradient(90deg, #38a169 60%, #166534 100%) !important;
-    color: #fff !important;
-    border: none !important;
-}
-.dark-mode .btn-edit:hover {
-    background: linear-gradient(90deg, #2f855a 60%, #14532d 100%) !important;
-    box-shadow: 0 0 8px #38a16999;
-}
-.dark-mode .btn-danger {
-    background: linear-gradient(90deg, #e11d48 60%, #be123c 100%) !important;
-    color: #fff !important;
-    border: none !important;
-}
-.dark-mode .btn-danger:hover {
-    background: linear-gradient(90deg, #be123c 60%, #881337 100%) !important;
-    box-shadow: 0 0 8px #e11d4899;
-}
-.dark-mode .btn-outline-secondary {
-    color: #e3e6eb !important;
-    border-color: #444950 !important;
-    background: transparent !important;
-}
-.dark-mode .btn-outline-secondary:hover {
-    background: #31363b !important;
-    color: #fff !important;
-    box-shadow: 0 0 8px #2563eb55;
-}
-.dark-mode .card h3,
-.dark-mode .dashboard-container h2 {
-    color: #fff !important;
-    font-weight: 800 !important;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.18);
-}
-.dark-mode .card p,
-.dark-mode .card .description,
-.dark-mode .card label {
-    color: #b6c2d1 !important;
-    font-weight: 500;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.12);
-}
-.dark-mode .dashboard-welcome,
-.dark-mode .card p,
-.dark-mode .card .description,
-.dark-mode .card label {
-    color: #fff !important;
-    font-weight: 500;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.12);
-}
-.dark-mode .auth-container,
-.dark-mode .form-page-container,
-.dark-mode .card {
-    background: #23272e !important;
-    color: #fff !important;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.7) !important;
-}
-.dark-mode .modal-content,
-.dark-mode .modal-header,
-.dark-mode .modal-body,
-.dark-mode .modal-footer {
-    background: #23272e !important;
-    color: #fff !important;
-    border: 1px solid #31363b !important;
-}
 .dark-mode .modal-header,
 .dark-mode .modal-footer {
     border-bottom: 1px solid #31363b !important;
@@ -1529,7 +1432,7 @@ body {
 .dark-mode .modal-content th,
 .dark-mode .modal-content td {
     background: #23272e !important;
-    color: #fff !important;
+    color: #e3e6eb !important;
     border-color: #31363b !important;
 }
 .dark-mode .form-page-container .alert,
@@ -1537,13 +1440,13 @@ body {
 .dark-mode .form-page-container .form-description,
 .dark-mode .form-page-container .form-control[readonly] {
     background: #23272e !important;
-    color: #fff !important;
+    color: #e3e6eb !important;
     border: 1px solid #31363b !important;
     box-shadow: 0 1px 6px rgba(0,0,0,0.18);
 }
 .dark-mode .form-page-container {
     background: #23272e !important;
-    color: #fff !important;
+    color: #e3e6eb !important;
     border: 1px solid #31363b !important;
     box-shadow: 0 2px 12px rgba(0,0,0,0.7) !important;
 }
@@ -2013,4 +1916,195 @@ body.dark-mode #closeMobileNav {
   color: #fff;
   border-color: #3182ce;
   outline: none;
+}
+
+/* --- Fix for View Period select button in teacher dashboard --- */
+.button-group select.btn-view {
+  width: 100%;
+  min-width: 140px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.5em 2.2em 0.5em 0.8em; /* extra right padding for dropdown arrow */
+  font-size: 1em;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  margin-bottom: 0.5em;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  align-items: stretch;
+  width: 100%;
+}
+
+/* Prevent parent card/table from clipping the select */
+.card, .dashboard-container, .responsive-table, td[data-label="Actions"] {
+  overflow-x: visible !important;
+}
+
+@media (max-width: 600px) {
+  .button-group select.btn-view {
+    min-width: 180px;
+    font-size: 1.05em;
+  }
+  .button-group {
+    min-width: 180px;
+    width: 100%;
+  }
+}
+
+/* Optional: Make sure the select is not flush with the card edge */
+.button-group select.btn-view {
+  margin-left: 2px;
+  margin-right: 2px;
+}
+
+/* Center buttons in subject cards */
+.list-item > .button-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7em;
+  width: 100%;
+  margin-top: 0.7em;
+  margin-bottom: 0.7em;
+}
+
+/* Optional: Center text in subject-info for visual balance */
+.list-item > .subject-info {
+  text-align: center;
+  width: 100%;
+}
+
+/* Force horizontal layout for .button-group inside table actions cells */
+td[data-label="Actions"] .button-group,
+.table-actions .button-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.5em !important;
+}
+
+/* For table actions: keep .button-group horizontal */
+.actions-flex-row .button-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0;
+  padding: 0;
+}
+
+/* MAXIMUM SPECIFICITY: Force horizontal row for actions in table */
+td[data-label="Actions"] > .actions-flex-row,
+.table-actions > .actions-flex-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.7em !important;
+  width: 100% !important;
+  flex-wrap: nowrap !important;
+}
+
+td[data-label="Actions"] > .actions-flex-row > select,
+.table-actions > .actions-flex-row > select {
+  width: 160px !important;
+  min-width: 120px !important;
+  max-width: 200px !important;
+  flex: none !important;
+  display: inline-block !important;
+  margin: 0 !important;
+}
+
+td[data-label="Actions"] > .actions-flex-row > .button-group,
+.table-actions > .actions-flex-row > .button-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.5em !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.subject-info-row {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-width: 0;
+}
+.subject-info-row span:first-child {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 60%;
+}
+
+#studentSearch,
+input#studentSearch,
+input.form-control#studentSearch {
+    color: #222 !important;
+    background: #fff !important;
+}
+
+body.dark-mode #studentSearch,
+body.dark-mode input#studentSearch,
+body.dark-mode input.form-control#studentSearch {
+    color: #222 !important;
+    background: #fff !important;
+    border: 1px solid #bbb !important;
+}
+
+body.dark-mode .app-footer {
+    background: #181a1b !important;
+    color: #e2e8f0 !important;
+    border-top: 1px solid #23272f;
+}
+body.dark-mode .app-footer p {
+    color: #e2e8f0 !important;
+}
+
+/* --- Mobile UI for subject cards in teacher dashboard --- */
+@media (max-width: 600px) {
+  .list-item {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px 6px;
+    margin-bottom: 16px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    background: #fff;
+    width: 100%;
+  }
+  .list-item .subject-info {
+    font-size: 1.08em;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #222;
+    text-align: left;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    width: 100%;
+  }
+  .list-item .button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    align-items: stretch;
+    margin: 0;
+  }
+  .list-item .button-group .btn {
+    width: 100%;
+    font-size: 1em;
+    padding: 12px 0;
+    border-radius: 6px;
+  }
+  .list-item .btn-view {
+    margin-bottom: 4px;
+  }
 }

@@ -71,7 +71,7 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <input type="text" class="form-control attendance-notes" name="notes_{{ student.id }}" id="notes_{{ student.id }}" placeholder="Add reason (if needed)" maxlength="255" disabled>
+                                                <input type="text" class="form-control attendance-notes" name="notes_{{ student.id }}" id="notes_{{ student.id }}" placeholder="Add reason (if needed)" maxlength="255" disabled style="color:#111 !important; background:#fff !important; border:1.5px solid #888 !important; caret-color:#111 !important;">
                                             </td>
                                         </tr>
                                     {% endfor %}
@@ -97,7 +97,7 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <input type="text" class="form-control attendance-notes" name="notes_{{ student.id }}" id="notes_{{ student.id }}" placeholder="Add reason (if needed)" maxlength="255" disabled>
+                                                <input type="text" class="form-control attendance-notes" name="notes_{{ student.id }}" id="notes_{{ student.id }}" placeholder="Add reason (if needed)" maxlength="255" disabled style="color:#111 !important; background:#fff !important; border:1.5px solid #888 !important; caret-color:#111 !important;">
                                             </td>
                                         </tr>
                                     {% endfor %}
@@ -181,6 +181,95 @@
     top: 0;
     background: #f8f9fa;
     z-index: 2;
+}
+
+@media (max-width: 600px) {
+    .container, .card, .card-body {
+        padding: 0 !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+    .attendance-table, .attendance-table thead, .attendance-table tbody, .attendance-table tr, .attendance-table th, .attendance-table td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .attendance-table thead {
+        display: none;
+    }
+    .attendance-table tr {
+        margin-bottom: 1.2rem;
+        border-bottom: 1px solid #e2e8f0;
+        background: none;
+    }
+    .attendance-table td {
+        padding: 10px 8px;
+        border: none;
+        background: none;
+    }
+    .student-name {
+        font-weight: 600;
+        font-size: 1.1em;
+        margin-bottom: 4px;
+    }
+    .btn-group {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .btn-group .btn {
+        width: 100%;
+        padding: 10px 0;
+        font-size: 1em;
+    }
+    .attendance-notes {
+        width: 100%;
+        margin-top: 6px;
+        font-size: 1em;
+    }
+    .d-flex.justify-content-between.mt-3 {
+        flex-direction: column !important;
+        gap: 10px;
+    }
+    .d-flex.justify-content-between.mt-3 > * {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+    .btn, .btn-primary, .btn-secondary, .btn-info {
+        width: 100%;
+        font-size: 1.1em;
+        padding: 12px 0;
+        margin-bottom: 6px;
+    }
+    .input-group {
+        flex-direction: row;
+        width: 100%;
+    }
+    #studentSearch {
+        font-size: 1em;
+        padding: 10px 8px;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .attendance-notes {
+        background: #fff !important;
+        color: #222 !important;
+        border: 1px solid #bbb !important;
+    }
+    .attendance-notes::placeholder {
+        color: #888 !important;
+    }
+}
+
+.attendance-notes, input.attendance-notes, textarea.attendance-notes {
+    background: #fff !important;
+    color: #111 !important;
+    border: 1.5px solid #888 !important;
+    caret-color: #111 !important;
+}
+.attendance-notes::placeholder {
+    color: #888 !important;
 }
 </style>
 

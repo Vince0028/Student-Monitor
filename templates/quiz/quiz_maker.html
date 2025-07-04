@@ -73,6 +73,24 @@
             cursor: pointer;
         }
         @media (max-width: 768px) { .quiz-container { margin: 10px; border-radius: 15px; } .quiz-content { padding: 20px; } .question-card { padding: 20px; } .quiz-title { font-size: 2rem; } }
+        @media (max-width: 600px) {
+            .quiz-container { margin: 2vw; border-radius: 10px; }
+            .quiz-header { padding: 18px 8px; }
+            .quiz-title { font-size: 1.3rem; }
+            .quiz-content { padding: 10px 4px; }
+            .quiz-form-header { padding: 12px 6px; border-radius: 8px; margin-bottom: 18px; }
+            .quiz-form-header h2 { font-size: 1.1rem; }
+            .quiz-form-header input { font-size: 1.1rem; padding: 7px 0; }
+            .quiz-form-header label { font-size: 0.95rem !important; }
+            .quiz-form-header > div[style*='display: flex'] { flex-direction: column !important; gap: 0.5rem !important; align-items: stretch !important; }
+            .quiz-form-header > div > div { width: 100% !important; }
+            .quiz-form-header input[type="datetime-local"],
+            .quiz-form-header input[type="number"] { width: 100% !important; min-width: 0; box-sizing: border-box; }
+            .question-card { padding: 10px 4px; }
+            .quiz-actions { flex-direction: column; gap: 10px; padding: 10px 4px; }
+            .quiz-actions > div { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+            .btn-primary, .btn-secondary { width: 100%; min-width: 0; padding: 10px 0; font-size: 1em; }
+        }
 
         /* Dark mode styles for quiz maker */
         .dark-mode .quiz-container { background: #23272f; color: #f1f1f1; }
@@ -158,10 +176,6 @@
             </button>
         </div>
         <div class="quiz-actions">
-            <button class="btn-secondary">
-                <i class="fas fa-eye"></i>
-                Preview
-            </button>
             <div>
                 <button class="btn-secondary" style="margin-right: 10px;" onclick="window.location.href='/section_period/{{ subject.section_period_id }}/subject/{{ subject.id }}/gradebook'">&larr; Back to Gradebook</button>
                 <button class="btn-secondary" style="margin-right: 10px;" id="saveDraftBtn">
@@ -219,7 +233,35 @@
             }
         });
         function addQuestion() { questionCounter++; const question = { id: questionCounter, text: '', type: 'multiple_choice', options: [ { text: '', isCorrect: false }, { text: '', isCorrect: false } ], correctAnswer: '', points: 1 }; questions.push(question); renderQuestion(question); updateEmptyState(); updateQuestionCount(); }
-        function renderQuestion(question) { const container = document.getElementById('questionsContainer'); const questionDiv = document.createElement('div'); questionDiv.className = 'question-card'; questionDiv.id = `question-${question.id}`; questionDiv.innerHTML = `<div class="question-header"><div class="question-number">${questions.indexOf(question) + 1}</div><input type="text" class="question-input" placeholder="Type your question here..." value="${question.text}" onchange="updateQuestion(${question.id}, 'text', this.value)"><div class="question-actions"><button class="action-btn drag-handle" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></button><button class="action-btn" onclick="duplicateQuestion(${question.id})" title="Duplicate"><i class="fas fa-copy"></i></button><button class="action-btn delete-btn" onclick="deleteQuestion(${question.id})" title="Delete"><i class="fas fa-trash"></i></button></div></div><div class="question-type-selector"><select class="type-dropdown" onchange="changeQuestionType(${question.id}, this.value)"><option value="multiple_choice" ${question.type === 'multiple_choice' ? 'selected' : ''}><i class="fas fa-list-ul"></i> Multiple Choice</option><option value="essay_type" ${question.type === 'essay_type' ? 'selected' : ''}><i class="fas fa-font"></i> Essay Type</option><option value="true_false" ${question.type === 'true_false' ? 'selected' : ''}><i class="fas fa-check-circle"></i> True/False</option></select></div><div style='margin-bottom:10px;'><label style='font-size:0.95rem;color:#718096;'>Points:</label> <input type='number' min='1' value='${question.points || 1}' style='width:60px;' onchange='updateQuestion(${question.id}, "points", this.value)'></div><div id="question-content-${question.id}">${renderQuestionContent(question)}</div>`; container.appendChild(questionDiv); }
+        function renderQuestion(question) {
+            const container = document.getElementById('questionsContainer');
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'question-card';
+            questionDiv.id = `question-${question.id}`;
+            questionDiv.innerHTML = `
+                <div class="question-header">
+                    <div class="question-number">${questions.indexOf(question) + 1}</div>
+                    <input type="text" class="question-input" placeholder="Type your question here..." value="${question.text}" onchange="updateQuestion(${question.id}, 'text', this.value)">
+                    <div class="question-actions">
+                        <button class="action-btn" onclick="duplicateQuestion(${question.id})" title="Copy"><i class="fas fa-copy"></i></button>
+                        <button class="action-btn delete-btn" onclick="deleteQuestion(${question.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+                <div class="question-type-selector">
+                    <select class="type-dropdown" onchange="changeQuestionType(${question.id}, this.value)">
+                        <option value="multiple_choice" ${question.type === 'multiple_choice' ? 'selected' : ''}><i class="fas fa-list-ul"></i> Multiple Choice</option>
+                        <option value="essay_type" ${question.type === 'essay_type' ? 'selected' : ''}><i class="fas fa-font"></i> Essay Type</option>
+                        <option value="true_false" ${question.type === 'true_false' ? 'selected' : ''}><i class="fas fa-check-circle"></i> True/False</option>
+                    </select>
+                </div>
+                <div style='margin-bottom:10px;'>
+                    <label style='font-size:0.95rem;color:#718096;'>Points:</label>
+                    <input type='number' min='1' value='${question.points || 1}' style='width:60px;' onchange='updateQuestion(${question.id}, "points", this.value)'>
+                </div>
+                <div id="question-content-${question.id}">${renderQuestionContent(question)}</div>
+            `;
+            container.appendChild(questionDiv);
+        }
         function renderQuestionContent(question) {
             if (question.type === 'multiple_choice') {
                 let multiToggle = `<div class='multi-toggle-row'><label class='multi-toggle-label'>Allow multiple correct answers:</label><input type='checkbox' class='multi-toggle-checkbox' onchange='toggleMultiAnswer(${question.id}, this.checked)' ${question.allowMultiple ? 'checked' : ''}></div>`;
@@ -410,7 +452,12 @@
                 showModal('Validation Error', 'Please add at least one question.');
                 return;
             }
-            for (const q of questions) {
+            for (let i = 0; i < questions.length; i++) {
+                const q = questions[i];
+                if (!q.text || q.text.trim() === "") {
+                    showModal('Validation Error', `Please enter a question for Question ${i + 1}.`);
+                    return;
+                }
                 if (q.type === 'multiple_choice') {
                     if (q.allowMultiple) {
                         if (!q.options.some(opt => opt.isCorrect)) {
