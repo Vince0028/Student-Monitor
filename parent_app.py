@@ -5,6 +5,7 @@ from functools import wraps
 import uuid
 from datetime import date, timedelta, datetime
 import decimal
+import re
 
 # Import SQLAlchemy components
 from sqlalchemy import create_engine, Column, Integer, String, Date, Numeric, ForeignKey, DateTime, UniqueConstraint, and_, or_, case, func
@@ -108,7 +109,8 @@ def parent_register():
             email=email,
             first_name=first_name,
             last_name=last_name,
-            phone_number=phone_number
+            phone_number=phone_number,
+            created_at=datetime.utcnow()
         )
 
         try:
@@ -368,8 +370,13 @@ def student_attendance(student_id):
 def parent_profile():
     parent_id = uuid.UUID(session['parent_id'])
     parent = g.session.query(Parent).filter_by(id=parent_id).first()
-    # Count children linked from students_info
-    children_linked = g.session.query(StudentInfo).filter_by(parent_id=parent_id).count()
+    # Count unique children linked from students_info (by base student_id_number)
+    students = g.session.query(StudentInfo).filter_by(parent_id=parent_id).all()
+    base_ids = set()
+    for s in students:
+        base_id = re.sub(r'(-Q[1-4]|-S[12])$', '', s.student_id_number)
+        base_ids.add(base_id)
+    children_linked = len(base_ids)
     if not parent:
         flash('Parent not found.', 'error')
         return redirect(url_for('parent_dashboard'))

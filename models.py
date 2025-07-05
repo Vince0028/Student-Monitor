@@ -292,6 +292,7 @@ class Parent(Base):
     last_name = Column(String(255), nullable=True)
     phone_number = Column(String(50), nullable=True)
     students = relationship('StudentInfo', back_populates='parent')
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     def __repr__(self):
         return f"<Parent(id={self.id}, username='{self.username}', email='{self.email}')>"
 
