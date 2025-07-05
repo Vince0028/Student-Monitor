@@ -1,0 +1,263 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Student Logs - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-user-graduate"></i> Student Activity Logs
+                    </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportLogs('csv')">
+                            <i class="fas fa-download"></i> Export CSV
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportLogs('pdf')">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Filter Controls -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="actionFilter">Action Type:</label>
+                            <select class="form-control" id="actionFilter">
+                                <option value="">All Actions</option>
+                                <option value="login">Login</option>
+                                <option value="logout">Logout</option>
+                                <option value="quiz_submit">Quiz Submission</option>
+                                <option value="quiz_view">Quiz View</option>
+                                <option value="quiz_score_view">Quiz Score View</option>
+                                <option value="profile_update">Profile Update</option>
+                                <option value="password_change">Password Change</option>
+                                <option value="grade_view">Grade View</option>
+                                <option value="attendance_view">Attendance View</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="studentFilter">Student:</label>
+                            <input type="text" class="form-control" id="studentFilter" placeholder="Search by student...">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dateFrom">From Date:</label>
+                            <input type="date" class="form-control" id="dateFrom">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dateTo">To Date:</label>
+                            <input type="date" class="form-control" id="dateTo">
+                        </div>
+                    </div>
+                    
+                    <!-- Logs Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="studentLogsTable">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Student</th>
+                                    <th>Action</th>
+                                    <th>Target</th>
+                                    <th>Details</th>
+                                    <th>IP Address</th>
+                                    <th>User Agent</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if log.timestamp else 'N/A' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <strong>{{ log.student_username }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-{{ get_action_badge_color(log.action_type) }}">
+                                            {{ log.action_type.replace('_', ' ').title() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-info">{{ log.target_type }}</span>
+                                        <br>
+                                        <small>{{ log.target_name }}</small>
+                                    </td>
+                                    <td>
+                                        {% if log.details %}
+                                            <span class="text-muted">{{ log.details[:100] }}{% if log.details|length > 100 %}...{% endif %}</span>
+                                        {% else %}
+                                            <span class="text-muted">No details</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <code class="small">{{ log.ip_address or 'N/A' }}</code>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ log.user_agent[:50] }}{% if log.user_agent and log.user_agent|length > 50 %}...{% endif %}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if logs.has_prev or logs.has_next %}
+                    <nav aria-label="Student logs pagination">
+                        <ul class="pagination justify-content-center">
+                            {% if logs.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('student_logs', page=logs.prev_num) }}">Previous</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for page_num in logs.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != logs.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('student_logs', page=page_num) }}">{{ page_num }}</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                    {% endif %}
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if logs.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('student_logs', page=logs.next_num) }}">Next</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Export Student Logs</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Exporting student logs...</p>
+                <div class="progress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filter functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const actionFilter = document.getElementById('actionFilter');
+    const studentFilter = document.getElementById('studentFilter');
+    const dateFrom = document.getElementById('dateFrom');
+    const dateTo = document.getElementById('dateTo');
+    
+    function applyFilters() {
+        const action = actionFilter.value;
+        const student = studentFilter.value.toLowerCase();
+        const fromDate = dateFrom.value;
+        const toDate = dateTo.value;
+        
+        const rows = document.querySelectorAll('#studentLogsTable tbody tr');
+        
+        rows.forEach(row => {
+            let show = true;
+            
+            // Action filter
+            if (action && !row.querySelector('td:nth-child(3)').textContent.toLowerCase().includes(action.toLowerCase())) {
+                show = false;
+            }
+            
+            // Student filter
+            if (student && !row.querySelector('td:nth-child(2)').textContent.toLowerCase().includes(student)) {
+                show = false;
+            }
+            
+            // Date filters
+            if (fromDate || toDate) {
+                const timestamp = row.querySelector('td:nth-child(1)').textContent.trim();
+                const logDate = timestamp.split(' ')[0]; // Extract date part
+                
+                if (fromDate && logDate < fromDate) {
+                    show = false;
+                }
+                if (toDate && logDate > toDate) {
+                    show = false;
+                }
+            }
+            
+            row.style.display = show ? '' : 'none';
+        });
+    }
+    
+    actionFilter.addEventListener('change', applyFilters);
+    studentFilter.addEventListener('input', applyFilters);
+    dateFrom.addEventListener('change', applyFilters);
+    dateTo.addEventListener('change', applyFilters);
+});
+
+// Export functionality
+function exportLogs(format) {
+    const modal = new bootstrap.Modal(document.getElementById('exportModal'));
+    modal.show();
+    
+    // Get current filters
+    const action = document.getElementById('actionFilter').value;
+    const student = document.getElementById('studentFilter').value;
+    const fromDate = document.getElementById('dateFrom').value;
+    const toDate = document.getElementById('dateTo').value;
+    
+    // Build export URL
+    let exportUrl = `/admin/student_logs/export?format=${format}`;
+    if (action) exportUrl += `&action=${action}`;
+    if (student) exportUrl += `&student=${encodeURIComponent(student)}`;
+    if (fromDate) exportUrl += `&from_date=${fromDate}`;
+    if (toDate) exportUrl += `&to_date=${toDate}`;
+    
+    // Trigger download
+    setTimeout(() => {
+        window.location.href = exportUrl;
+        modal.hide();
+    }, 1000);
+}
+
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    // Only refresh if no filters are applied
+    const action = document.getElementById('actionFilter').value;
+    const student = document.getElementById('studentFilter').value;
+    const fromDate = document.getElementById('dateFrom').value;
+    const toDate = document.getElementById('dateTo').value;
+    
+    if (!action && !student && !fromDate && !toDate) {
+        location.reload();
+    }
+}, 30000);
+</script>
+{% endblock %} 

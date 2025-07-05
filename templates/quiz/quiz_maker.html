@@ -232,7 +232,26 @@
                 updateQuestionCount();
             }
         });
-        function addQuestion() { questionCounter++; const question = { id: questionCounter, text: '', type: 'multiple_choice', options: [ { text: '', isCorrect: false }, { text: '', isCorrect: false } ], correctAnswer: '', points: 1 }; questions.push(question); renderQuestion(question); updateEmptyState(); updateQuestionCount(); }
+        function addQuestion() {
+            questionCounter++;
+            const question = {
+                id: questionCounter,
+                text: '',
+                type: 'multiple_choice',
+                options: [
+                    { text: '', isCorrect: false },
+                    { text: '', isCorrect: false },
+                    { text: '', isCorrect: false },
+                    { text: '', isCorrect: false }
+                ],
+                correctAnswer: '',
+                points: 1
+            };
+            questions.push(question);
+            renderQuestion(question);
+            updateEmptyState();
+            updateQuestionCount();
+        }
         function renderQuestion(question) {
             const container = document.getElementById('questionsContainer');
             const questionDiv = document.createElement('div');
@@ -262,15 +281,27 @@
             `;
             container.appendChild(questionDiv);
         }
+        function getOptionLabel(index) {
+            // Returns A, B, C, ... Z, AA, AB, etc.
+            let label = '';
+            index++;
+            while (index > 0) {
+                let rem = (index - 1) % 26;
+                label = String.fromCharCode(65 + rem) + label;
+                index = Math.floor((index - 1) / 26);
+            }
+            return label;
+        }
         function renderQuestionContent(question) {
             if (question.type === 'multiple_choice') {
                 let multiToggle = `<div class='multi-toggle-row'><label class='multi-toggle-label'>Allow multiple correct answers:</label><input type='checkbox' class='multi-toggle-checkbox' onchange='toggleMultiAnswer(${question.id}, this.checked)' ${question.allowMultiple ? 'checked' : ''}></div>`;
                 let optionsHtml = question.options.map((option, index) => {
                     let onKeyDown = `onkeydown=\"handleOptionEnter(event, ${question.id}, ${index})\"`;
+                    let label = getOptionLabel(index);
                     if (question.allowMultiple) {
-                        return `<div class=\"option-item\"><input type='checkbox' class='option-radio' ${option.isCorrect ? 'checked' : ''} onclick='toggleCorrectOption(${question.id}, ${index}, this.checked)'><input type=\"text\" class=\"option-input\" placeholder=\"Option ${index + 1}\" value=\"${option.text}\" onchange=\"updateOption(${question.id}, ${index}, this.value)\" ${onKeyDown}>${question.options.length > 2 ? `<i class=\"fas fa-times remove-option\" onclick=\"removeOption(${question.id}, ${index})\"></i>` : ''}</div>`;
+                        return `<div class=\"option-item\"><span style='font-weight:600; margin-right:8px;'>${label}.</span><input type='checkbox' class='option-radio' ${option.isCorrect ? 'checked' : ''} onclick='toggleCorrectOption(${question.id}, ${index}, this.checked)'><input type=\"text\" class=\"option-input\" placeholder=\"Option ${label}\" value=\"${option.text}\" onchange=\"updateOption(${question.id}, ${index}, this.value)\" ${onKeyDown}>${question.options.length > 2 ? `<i class=\"fas fa-times remove-option\" onclick=\"removeOption(${question.id}, ${index})\"></i>` : ''}</div>`;
                     } else {
-                        return `<div class=\"option-item\"><div class=\"option-radio ${option.isCorrect ? 'selected' : ''}\" onclick=\"selectCorrectOption(${question.id}, ${index})\"></div><input type=\"text\" class=\"option-input\" placeholder=\"Option ${index + 1}\" value=\"${option.text}\" onchange=\"updateOption(${question.id}, ${index}, this.value)\" ${onKeyDown}>${question.options.length > 2 ? `<i class=\"fas fa-times remove-option\" onclick=\"removeOption(${question.id}, ${index})\"></i>` : ''}</div>`;
+                        return `<div class=\"option-item\"><span style='font-weight:600; margin-right:8px;'>${label}.</span><div class=\"option-radio ${option.isCorrect ? 'selected' : ''}\" onclick=\"selectCorrectOption(${question.id}, ${index})\"></div><input type=\"text\" class=\"option-input\" placeholder=\"Option ${label}\" value=\"${option.text}\" onchange=\"updateOption(${question.id}, ${index}, this.value)\" ${onKeyDown}>${question.options.length > 2 ? `<i class=\"fas fa-times remove-option\" onclick=\"removeOption(${question.id}, ${index})\"></i>` : ''}</div>`;
                     }
                 }).join('');
                 return multiToggle + `<div class=\"options-container\">${optionsHtml}<button class=\"add-option-btn\" onclick=\"addOption(${question.id})\"><i class=\"fas fa-plus\"></i> Add option</button></div>`;
@@ -316,7 +347,23 @@
             }
         }
         function removeOption(questionId, optionIndex) { const question = questions.find(q => q.id === questionId); if (question && question.options.length > 2) { question.options.splice(optionIndex, 1); document.getElementById(`question-content-${questionId}`).innerHTML = renderQuestionContent(question); } }
-        function changeQuestionType(questionId, newType) { const question = questions.find(q => q.id === questionId); if (question) { question.type = newType; if (newType === 'multiple_choice') { question.options = [ { text: '', isCorrect: false }, { text: '', isCorrect: false } ]; } else if (newType === 'true_false') { question.correctAnswer = 'true'; } document.getElementById(`question-content-${questionId}`).innerHTML = renderQuestionContent(question); } }
+        function changeQuestionType(questionId, newType) {
+            const question = questions.find(q => q.id === questionId);
+            if (question) {
+                question.type = newType;
+                if (newType === 'multiple_choice') {
+                    question.options = [
+                        { text: '', isCorrect: false },
+                        { text: '', isCorrect: false },
+                        { text: '', isCorrect: false },
+                        { text: '', isCorrect: false }
+                    ];
+                } else if (newType === 'true_false') {
+                    question.correctAnswer = 'true';
+                }
+                document.getElementById(`question-content-${questionId}`).innerHTML = renderQuestionContent(question);
+            }
+        }
         function deleteQuestion(questionId) { questions = questions.filter(q => q.id !== questionId); document.getElementById(`question-${questionId}`).remove(); updateQuestionNumbers(); updateEmptyState(); updateQuestionCount(); }
         function duplicateQuestion(questionId) {
             const question = questions.find(q => q.id === questionId);

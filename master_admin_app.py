@@ -12,6 +12,8 @@ import click
 # Load environment variables from .env
 load_dotenv()
 
+
+
 app = Flask(__name__, template_folder='master_admin_templates', static_folder='master_admin_static')
 app.secret_key = 'supersecretkey'  # Change this in production
 
@@ -277,11 +279,51 @@ class User(db.Model):
 # --- Admin Log Model ---
 class AdminLog(db.Model):
     __tablename__ = 'admin_logs'
-    id = db.Column(db.Integer, primary_key=True)
-    action = db.Column(db.String(50), nullable=False)
-    target_username = db.Column(db.String(255), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    acting_admin = db.Column(db.String(255), nullable=False)
+    id = db.Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    admin_id = db.Column(PG_UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=False)
+    admin_username = db.Column(db.String(255), nullable=False)
+    action_type = db.Column(db.String(50), nullable=False)
+    target_type = db.Column(db.String(50), nullable=False)
+    target_id = db.Column(PG_UUID(as_uuid=True), nullable=True)
+    target_name = db.Column(db.String(255), nullable=False)
+    details = db.Column(db.Text, nullable=True)
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.String(500), nullable=True)
+    timestamp = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+
+# --- Helper Functions for Logging ---
+def get_client_info(request):
+    """Helper function to get client IP and user agent"""
+    ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+    if ip_address and ',' in ip_address:
+        ip_address = ip_address.split(',')[0].strip()
+    user_agent = request.headers.get('User-Agent', 'Unknown')
+    return ip_address, user_agent
+
+def create_admin_log_entry(db_session, admin_id, admin_username, action_type, target_type, target_id, target_name, details=None, request=None):
+    """
+    Helper function to create admin log entries
+    """
+    try:
+        ip_address, user_agent = get_client_info(request) if request else (None, None)
+        log_entry = AdminLog(
+            admin_id=admin_id,
+            admin_username=admin_username,
+            action_type=action_type,
+            target_type=target_type,
+            target_id=target_id,
+            target_name=target_name,
+            details=details,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        db_session.add(log_entry)
+        db_session.commit()
+        return True
+    except Exception as e:
+        db_session.rollback()
+        print(f"Error creating admin log: {e}")
+        return False
 
 @app.route('/admin/admin_logs')
 def admin_logs():

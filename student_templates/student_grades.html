@@ -583,6 +583,19 @@ body.dark-mode .grades-table th {
     color: #2563eb !important;
     font-weight: bold !important;
 }
+@media (max-width: 700px) {
+  .no-mobile-labels,
+  .no-mobile-labels td,
+  td.no-mobile-labels {
+    position: static !important;
+  }
+  .no-mobile-labels:before,
+  .no-mobile-labels td:before,
+  td.no-mobile-labels:before {
+    content: none !important;
+    display: none !important;
+  }
+}
 </style>
 
 <div class="landing-card">
@@ -639,7 +652,7 @@ body.dark-mode .grades-table th {
                                     {% set activities = activities_by_period[period][grade.section_subject.subject_name] %}
                                     {% if activities and activities|length > 0 %}
                                     <tr>
-                                        <td colspan="4" style="padding:0; background:#f9fafb;">
+                                        <td colspan="4" class="no-mobile-labels" style="padding:0; background:#f9fafb;">
                                             <div style="padding:0.5rem 1rem;">
                                                 <strong>Activities Breakdown:</strong>
                                                 {% set grouped = {} %}
@@ -647,7 +660,7 @@ body.dark-mode .grades-table th {
                                                     {% set _ = grouped.setdefault(item.component, []).append(item) %}
                                                 {% endfor %}
                                                 <div class="activities-scroll">
-                                                <table style="width:100%; font-size:0.95em; background:#fff; border-radius:8px; overflow:hidden;">
+                                                <table class="no-mobile-labels" style="width:100%; font-size:0.95em; background:#fff; border-radius:8px; overflow:hidden;">
                                                     <thead>
                                                         <tr style="background:#ebf8ff; color:#2c5282;">
                                                             <th style="width:28%;">Component</th>
@@ -658,7 +671,7 @@ body.dark-mode .grades-table th {
                                                     </thead>
                                                 </table>
                                                 <div class="activities-scroll-body" style="overflow-y:auto; max-height:180px;">
-                                                <table style="width:100%; font-size:0.95em; background:#fff; border-radius:8px; overflow:hidden;">
+                                                <table class="no-mobile-labels" style="width:100%; font-size:0.95em; background:#fff; border-radius:8px; overflow:hidden;">
                                                     <tbody>
                                                         {% for component, items in grouped.items() %}
                                                             <tr style="background:#f7fafc;"><td colspan="4"><i class="fas fa-layer-group"></i> {{ component }}</td></tr>

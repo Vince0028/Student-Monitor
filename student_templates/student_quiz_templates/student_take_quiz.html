@@ -119,32 +119,6 @@ body.dark-mode .question-header {
             Time Remaining: <span id="timerDisplay">--:--</span>
             <span class="timer-warning" id="timerWarning" style="display:none;">Time is up! Submitting...</span>
         </div>
-        <script>
-            let timeLeft = {{ time_left|int }};
-            let timerDisplay = document.getElementById('timerDisplay');
-            let timerWarning = document.getElementById('timerWarning');
-            let quizForm = document.querySelector('.quiz-content form');
-            function pad(n) { return n < 10 ? '0' + n : n; }
-            function updateTimer() {
-                if (timeLeft <= 0) {
-                    timerDisplay.textContent = '00:00';
-                    timerWarning.style.display = '';
-                    // Disable all inputs
-                    Array.from(quizForm.elements).forEach(e => e.disabled = true);
-                    // Auto-submit with blank answers (grade 0)
-                    setTimeout(function() {
-                        quizForm.submit();
-                    }, 1200);
-                    return;
-                }
-                let min = Math.floor(timeLeft / 60);
-                let sec = timeLeft % 60;
-                timerDisplay.textContent = pad(min) + ':' + pad(sec);
-                timeLeft--;
-                setTimeout(updateTimer, 1000);
-            }
-            updateTimer();
-        </script>
         {% endif %}
         <form method="POST">
             {% for question in questions %}
@@ -161,7 +135,7 @@ body.dark-mode .question-header {
                                 <div class="form-check mb-2">
                                     <input class="form-check-input" type="checkbox" name="answer-{{ question.id }}[]" id="option-{{ loop.index }}-{{ question.id }}" value="{{ loop.index0 }}">
                                     <label class="form-check-label" for="option-{{ loop.index }}-{{ question.id }}">
-                                        {{ option.text }}
+                                        <strong>{{ 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[loop.index0] }}.</strong> {{ option.text }}
                                     </label>
                                 </div>
                             {% endfor %}
@@ -170,7 +144,7 @@ body.dark-mode .question-header {
                                 <div class="form-check mb-2">
                                     <input class="form-check-input" type="radio" name="answer-{{ question.id }}" id="option-{{ loop.index }}-{{ question.id }}" value="{{ loop.index0 }}" required>
                                     <label class="form-check-label" for="option-{{ loop.index }}-{{ question.id }}">
-                                        {{ option.text }}
+                                        <strong>{{ 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[loop.index0] }}.</strong> {{ option.text }}
                                     </label>
                                 </div>
                             {% endfor %}
@@ -196,4 +170,106 @@ body.dark-mode .question-header {
         </form>
     </div>
 </div>
+{% if time_limit and time_left is not none %}
+<script>
+    var timeLeft = {{ time_left|int }};
+    var timerDisplay = document.getElementById('timerDisplay');
+    var timerWarning = document.getElementById('timerWarning');
+    var quizForm = document.querySelector('.quiz-content form');
+    function pad(n) { return n < 10 ? '0' + n : n; }
+    function updateTimer() {
+        if (timeLeft <= 0) {
+            timerDisplay.textContent = '00:00';
+            timerWarning.style.display = '';
+            // Ensure all answers are registered
+            var fields = quizForm.querySelectorAll('input, textarea');
+            for (var j = 0; j < fields.length; j++) {
+                fields[j].blur();
+            }
+            // Auto-submit with blank answers (grade 0)
+            setTimeout(function() {
+                quizForm.submit();
+            }, 1200);
+            return;
+        }
+        var min = Math.floor(timeLeft / 60);
+        var sec = timeLeft % 60;
+        timerDisplay.textContent = pad(min) + ':' + pad(sec);
+        timeLeft--;
+        setTimeout(updateTimer, 1000);
+    }
+    updateTimer();
+</script>
+{% endif %}
+<script>
+// --- LocalStorage Autosave for Quiz Answers ---
+(function() {
+    var quizId = '{{ quiz.id }}';
+    var form = document.querySelector('.quiz-content form');
+    if (!form) return;
+    var storageKey = 'quiz_autosave_' + quizId;
+
+    // Restore saved answers
+    var saved = localStorage.getItem(storageKey);
+    if (saved) {
+        try {
+            var data = JSON.parse(saved);
+            Object.keys(data).forEach(function(name) {
+                var els = form.elements[name];
+                if (!els) return;
+                if (Array.isArray(els)) {
+                    for (var i = 0; i < els.length; i++) {
+                        if (Array.isArray(data[name])) {
+                            els[i].checked = data[name].includes(els[i].value);
+                        } else {
+                            els[i].checked = (els[i].value === data[name]);
+                        }
+                    }
+                } else if (els.type === 'checkbox' || els.type === 'radio') {
+                    if (Array.isArray(data[name])) {
+                        els.checked = data[name].includes(els.value);
+                    } else {
+                        els.checked = (els.value === data[name]);
+                    }
+                } else {
+                    els.value = data[name];
+                }
+            });
+        } catch (e) {}
+    }
+    // Save answers on change
+    form.addEventListener('input', function() {
+        var data = {};
+        for (var i = 0; i < form.elements.length; i++) {
+            var el = form.elements[i];
+            if (!el.name) continue;
+            if (el.type === 'checkbox') {
+                if (!data[el.name]) data[el.name] = [];
+                if (el.checked) data[el.name].push(el.value);
+            } else if (el.type === 'radio') {
+                if (el.checked) data[el.name] = el.value;
+            } else {
+                data[el.name] = el.value;
+            }
+        }
+        localStorage.setItem(storageKey, JSON.stringify(data));
+    });
+    // Clear autosave on submit
+    form.addEventListener('submit', function() {
+        localStorage.removeItem(storageKey);
+    });
+
+    // --- Auto-submit if timer is up and answers exist ---
+    if (typeof timeLeft !== 'undefined' && timeLeft <= 0 && saved) {
+        // Only submit if not already submitted
+        if (!form.dataset.autosubmitted) {
+            form.dataset.autosubmitted = '1';
+            if (timerWarning) timerWarning.style.display = '';
+            setTimeout(function() {
+                form.submit();
+            }, 800);
+        }
+    }
+})();
+</script>
 {% endblock %} 

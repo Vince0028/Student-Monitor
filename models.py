@@ -244,7 +244,43 @@ class TeacherLog(Base):
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     # Relationships: see main app for back_populates
     def __repr__(self):
-        return f"<TeacherLog(id={self.id}, teacher='{self.teacher_username}', action='{self.action_type}', target='{self.target_name}')>" 
+        return f"<TeacherLog(id={self.id}, teacher='{self.teacher_username}', action='{self.action_type}', target='{self.target_name}')>"
+
+class StudentLog(Base):
+    __tablename__ = 'student_logs'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    student_id = Column(PG_UUID(as_uuid=True), ForeignKey('students_info.id'), nullable=False)
+    student_username = Column(String(255), nullable=False)
+    action_type = Column(String(50), nullable=False)  # 'login', 'logout', 'profile_update', 'quiz_submit', 'quiz_view', 'grade_view', 'attendance_view', 'password_change'
+    target_type = Column(String(50), nullable=False)  # 'quiz', 'grade', 'attendance', 'profile', 'system'
+    target_id = Column(PG_UUID(as_uuid=True), nullable=True)
+    target_name = Column(String(255), nullable=False)
+    details = Column(String, nullable=True)
+    section_period_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_periods.id'), nullable=True)
+    subject_id = Column(PG_UUID(as_uuid=True), ForeignKey('section_subjects.id'), nullable=True)
+    ip_address = Column(String(45), nullable=True)  # Store IP address for security tracking
+    user_agent = Column(String(500), nullable=True)  # Store browser/device info
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    
+    def __repr__(self):
+        return f"<StudentLog(id={self.id}, student='{self.student_username}', action='{self.action_type}', target='{self.target_name}')>"
+
+class AdminLog(Base):
+    __tablename__ = 'admin_logs'
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    admin_id = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    admin_username = Column(String(255), nullable=False)
+    action_type = Column(String(50), nullable=False)  # 'add_user', 'edit_user', 'delete_user', 'add_grade_level', 'edit_grade_level', 'delete_grade_level', 'add_strand', 'edit_strand', 'delete_strand', 'add_section', 'edit_section', 'delete_section', 'add_section_period', 'edit_section_period', 'delete_section_period', 'add_subject', 'edit_subject', 'delete_subject', 'assign_parent', 'unassign_parent', 'sync_students', 'export_data', 'view_logs', 'system_config'
+    target_type = Column(String(50), nullable=False)  # 'user', 'grade_level', 'strand', 'section', 'section_period', 'subject', 'student', 'parent', 'system', 'log'
+    target_id = Column(PG_UUID(as_uuid=True), nullable=True)
+    target_name = Column(String(255), nullable=False)
+    details = Column(String, nullable=True)
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(String(500), nullable=True)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    
+    def __repr__(self):
+        return f"<AdminLog(id={self.id}, admin='{self.admin_username}', action='{self.action_type}', target='{self.target_name}')>"
 
 class Parent(Base):
     __tablename__ = 'parents'

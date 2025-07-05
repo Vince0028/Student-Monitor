@@ -158,6 +158,9 @@
                                        class="btn btn-sm btn-primary">
                                         View Details
                                     </a>
+                                    <button class="btn btn-sm btn-danger ms-1 delete-attendance-btn" data-date="{{ date.date.strftime('%Y-%m-%d') }}">
+                                        Delete
+                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -174,6 +177,37 @@
             <i class="fas fa-arrow-left"></i> Back to Attendance Form
         </a>
     </div>
+</div>
+
+<!-- Delete Attendance Modal -->
+<div class="modal fade" id="deleteAttendanceModal" tabindex="-1" aria-labelledby="deleteAttendanceModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteAttendanceModalLabel">Delete Attendance Record</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete all attendance records for <span id="deleteAttendanceDate"></span>? This action cannot be undone.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteAttendanceBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification for Delete -->
+<div class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 9999">
+  <div id="deleteToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="deleteToastBody">
+        <!-- Message will go here -->
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -235,6 +269,71 @@ document.addEventListener('DOMContentLoaded', function() {
         Array.from(dateRows).forEach(row => {
             const dateValue = row.querySelector('.date-value').textContent;
             row.classList.toggle('hidden', filterDate && dateValue !== filterDate);
+        });
+    });
+
+    // Delete attendance logic
+    let deleteDate = null;
+    let deleteRow = null;
+    let deleteBtn = null;
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteAttendanceModal'));
+    const deleteAttendanceDate = document.getElementById('deleteAttendanceDate');
+    const confirmDeleteAttendanceBtn = document.getElementById('confirmDeleteAttendanceBtn');
+    const deleteToastEl = document.getElementById('deleteToast');
+    const deleteToastBody = document.getElementById('deleteToastBody');
+
+    document.querySelectorAll('.delete-attendance-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            deleteDate = this.getAttribute('data-date');
+            deleteRow = this.closest('tr');
+            deleteBtn = this;
+            deleteAttendanceDate.textContent = deleteDate;
+            deleteModal.show();
+        });
+    });
+
+    confirmDeleteAttendanceBtn.addEventListener('click', function() {
+        if (!deleteDate) return;
+        // Show loading spinner on the delete button
+        if (deleteBtn) {
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...';
+        }
+        confirmDeleteAttendanceBtn.disabled = true;
+        confirmDeleteAttendanceBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...';
+        fetch("{{ url_for('delete_attendance_date', section_period_id=section_period.id, subject_id=subject.id) }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ date: deleteDate })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (deleteRow) deleteRow.remove();
+                deleteModal.hide();
+                // Show toast notification
+                deleteToastBody.textContent = `Attendance for ${deleteDate} deleted successfully.`;
+                const toast = new bootstrap.Toast(deleteToastEl, { delay: 2000, autohide: true });
+                toast.show();
+                setTimeout(function() { window.location.reload(); }, 1500);
+            } else {
+                alert(data.message || 'Failed to delete attendance record.');
+            }
+        })
+        .catch(() => {
+            alert('An error occurred while deleting the attendance record.');
+        })
+        .finally(() => {
+            // Restore button state
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = 'Delete';
+            }
+            confirmDeleteAttendanceBtn.disabled = false;
+            confirmDeleteAttendanceBtn.innerHTML = 'Delete';
         });
     });
 });

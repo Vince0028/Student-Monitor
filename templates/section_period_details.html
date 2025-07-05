@@ -23,10 +23,31 @@
         </div>
     </div>
 
-    {% if section_period.period_name|lower == '2nd semester' %}
+    {% set q_suffix = {'quarter 2': '-Q2', 'quarter 3': '-Q3', 'quarter 4': '-Q4'}[section_period.period_name.lower()] %}
+    {% set ns = namespace(already_synced=False) %}
+    {% for s in students %}
+        {% if q_suffix is defined and s.student_id_number is defined and (s.student_id_number|string).endswith(q_suffix|string) %}
+            {% set ns.already_synced = True %}
+        {% endif %}
+    {% endfor %}
+    {% if section_period.period_type == 'Quarter' and section_period.section.grade_level.level_type == 'JHS' and section_period.period_name.lower() in ['quarter 2', 'quarter 3', 'quarter 4'] %}
+    <form method="POST" action="{{ url_for('sync_students_from_quarter1', section_period_id=section_period.id) }}" style="display:inline;">
+        <button type="submit" class="btn btn-warning mb-3" {% if ns.already_synced %}disabled{% endif %}>
+            <i class="fas fa-user-friends"></i> {% if ns.already_synced %}Students Synced{% else %}Sync Students from Quarter 1{% endif %}
+        </button>
+    </form>
+    {% endif %}
+
+    {% set ns_shs = namespace(already_synced_shs=False) %}
+    {% for s in students %}
+        {% if s.student_id_number is defined and (s.student_id_number|string).endswith('-S2') %}
+            {% set ns_shs.already_synced_shs = True %}
+        {% endif %}
+    {% endfor %}
+    {% if section_period.period_type == 'Semester' and section_period.period_name.lower() == '2nd semester' and section_period.section.grade_level.level_type == 'SHS' %}
     <form method="POST" action="{{ url_for('sync_students_from_first_sem', section_period_id=section_period.id) }}" style="display:inline;">
-        <button type="submit" class="btn btn-warning mb-3">
-            <i class="fas fa-user-friends"></i> Sync Students from 1st Semester
+        <button type="submit" class="btn btn-warning mb-3" {% if ns_shs.already_synced_shs %}disabled{% endif %}>
+            <i class="fas fa-user-friends"></i> {% if ns_shs.already_synced_shs %}Students Synced{% else %}Sync Students from 1st Semester{% endif %}
         </button>
     </form>
     {% endif %}

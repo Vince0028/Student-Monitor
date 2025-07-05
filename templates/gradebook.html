@@ -28,20 +28,17 @@
         position: relative;
     }
     .delete-item-btn {
-        position: absolute;
-        top: 2px;
-        right: 2px;
-        width: 22px;
-        height: 22px;
-        min-width: 22px;
-        min-height: 22px;
-        max-width: 22px;
-        max-height: 22px;
+        width: 18px;
+        height: 18px;
+        min-width: 18px;
+        min-height: 18px;
+        max-width: 18px;
+        max-height: 18px;
         padding: 0;
-        border-radius: 50%;
-        font-size: 0.95rem;
+        border-radius: 0;
+        font-size: 0.85em;
         line-height: 1;
-        display: none;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
     }
@@ -89,13 +86,17 @@
         font-size: 0.92em;
     }
     .gradebook-table th, .gradebook-table td {
-        min-width: 48px;
-        max-width: 120px;
-        padding: 2px 6px !important;
+        min-width: 90px;
+        max-width: 160px;
+        padding: 2px 8px !important;
         font-size: 0.92em;
+        word-break: break-all;
+        white-space: normal;
+        text-align: center;
+        vertical-align: middle;
     }
     .gradebook-table th.align-middle, .gradebook-table td.align-middle {
-        min-width: 80px;
+        min-width: 100px;
     }
     .gradebook-table th[style*="min-width: 120px"] {
         min-width: 80px !important;
@@ -118,6 +119,7 @@
         border-radius: 4px;
         border: 1px solid #e0e0e0;
         background: #fff;
+        overflow-x: auto;
     }
     .gradebook-scrollable {
         max-height: 400px;
@@ -191,9 +193,9 @@
                         <li><a class="dropdown-item" href="#" onclick="exportTableToWord('gradeSheetTable', 'gradebook.doc'); return false;">Word (.doc)</a></li>
                     </ul>
                 </div>
-                <a href="{{ url_for('sync_total_grades_for_subject', subject_id=subject.id) }}" class="btn btn-primary">
+                <button id="sync-grades-btn" class="btn btn-primary">
                     <i class="fas fa-sync"></i> Sync Total Grades
-                </a>
+                </button>
             </div>
         </div>
         <div class="card-body">
@@ -228,8 +230,8 @@
                             {% for component in components %}
                                 {% for item in component.items %}
                                 <th class="item-header text-center" title="Max: {{ item.max_score }}" style="vertical-align: bottom; padding-bottom: 2px; border-right: 1px solid #e0e0e0;">
-                                    <span style="font-size: 0.98em;">{{ item.title }}</span>
-                                    <button class="btn btn-danger btn-xs delete-item-btn" style="padding: 2px 7px; font-size: 0.9em; margin-left: 2px;" data-item-id="{{ item.id }}" title="Delete {{ item.title }}"><i class="fas fa-times"></i></button>
+                                    <span style="font-size: 0.98em; display: inline-block; vertical-align: middle;">{{ item.title }}</span>
+                                    <button class="btn btn-danger btn-xs delete-item-btn" style="margin-left: 6px; padding: 0; width: 18px; height: 18px; min-width: 0; min-height: 0; border-radius: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85em; vertical-align: middle;" data-item-id="{{ item.id }}" title="Delete {{ item.title }}"><i class="fas fa-times"></i></button>
                                 </th>
                                 {% endfor %}
                                 <th class="text-center" style="vertical-align: bottom; font-size: 0.98em; border-right: 2px solid #e0e0e0;">%</th>
@@ -248,14 +250,14 @@
                             {% for component in components %}
                                 {% for item in component.items %}
                                 <td class="text-center">
-                                    <input type="number" 
-                                           class="form-control form-control-sm grade-input"
-                                           data-item-id="{{ item.id }}"
-                                           data-student-id="{{ student.id }}"
-                                           value="{{ scores.get(student.id, {}).get(item.id, '') }}"
-                                           max="{{ item.max_score }}"
-                                           min="0"
-                                           step="0.01">
+                                    {% set score = scores.get(student.id, {}).get(item.id) %}
+                                    {% if score is not none %}
+                                        <span>
+                                            {{ score|float|round(2) }}/{{ item.max_score|float|round(2) }}
+                                        </span>
+                                    {% else %}
+                                        <span>N/A</span>
+                                    {% endif %}
                                 </td>
                                 {% endfor %}
                                 <td class="text-center font-weight-bold component-average-{{ student.id }}-{{ component.id }}">
@@ -282,14 +284,14 @@
                             {% for component in components %}
                                 {% for item in component.items %}
                                 <td class="text-center">
-                                    <input type="number" 
-                                           class="form-control form-control-sm grade-input"
-                                           data-item-id="{{ item.id }}"
-                                           data-student-id="{{ student.id }}"
-                                           value="{{ scores.get(student.id, {}).get(item.id, '') }}"
-                                           max="{{ item.max_score }}"
-                                           min="0"
-                                           step="0.01">
+                                    {% set score = scores.get(student.id, {}).get(item.id) %}
+                                    {% if score is not none %}
+                                        <span>
+                                            {{ score|float|round(2) }}/{{ item.max_score|float|round(2) }}
+                                        </span>
+                                    {% else %}
+                                        <span>N/A</span>
+                                    {% endif %}
                                 </td>
                                 {% endfor %}
                                 <td class="text-center font-weight-bold component-average-{{ student.id }}-{{ component.id }}">
@@ -377,31 +379,12 @@
   </div>
 </div>
 
-<!-- Sync Grades Confirmation Modal -->
-<div class="modal fade" id="syncGradesModal" tabindex="-1" aria-labelledby="syncGradesModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="syncGradesModalLabel">Sync Total Grades</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        This will sync all calculated total grades to the database. Continue?
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" id="confirmSyncGradesBtn">Sync Grades</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Toast for Success/Error -->
-<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
-  <div id="syncGradesToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+<!-- Toast Notification -->
+<div class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 9999">
+  <div id="syncToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
     <div class="d-flex">
-      <div class="toast-body" id="syncGradesToastBody">
-        Grades synced successfully!
+      <div class="toast-body" id="syncToastBody">
+        <!-- Message will go here -->
       </div>
       <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
     </div>
@@ -551,56 +534,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
         }
+
+        var syncBtn = document.getElementById('sync-grades-btn');
+        if (syncBtn) {
+            syncBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                syncBtn.disabled = true;
+                syncBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Syncing...';
+                fetch("{{ url_for('sync_total_grades_for_subject', subject_id=subject.id) }}", {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    // Show Bootstrap Toast (centered, auto-hide)
+                    const toastBody = document.getElementById('syncToastBody');
+                    toastBody.textContent = data.message;
+                    const toastEl = document.getElementById('syncToast');
+                    const toast = new bootstrap.Toast(toastEl, { delay: 3000, autohide: true });
+                    toast.show();
+                })
+                .catch(() => {
+                    // Show error toast
+                    const toastBody = document.getElementById('syncToastBody');
+                    toastBody.textContent = 'An error occurred while syncing grades.';
+                    const toastEl = document.getElementById('syncToast');
+                    const toast = new bootstrap.Toast(toastEl, { delay: 3000, autohide: true });
+                    toast.show();
+                })
+                .finally(() => {
+                    syncBtn.disabled = false;
+                    syncBtn.innerHTML = '<i class="fas fa-sync"></i> Sync Total Grades';
+                });
+            });
+        }
     } catch (error) {
         console.error("Error in gradebook script:", error);
     }
 });
 
-function syncTotalGrades() {
-    var modal = new bootstrap.Modal(document.getElementById('syncGradesModal'));
-    modal.show();
-    document.getElementById('confirmSyncGradesBtn').onclick = function() {
-        modal.hide();
-        fetch(`/subject/{{ subject.id }}/sync-total-grades`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            var toastEl = document.getElementById('syncGradesToast');
-            var toastBody = document.getElementById('syncGradesToastBody');
-            if (data.success) {
-                toastEl.classList.remove('text-bg-danger');
-                toastEl.classList.add('text-bg-success');
-                toastBody.textContent = data.message || 'Grades synced successfully!';
-                var toast = new bootstrap.Toast(toastEl);
-                toast.show();
-                setTimeout(() => { location.reload(); }, 1200);
-            } else {
-                toastEl.classList.remove('text-bg-success');
-                toastEl.classList.add('text-bg-danger');
-                toastBody.textContent = data.message || 'Error syncing grades.';
-                var toast = new bootstrap.Toast(toastEl);
-                toast.show();
-            }
-        })
-        .catch(error => {
-            var toastEl = document.getElementById('syncGradesToast');
-            var toastBody = document.getElementById('syncGradesToastBody');
-            toastEl.classList.remove('text-bg-success');
-            toastEl.classList.add('text-bg-danger');
-            toastBody.textContent = 'An error occurred while syncing grades.';
-            var toast = new bootstrap.Toast(toastEl);
-            toast.show();
-        });
-    };
-}
-</script>
-
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-<script>
 function exportTableToExcel(tableID, filename = '') {
     // Clone the table and remove the last column (Actions)
     var table = document.getElementById(tableID);
@@ -664,4 +636,6 @@ function exportTableToWord(tableID, filename = '') {
     document.body.removeChild(downloadLink);
 }
 </script>
+
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 {% endblock %}

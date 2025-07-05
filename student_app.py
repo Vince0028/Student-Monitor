@@ -18,7 +18,7 @@ from sqlalchemy.sql import func
 # This is a circular dependency, so it's better to move models to a separate file
 # For now, we will import them here
 from app import SectionSubject, Grade, SectionPeriod
-from models import Quiz, StudentQuizResult, Base, StudentQuizAnswer, StudentInfo, Parent, Section, GradingSystem, GradingComponent, GradableItem, StudentScore, Attendance
+from models import Quiz, StudentQuizResult, Base, StudentQuizAnswer, StudentInfo, Parent, Section, GradingSystem, GradingComponent, GradableItem, StudentScore, Attendance, StudentLog
 
 load_dotenv()
 
@@ -125,6 +125,41 @@ def login_required(f):
     return decorated_function
 
 # --- Helper Functions ---
+def get_client_info(request):
+    """Helper function to get client IP and user agent"""
+    ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+    if ip_address and ',' in ip_address:
+        ip_address = ip_address.split(',')[0].strip()
+    user_agent = request.headers.get('User-Agent', 'Unknown')
+    return ip_address, user_agent
+
+def create_student_log(db_session, student_id, student_username, action_type, target_type, target_id, target_name, details=None, section_period_id=None, subject_id=None, request=None):
+    """
+    Helper function to create student log entries
+    """
+    try:
+        ip_address, user_agent = get_client_info(request) if request else (None, None)
+        log_entry = StudentLog(
+            student_id=student_id,
+            student_username=student_username,
+            action_type=action_type,
+            target_type=target_type,
+            target_id=target_id,
+            target_name=target_name,
+            details=details,
+            section_period_id=section_period_id,
+            subject_id=subject_id,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        db_session.add(log_entry)
+        db_session.commit()
+        return True
+    except Exception as e:
+        db_session.rollback()
+        print(f"Error creating student log: {e}")
+        return False
+
 def get_school_year_options():
     current_year = date.today().year
     school_years = [f"{current_year}-{current_year+1}", f"{current_year-1}-{current_year}", f"{current_year+1}-{current_year+2}"]
@@ -145,6 +180,21 @@ def student_login():
         if student and student.password_hash and password and student.password_hash == password:
             session.clear()
             session['student_id'] = str(student.id)
+            
+            # Log successful login
+            create_student_log(
+                db_session=g.session,
+                student_id=student.id,
+                student_username=student.student_id_number,
+                action_type='login',
+                target_type='system',
+                target_id=None,
+                target_name='Student Login',
+                details=f'Student {student.name} logged in successfully',
+                section_period_id=student.section_period_id,
+                request=request
+            )
+            
             flash('Login successful!', 'success')
             return redirect(url_for('student_dashboard'))
         else:
@@ -154,6 +204,24 @@ def student_login():
 @app.route('/student/logout')
 @login_required
 def student_logout():
+    # Log logout before clearing session
+    student_id = session.get('student_id')
+    if student_id:
+        student = g.session.query(StudentInfo).filter_by(id=student_id).first()
+        if student:
+            create_student_log(
+                db_session=g.session,
+                student_id=student.id,
+                student_username=student.student_id_number,
+                action_type='logout',
+                target_type='system',
+                target_id=None,
+                target_name='Student Logout',
+                details=f'Student {student.name} logged out',
+                section_period_id=student.section_period_id,
+                request=request
+            )
+    
     session.clear()
     flash('You have been logged out.', 'success')
     return redirect(url_for('student_login'))
@@ -469,8 +537,16 @@ def student_quiz():
     db_session = g.session
     student_id = session.get('student_id')
     student = db_session.query(StudentInfo).filter_by(id=student_id).first()
-    quizzes = db_session.query(Quiz).filter_by(section_period_id=student.section_period_id, status='published').all()
-    # Find pending quizzes for this student
+    # --- AGGREGATE ALL PERIODS ---
+    base_id = student.student_id_number.split('-S2')[0]
+    all_student_infos = db_session.query(StudentInfo).filter(
+        StudentInfo.student_id_number.like(f"{base_id}%")
+    ).all()
+    all_section_period_ids = [info.section_period_id for info in all_student_infos]
+    quizzes = db_session.query(Quiz).filter(
+        Quiz.section_period_id.in_(all_section_period_ids),
+        Quiz.status == 'published'
+    ).all()
     import json
     pending_quizzes = []
     for quiz in quizzes:
@@ -481,7 +557,6 @@ def student_quiz():
         essay_qids = [str(q['id']) for q in questions if q.get('type') == 'essay_type']
         if not essay_qids:
             continue
-        # Get this student's attempt for this quiz
         sqr = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz.id).first()
         if not sqr:
             continue  # Not taken yet
@@ -492,7 +567,20 @@ def student_quiz():
             StudentQuizAnswer.score.is_(None)
         ).first()
         if unscored:
-            pending_quizzes.append(quiz)
+            subject_name = None
+            if quiz.subject_id:
+                subj = db_session.query(SectionSubject).filter_by(id=quiz.subject_id).first()
+                subject_name = subj.subject_name if subj else None
+            section_period = db_session.query(SectionPeriod).filter_by(id=quiz.section_period_id).first()
+            period_name = section_period.period_name if section_period else None
+            period_type = section_period.period_type if section_period else None
+            pending_quizzes.append({
+                'quiz_id': quiz.id,
+                'title': quiz.title,
+                'subject_name': subject_name,
+                'period_name': period_name,
+                'period_type': period_type
+            })
     return render_template('student_quiz_templates/student_quiz_dashboard.html', quizzes=quizzes, pending_quizzes=pending_quizzes)
 
 @app.route('/student/quiz/upcoming')
@@ -501,7 +589,15 @@ def student_upcoming_quizzes():
     db_session = g.session
     student_id = session.get('student_id')
     student = db_session.query(StudentInfo).filter_by(id=student_id).first()
-    all_quizzes = db_session.query(Quiz).filter_by(section_period_id=student.section_period_id, status='published').all()
+    base_id = student.student_id_number.split('-S2')[0]
+    all_student_infos = db_session.query(StudentInfo).filter(
+        StudentInfo.student_id_number.like(f"{base_id}%")
+    ).all()
+    all_section_period_ids = [info.section_period_id for info in all_student_infos]
+    all_quizzes = db_session.query(Quiz).filter(
+        Quiz.section_period_id.in_(all_section_period_ids),
+        Quiz.status == 'published'
+    ).all()
     from models import SectionSubject, StudentQuizResult
     import json
     from datetime import datetime, timezone
@@ -509,7 +605,6 @@ def student_upcoming_quizzes():
     upcoming_quizzes = []
     for q in all_quizzes:
         result = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=q.id).first()
-        # --- Timer logic: auto-complete if expired ---
         expired = False
         if q.time_limit_minutes and result and not result.completed_at:
             now = datetime.now(timezone.utc)
@@ -519,9 +614,7 @@ def student_upcoming_quizzes():
                     started_at = started_at.replace(tzinfo=timezone.utc)
                 elapsed = (now - started_at).total_seconds()
                 if elapsed >= q.time_limit_minutes * 60:
-                    # Auto-complete
                     result.completed_at = now
-                    # Set score to 0 if not graded
                     score_is_zero = (result.score is None) or (isinstance(result.score, Decimal) and result.score == Decimal(0))
                     points_is_zero = (result.total_points is None) or (isinstance(result.total_points, Decimal) and result.total_points == Decimal(0))
                     if score_is_zero and points_is_zero:
@@ -530,7 +623,21 @@ def student_upcoming_quizzes():
                         result.total_points = Decimal(str(sum(float(qq.get('points', 1)) for qq in questions)))
                     db_session.commit()
                     expired = True
-        # Show if not started or in-progress (not completed and not just expired)
+        # --- Status logic: skip if essay is pending ---
+        essay_qids = []
+        try:
+            questions = json.loads(q.questions_json or '[]')
+            essay_qids = [str(qq['id']) for qq in questions if qq.get('type') == 'essay_type']
+        except Exception:
+            pass
+        if result and essay_qids:
+            unscored = db_session.query(StudentQuizAnswer).filter(
+                StudentQuizAnswer.student_quiz_result_id == result.id,
+                StudentQuizAnswer.question_id.in_(essay_qids),
+                StudentQuizAnswer.score.is_(None)
+            ).first()
+            if unscored:
+                continue  # Don't show as upcoming if essay is pending
         if (not result or not result.completed_at) and not expired:
             subject_name = None
             if q.subject_id:
@@ -538,7 +645,9 @@ def student_upcoming_quizzes():
                 subject_name = subj.subject_name if subj else None
             q.subject_name = subject_name
             q.deadline = getattr(q, 'deadline', None)
-            # --- Timer logic for display ---
+            section_period = db_session.query(SectionPeriod).filter_by(id=q.section_period_id).first()
+            q.period_name = section_period.period_name if section_period else None
+            q.period_type = section_period.period_type if section_period else None
             q.time_left = None
             if q.time_limit_minutes:
                 now = datetime.now(timezone.utc)
@@ -549,7 +658,6 @@ def student_upcoming_quizzes():
                         started_at = started_at.replace(tzinfo=timezone.utc)
                     elapsed = (now - started_at).total_seconds()
                     q.time_left = max(0, int(q.time_limit_minutes * 60 - elapsed))
-                # If not started, do not set time_left (leave as None)
             upcoming_quizzes.append(q)
     return render_template('student_quiz_templates/student_upcoming_quizzes.html', upcoming_quizzes=upcoming_quizzes)
 
@@ -559,7 +667,16 @@ def student_completed_quizzes():
     db_session = g.session
     student_id = session.get('student_id')
     from models import StudentQuizResult, StudentQuizAnswer, SectionSubject
-    completed_results = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id).filter(StudentQuizResult.completed_at.isnot(None)).all()
+    student = db_session.query(StudentInfo).filter_by(id=student_id).first()
+    base_id = student.student_id_number.split('-S2')[0]
+    all_student_infos = db_session.query(StudentInfo).filter(
+        StudentInfo.student_id_number.like(f"{base_id}%")
+    ).all()
+    all_student_ids = [info.id for info in all_student_infos]
+    completed_results = db_session.query(StudentQuizResult).filter(
+        StudentQuizResult.student_info_id.in_(all_student_ids),
+        StudentQuizResult.completed_at.isnot(None)
+    ).all()
     completed_quizzes = []
     import json
     def format_number(n):
@@ -582,32 +699,102 @@ def student_completed_quizzes():
                 ).all()
                 if answers:
                     is_essay_pending = True
-            # Only append if not pending
             if not is_essay_pending:
+                section_period = db_session.query(SectionPeriod).filter_by(id=quiz.section_period_id).first() if quiz else None
+                period_name = section_period.period_name if section_period else None
+                period_type = section_period.period_type if section_period else None
                 completed_quizzes.append({
                     'id': quiz.id,
                     'title': quiz.title,
                     'score': format_number(result.score),
                     'total_points': format_number(result.total_points),
                     'is_essay_pending': is_essay_pending,
-                    'subject_name': subject_name
+                    'subject_name': subject_name,
+                    'period_name': period_name,
+                    'period_type': period_type
                 })
     return render_template('student_quiz_templates/student_completed_quizzes.html', completed_quizzes=completed_quizzes)
+
+@app.route('/student/quiz/pending')
+@login_required
+def student_pending_quizzes():
+    db_session = g.session
+    student_id = session.get('student_id')
+    student = db_session.query(StudentInfo).filter_by(id=student_id).first()
+    # --- AGGREGATE ALL PERIODS ---
+    base_id = student.student_id_number.split('-S2')[0]
+    all_student_infos = db_session.query(StudentInfo).filter(
+        StudentInfo.student_id_number.like(f"{base_id}%")
+    ).all()
+    all_section_period_ids = [info.section_period_id for info in all_student_infos]
+    quizzes = db_session.query(Quiz).filter(
+        Quiz.section_period_id.in_(all_section_period_ids),
+        Quiz.status == 'published'
+    ).all()
+    import json
+    pending_quizzes = []
+    for quiz in quizzes:
+        try:
+            questions = json.loads(quiz.questions_json or '[]')
+        except Exception:
+            questions = []
+        essay_qids = [str(q['id']) for q in questions if q.get('type') == 'essay_type']
+        if not essay_qids:
+            continue
+        # Get this student's attempt for this quiz
+        sqr = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz.id).first()
+        if not sqr:
+            continue  # Not taken yet
+        # Check if any essay_type is unscored
+        unscored = db_session.query(StudentQuizAnswer).filter(
+            StudentQuizAnswer.student_quiz_result_id == sqr.id,
+            StudentQuizAnswer.question_id.in_(essay_qids),
+            StudentQuizAnswer.score.is_(None)
+        ).first()
+        if unscored:
+            # Get subject name
+            subject_name = None
+            if quiz.subject_id:
+                subj = db_session.query(SectionSubject).filter_by(id=quiz.subject_id).first()
+                subject_name = subj.subject_name if subj else None
+            # Get period info
+            section_period = db_session.query(SectionPeriod).filter_by(id=quiz.section_period_id).first()
+            period_name = section_period.period_name if section_period else None
+            period_type = section_period.period_type if section_period else None
+            pending_quizzes.append({
+                'quiz_id': quiz.id,
+                'title': quiz.title,
+                'subject_name': subject_name,
+                'period_name': period_name,
+                'period_type': period_type
+            })
+    return render_template('student_quiz_templates/student_quiz_pending.html', pending_quizzes=pending_quizzes)
 
 @app.route('/student/quiz/<uuid:quiz_id>', methods=['GET', 'POST'])
 @login_required
 def take_quiz(quiz_id):
-    from decimal import Decimal  # Ensure Decimal is always in scope
+    from decimal import Decimal, ROUND_HALF_UP
+    db_session = g.session
     student_id = uuid.UUID(session['student_id'])
-    quiz = g.session.query(Quiz).filter_by(id=quiz_id).first()
+    quiz = db_session.query(Quiz).filter_by(id=quiz_id).first()
     if not quiz:
         flash('Quiz not found.', 'error')
+        return redirect(url_for('student_quiz'))
+    # --- Check student is enrolled in this section_period ---
+    student = db_session.query(StudentInfo).filter_by(id=student_id).first()
+    base_id = student.student_id_number.split('-S2')[0]
+    all_student_infos = db_session.query(StudentInfo).filter(
+        StudentInfo.student_id_number.like(f"{base_id}%")
+    ).all()
+    all_section_period_ids = [info.section_period_id for info in all_student_infos]
+    if quiz.section_period_id not in all_section_period_ids:
+        flash('You are not enrolled in the period for this quiz.', 'error')
         return redirect(url_for('student_quiz'))
     import json
     questions = json.loads(quiz.questions_json)
     time_limit = quiz.time_limit_minutes
     now = datetime.now(timezone.utc)
-    result = g.session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz_id).first()
+    result = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz_id).first()
     started_at = None
     time_left = None
     # --- Always create a result if not exists, regardless of timer ---
@@ -619,14 +806,14 @@ def take_quiz(quiz_id):
             total_points=0,
             started_at=now
         )
-        g.session.add(result)
-        g.session.commit()
+        db_session.add(result)
+        db_session.commit()
         started_at = now
     else:
         started_at = getattr(result, 'started_at', None)
         if not started_at:
             result.started_at = now
-            g.session.commit()
+            db_session.commit()
             started_at = now
     # --- Timer logic only if time_limit is set ---
     if time_limit:
@@ -643,7 +830,7 @@ def take_quiz(quiz_id):
                     if score_is_zero and points_is_zero:
                         result.score = Decimal(0)  # type: ignore
                         result.total_points = Decimal(str(sum(float(q.get('points', 1)) for q in questions)))  # type: ignore
-                    g.session.commit()
+                    db_session.commit()
                 flash('Time is up! Your quiz was auto-submitted.')
                 return redirect(url_for('view_quiz_score', quiz_id=quiz_id))
     if request.method == 'POST':
@@ -694,13 +881,12 @@ def take_quiz(quiz_id):
             if correct:
                 total_score += pts
         try:
-            from decimal import Decimal, ROUND_HALF_UP
             dec_score = Decimal(str(total_score)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
             dec_points = Decimal(str(total_points)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
             result.score = dec_score  # type: ignore
             result.total_points = dec_points  # type: ignore
             result.completed_at = now  # type: ignore
-            g.session.flush()
+            db_session.flush()
             for ans in answers_to_store:
                 answer_obj = StudentQuizAnswer(
                     student_quiz_result_id=result.id,
@@ -708,12 +894,27 @@ def take_quiz(quiz_id):
                     answer_text=ans['answer_text'],
                     score=ans['score']
                 )
-                g.session.add(answer_obj)
-            g.session.commit()
+                db_session.add(answer_obj)
+            db_session.commit()
+            # Log quiz submission
+            if student:
+                create_student_log(
+                    db_session=db_session,
+                    student_id=student_id,
+                    student_username=student.student_id_number,
+                    action_type='quiz_submit',
+                    target_type='quiz',
+                    target_id=quiz_id,
+                    target_name=quiz.title,
+                    details=f'Submitted quiz "{quiz.title}" with score {total_score}/{total_points}',
+                    section_period_id=quiz.section_period_id,
+                    subject_id=quiz.subject_id,
+                    request=request
+                )
             flash('Quiz submitted successfully!', 'success')
             return redirect(url_for('view_quiz_score', quiz_id=quiz_id))
         except Exception as e:
-            g.session.rollback()
+            db_session.rollback()
             flash('An error occurred while submitting your quiz. Please try again.', 'error')
             return redirect(url_for('student_quiz'))
     return render_template('student_quiz_templates/student_take_quiz.html', quiz=quiz, questions=questions, time_left=time_left, time_limit=time_limit)
@@ -721,9 +922,10 @@ def take_quiz(quiz_id):
 @app.route('/student/quiz/<uuid:quiz_id>/score')
 @login_required
 def view_quiz_score(quiz_id):
+    db_session = g.session
     student_id = uuid.UUID(session['student_id'])
-    quiz = g.session.query(Quiz).filter_by(id=quiz_id).first()
-    result = g.session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz_id).first()
+    quiz = db_session.query(Quiz).filter_by(id=quiz_id).first()
+    result = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz_id).first()
     if not quiz or not result:
         flash('Quiz or result not found.', 'error')
         return redirect(url_for('student_quiz'))
@@ -732,45 +934,6 @@ def view_quiz_score(quiz_id):
     score = format_number(result.score)
     total_points = format_number(result.total_points)
     return render_template('student_quiz_templates/student_quiz_results.html', quiz_title=quiz.title, score=score, total_questions=total_points)
-
-@app.route('/student/quiz/pending')
-@login_required
-def student_pending_quizzes():
-    db_session = g.session
-    student_id = session.get('student_id')
-    student = db_session.query(StudentInfo).filter_by(id=student_id).first()
-    quizzes = db_session.query(Quiz).filter_by(section_period_id=student.section_period_id, status='published').all()
-    import json
-    pending_quizzes = []
-    for quiz in quizzes:
-        try:
-            questions = json.loads(quiz.questions_json or '[]')
-        except Exception:
-            questions = []
-        essay_qids = [str(q['id']) for q in questions if q.get('type') == 'essay_type']
-        if not essay_qids:
-            continue
-        # Get this student's attempt for this quiz
-        sqr = db_session.query(StudentQuizResult).filter_by(student_info_id=student_id, quiz_id=quiz.id).first()
-        if not sqr:
-            continue  # Not taken yet
-        # Check if any essay_type is unscored
-        unscored = db_session.query(StudentQuizAnswer).filter(
-            StudentQuizAnswer.student_quiz_result_id == sqr.id,
-            StudentQuizAnswer.question_id.in_(essay_qids),
-            StudentQuizAnswer.score.is_(None)
-        ).first()
-        if unscored:
-            pending_quizzes.append({
-                'quiz': quiz,
-                'result_id': sqr.id,
-                'quiz_id': quiz.id,
-                'title': quiz.title,
-                'subject_id': quiz.subject_id,
-                'score': sqr.score,
-                'total_points': sqr.total_points
-            })
-    return render_template('student_quiz_templates/student_quiz_pending.html', pending_quizzes=pending_quizzes)
 
 if __name__ == '__main__':
     # To access on your mobile device, run with host='0.0.0.0' and your desired port (e.g., 5002):

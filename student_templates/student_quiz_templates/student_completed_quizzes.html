@@ -18,6 +18,9 @@
                 {% if quiz.subject_name %}
                 <div style="text-align:center; color:#888; font-size:1.05rem; font-weight:bold; margin-bottom:0.2rem;">{{ quiz.subject_name }}</div>
                 {% endif %}
+                {% if quiz.period_name and quiz.period_type %}
+                <div style="text-align:center; color:#1976d2; font-size:0.97rem; margin-bottom:0.2rem;">{{ quiz.period_type }}: <strong>{{ quiz.period_name }}</strong></div>
+                {% endif %}
                 <div class="feature-card-desc">You scored <strong>{{ quiz.score }}</strong> out of <strong>{{ quiz.total_points }}</strong>.</div>
             </a>
             {% endfor %}

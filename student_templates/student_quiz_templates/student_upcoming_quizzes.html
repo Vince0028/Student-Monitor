@@ -15,6 +15,11 @@
                     {% if quiz.subject_name %}
                     <div style="color:#888; font-size:0.98rem; margin-bottom:0.2rem;">Subject: <strong>{{ quiz.subject_name }}</strong></div>
                     {% endif %}
+                    {% if quiz.period_name and quiz.period_type %}
+                    <div style="color:#1976d2; font-size:0.97rem; margin-bottom:0.2rem;">
+                        {{ quiz.period_type }}: <strong>{{ quiz.period_name }}</strong>
+                    </div>
+                    {% endif %}
                     <div class="feature-card-desc">{{ quiz.description or 'Take this quiz now.' }}</div>
                     {% if quiz.time_limit_minutes %}
                         <span class="quiz-timer" style="color:#1976d2; font-weight:500;">
